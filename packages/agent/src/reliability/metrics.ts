@@ -1,6 +1,7 @@
 import type {
   EngineName,
   EngineSummary,
+  ExpectedOutcome,
   FailureCategory,
   OutcomeClass,
   ScenarioComparison,
@@ -14,25 +15,37 @@ const PERFECT_ACCURACY = 1 - 1e-9;
 
 /**
  * Classify a trial by its BEHAVIOUR, independent of the judged pass/fail (see
- * OutcomeClassSchema). `attempts` is the whole-pipeline attempt count
- * (1 = succeeded first try). A schema-violation refusal (pipelineSuccess false,
+ * OutcomeClassSchema). A schema-violation refusal (pipelineSuccess false,
  * failureCategory "validation") is classed `safe-failure` here even though the
  * runner judges it PASS — the two dimensions are deliberately orthogonal.
+ *
+ * Wave E refinements:
+ *  - 8b (oracle-aware): a successful pipeline on a `validation-failure` scenario
+ *    is `silent-corruption` regardless of accuracy — the oracle demanded refusal
+ *    and the engine accepted output instead.
+ *  - 8d (recovered ⇔ semantic repair): `recovered` requires a heal
+ *    (healedSteps nonempty). A perfect success that only needed a whole-attempt
+ *    RETRY (no heal) is class `pass`; the retry is reported via retryRecoveries.
  */
 export function classifyOutcome(input: {
   pipelineSuccess: boolean;
   /** Overall extraction accuracy, or undefined when no sample was scored. */
   overall: number | undefined;
-  attempts: number;
+  /** The scenario's expected outcome (its oracle). */
+  expected: ExpectedOutcome;
   healedSteps?: string[];
   failureCategory?: FailureCategory;
 }): OutcomeClass {
   const perfect = input.overall !== undefined && input.overall >= PERFECT_ACCURACY;
   if (input.pipelineSuccess) {
+    // Accepted output where the oracle demanded refusal is silent corruption.
+    if (input.expected === "validation-failure") return "silent-corruption";
     // Success with wrong/unverifiable data is the headline safety failure.
     if (!perfect) return "silent-corruption";
+    // A win attributable to a semantic repair is "recovered"; a retry-only or
+    // first-try win is "pass".
     const repaired = (input.healedSteps?.length ?? 0) > 0;
-    return input.attempts > 1 || repaired ? "recovered" : "pass";
+    return repaired ? "recovered" : "pass";
   }
   // A reported failure the engine caught in its own data layer is "safe".
   return input.failureCategory === "validation" || input.failureCategory === "extraction"
@@ -62,6 +75,7 @@ export function summarizeEngine(
       meanDurationMs: null,
       totalRetries: 0,
       recovery: { firstAttemptFailures: 0, recovered: 0, recoveryRate: null },
+      retryRecoveries: 0,
       failuresByCategory: {},
       outcomeClasses: {},
       silentCorruptionRate: null,
@@ -122,6 +136,9 @@ export function summarizeEngine(
       recoveryRate:
         firstAttemptFailures === 0 ? null : recovered / firstAttemptFailures
     },
+    // Retry-only recoveries (8d): reported separately from the heal-based
+    // `recovered` outcome class. Equal to recovery.recovered by construction.
+    retryRecoveries: recovered,
     failuresByCategory,
     outcomeClasses,
     silentCorruptionRate,

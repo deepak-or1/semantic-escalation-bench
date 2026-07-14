@@ -146,3 +146,49 @@ describe("row coverage and overallAccuracy", () => {
     expect(overallAccuracy(undefined, undefined)).toBeUndefined();
   });
 });
+
+describe("entity-completeness guards (Wave E 8e)", () => {
+  const truth = generateGroundTruth(1101);
+
+  it("clean extraction reports zero duplicate and zero unexpected rows", () => {
+    const stats = normalizeStats(truth.teams.map(statsRowFromTruth));
+    const statsReport = scoreStats(stats.teams, truth, []);
+    expect(statsReport.duplicateRows).toBe(0);
+    expect(statsReport.unexpectedRows).toBe(0);
+
+    const odds = normalizeOdds(truth.markets.map(decimalOddsRow));
+    const oddsReport = scoreOdds(odds.markets, truth, []);
+    expect(oddsReport.duplicateRows).toBe(0);
+    expect(oddsReport.unexpectedRows).toBe(0);
+  });
+
+  it("counts a duplicated team row (same key extracted twice)", () => {
+    const rows = truth.teams.map(statsRowFromTruth);
+    rows.push(statsRowFromTruth(truth.teams[0]!)); // the same team, twice
+    const stats = normalizeStats(rows);
+    const report = scoreStats(stats.teams, truth, []);
+    expect(report.duplicateRows).toBe(1);
+    expect(report.unexpectedRows).toBe(0);
+  });
+
+  it("counts a ghost 13th team absent from ground truth", () => {
+    const rows = truth.teams.map(statsRowFromTruth);
+    const ghost = statsRowFromTruth(truth.teams[0]!);
+    ghost.team = "Phantom Wanderers FC"; // a team the page never contained
+    rows.push(ghost);
+    const stats = normalizeStats(rows);
+    const report = scoreStats(stats.teams, truth, []);
+    expect(report.unexpectedRows).toBe(1);
+    expect(report.duplicateRows).toBe(0);
+  });
+
+  it("counts a ghost fixture on the odds board", () => {
+    const rows = truth.markets.map(decimalOddsRow);
+    const ghost = decimalOddsRow(truth.markets[0]!);
+    ghost.homeTeam = "Phantom Wanderers FC"; // a fixture never listed
+    rows.push(ghost);
+    const odds = normalizeOdds(rows);
+    const report = scoreOdds(odds.markets, truth, []);
+    expect(report.unexpectedRows).toBe(1);
+  });
+});

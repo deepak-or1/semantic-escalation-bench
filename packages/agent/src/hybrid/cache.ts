@@ -1,6 +1,7 @@
 import path from "node:path";
-import { writeJson } from "@ssda/shared";
+import { readJson, writeJson } from "@ssda/shared";
 import type { Action } from "@browserbasehq/stagehand";
+import { PipelineStepError } from "../core";
 import { bootstrapActions, type CacheKey } from "./bootstrap";
 
 /**
@@ -73,4 +74,58 @@ export class SelectorCache {
     if (this.healCount === 0) return;
     await writeJson(path.join(runDir, "artifacts", "healed-cache.json"), this.snapshot());
   }
+}
+
+/** Is `value` a structurally valid cached `Action` (selector + description, optional method/arguments)? */
+function isCachedAction(value: unknown): value is Action {
+  if (typeof value !== "object" || value === null) return false;
+  const a = value as Record<string, unknown>;
+  if (typeof a.selector !== "string" || a.selector.length === 0) return false;
+  if (typeof a.description !== "string") return false;
+  if (a.method !== undefined && typeof a.method !== "string") return false;
+  if (a.arguments !== undefined && !Array.isArray(a.arguments)) return false;
+  return true;
+}
+
+/**
+ * Load a warm-start selector cache from a healed-cache.json artifact (the shape
+ * `SelectorCache.persist` writes): every `CacheKey` must be present and hold a
+ * valid `Action`. Returned as an independent clone, ready to seed a fresh
+ * `SelectorCache`. A missing file, non-object JSON, or a missing/malformed entry
+ * raises a clear internal `PipelineStepError` that names the offending path — so
+ * warm-cache runs fail loudly instead of silently falling back to the bootstrap.
+ */
+export async function loadSeedCache(file: string): Promise<Record<CacheKey, Action>> {
+  let raw: unknown;
+  try {
+    raw = await readJson<unknown>(file);
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new PipelineStepError(
+      `seed cache could not be read at ${file}: ${reason}`,
+      "internal",
+      "seed-cache"
+    );
+  }
+  if (typeof raw !== "object" || raw === null) {
+    throw new PipelineStepError(
+      `seed cache at ${file} is not a JSON object of cached actions`,
+      "internal",
+      "seed-cache"
+    );
+  }
+  const src = raw as Record<string, unknown>;
+  const out = {} as Record<CacheKey, Action>;
+  for (const key of Object.keys(bootstrapActions()) as CacheKey[]) {
+    const entry = src[key];
+    if (!isCachedAction(entry)) {
+      throw new PipelineStepError(
+        `seed cache at ${file} is missing or malformed entry "${key}"`,
+        "internal",
+        "seed-cache"
+      );
+    }
+    out[key] = cloneAction(entry);
+  }
+  return out;
 }

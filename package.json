@@ -16,6 +16,8 @@
     "agent:local": "tsx scripts/run-agent.ts --env local",
     "agent:browserbase": "tsx scripts/run-agent.ts --env browserbase",
     "bench": "tsx scripts/run-benchmark.ts",
+    "heals:collect": "tsx scripts/collect-heals.ts",
+    "campaign:aggregate": "tsx scripts/aggregate-campaign.ts",
     "report": "tsx scripts/generate-report.ts",
     "test": "vitest run",
     "test:unit": "vitest run --project unit",

@@ -121,6 +121,20 @@ describe("runBenchmark over three scenarios (baseline only, no model key)", () =
     }
   });
 
+  it("records reproducibility provenance on the environment (8j)", () => {
+    const env = results.environment;
+    expect(env.disableRepair).toBe(false);
+    expect(env.seedCacheMode).toBe("none");
+    expect(env.seedCacheHash).toBeNull();
+    expect(typeof env.promptsHash).toBe("string");
+    expect(env.promptsHash.length).toBeGreaterThan(0);
+    expect(typeof env.lockfileHash).toBe("string");
+    expect(env.lockfileHash.length).toBeGreaterThan(0);
+    // gitCommit is a string or null; gitDirty is a boolean or null.
+    expect(env.gitCommit === null || typeof env.gitCommit === "string").toBe(true);
+    expect(env.gitDirty === null || typeof env.gitDirty === "boolean").toBe(true);
+  });
+
   it("failures.jsonl records exactly the class-drift baseline trial", async () => {
     const text = await readFile(path.join(benchDir, "failures.jsonl"), "utf8");
     const lines = text.split("\n").filter((line) => line.trim().length > 0);

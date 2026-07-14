@@ -1,4 +1,4 @@
-import type { PipelineResult, ScenarioSpec, TrialResult } from "@ssda/shared";
+import type { AccuracyReport, PipelineResult, ScenarioSpec, TrialResult } from "@ssda/shared";
 import { describe, expect, it } from "vitest";
 import { buildComparison, classifyOutcome, summarizeEngine } from "./metrics";
 import { judge } from "./runner";
@@ -52,6 +52,7 @@ describe("summarizeEngine", () => {
       meanDurationMs: null,
       totalRetries: 0,
       recovery: { firstAttemptFailures: 0, recovered: 0, recoveryRate: null },
+      retryRecoveries: 0,
       failuresByCategory: {},
       outcomeClasses: {},
       silentCorruptionRate: null,
@@ -101,6 +102,8 @@ describe("summarizeEngine", () => {
       recovered: 1,
       recoveryRate: 0.5
     });
+    // retryRecoveries mirrors recovery.recovered (8d): a retry-only success.
+    expect(summary.retryRecoveries).toBe(1);
     expect(summary.failuresByCategory).toEqual({ not_found: 1, validation: 1 });
     expect(summary.tokens).toBeNull();
   });
@@ -179,14 +182,16 @@ describe("summarizeEngine", () => {
 describe("classifyOutcome", () => {
   it("classes a clean first-attempt success as pass", () => {
     expect(
-      classifyOutcome({ pipelineSuccess: true, overall: 1, attempts: 1 })
+      classifyOutcome({ pipelineSuccess: true, overall: 1, expected: "success" })
     ).toBe("pass");
   });
 
-  it("classes a perfect success after a retry as recovered", () => {
+  it("classes a retry-only perfect success (no heal) as pass, not recovered (8d)", () => {
+    // 8d: 'recovered' now requires a semantic repair. A win that only needed a
+    // whole-attempt retry stays 'pass' (the retry is reported via retryRecoveries).
     expect(
-      classifyOutcome({ pipelineSuccess: true, overall: 1, attempts: 2 })
-    ).toBe("recovered");
+      classifyOutcome({ pipelineSuccess: true, overall: 1, expected: "success" })
+    ).toBe("pass");
   });
 
   it("classes a perfect success that healed a step as recovered", () => {
@@ -194,21 +199,41 @@ describe("classifyOutcome", () => {
       classifyOutcome({
         pipelineSuccess: true,
         overall: 1,
-        attempts: 1,
+        expected: "success",
         healedSteps: ["reveal-table"]
       })
     ).toBe("recovered");
   });
 
+  it("classes accepted output on a validation-failure scenario as silent-corruption (8b)", () => {
+    // The oracle demanded refusal; a successful pipeline is silent corruption
+    // regardless of how accurate the (wrongly-accepted) data looks.
+    expect(
+      classifyOutcome({
+        pipelineSuccess: true,
+        overall: 1,
+        expected: "validation-failure"
+      })
+    ).toBe("silent-corruption");
+    expect(
+      classifyOutcome({
+        pipelineSuccess: true,
+        overall: 1,
+        expected: "validation-failure",
+        healedSteps: ["reveal-table"]
+      })
+    ).toBe("silent-corruption");
+  });
+
   it("classes a success below perfect accuracy as silent-corruption", () => {
     expect(
-      classifyOutcome({ pipelineSuccess: true, overall: 0.96, attempts: 1 })
+      classifyOutcome({ pipelineSuccess: true, overall: 0.96, expected: "success" })
     ).toBe("silent-corruption");
   });
 
   it("classes a success with no accuracy sample as silent-corruption", () => {
     expect(
-      classifyOutcome({ pipelineSuccess: true, overall: undefined, attempts: 1 })
+      classifyOutcome({ pipelineSuccess: true, overall: undefined, expected: "success" })
     ).toBe("silent-corruption");
   });
 
@@ -217,7 +242,7 @@ describe("classifyOutcome", () => {
       classifyOutcome({
         pipelineSuccess: false,
         overall: 0.95,
-        attempts: 1,
+        expected: "success",
         failureCategory: "validation"
       })
     ).toBe("safe-failure");
@@ -225,7 +250,7 @@ describe("classifyOutcome", () => {
       classifyOutcome({
         pipelineSuccess: false,
         overall: undefined,
-        attempts: 2,
+        expected: "success",
         failureCategory: "extraction"
       })
     ).toBe("safe-failure");
@@ -234,17 +259,22 @@ describe("classifyOutcome", () => {
   it("classes any other reported failure as hard-failure", () => {
     for (const failureCategory of ["not_found", "auth", "timeout", "internal"] as const) {
       expect(
-        classifyOutcome({ pipelineSuccess: false, overall: undefined, attempts: 2, failureCategory })
+        classifyOutcome({
+          pipelineSuccess: false,
+          overall: undefined,
+          expected: "success",
+          failureCategory
+        })
       ).toBe("hard-failure");
     }
   });
 
   it("treats 0.999999999 as perfect but 0.95 as corrupt (1e-9 tolerance)", () => {
     expect(
-      classifyOutcome({ pipelineSuccess: true, overall: 0.999999999, attempts: 1 })
+      classifyOutcome({ pipelineSuccess: true, overall: 0.999999999, expected: "success" })
     ).toBe("pass");
     expect(
-      classifyOutcome({ pipelineSuccess: true, overall: 0.95, attempts: 1 })
+      classifyOutcome({ pipelineSuccess: true, overall: 0.95, expected: "success" })
     ).toBe("silent-corruption");
   });
 });
@@ -360,5 +390,55 @@ describe("judge accuracy bar (Wave C: perfect extraction required)", () => {
     const result = successResult({ success: false, failureCategory: "validation" });
     const { outcome } = judge(vfScenario, result, 0.95);
     expect(outcome).toBe("pass");
+  });
+});
+
+describe("judge entity-completeness gate (Wave E 8e)", () => {
+  function successResult(overrides: Partial<PipelineResult> = {}): PipelineResult {
+    return {
+      success: true,
+      steps: [],
+      normalized: { warnings: [] },
+      ...overrides
+    } as unknown as PipelineResult;
+  }
+  const report = (over: Partial<AccuracyReport> = {}): AccuracyReport => ({
+    expectedRows: 12,
+    matchedRows: 12,
+    fieldChecks: 48,
+    fieldMatches: 48,
+    rowCoverage: 1,
+    fieldAccuracy: 1,
+    duplicateRows: 0,
+    unexpectedRows: 0,
+    score: 1,
+    ...over
+  });
+  const successScenario = scenario("clean-extraction");
+
+  it("passes a perfect success with zero duplicate/unexpected rows on both pages", () => {
+    const { outcome } = judge(successScenario, successResult(), 1, {
+      stats: report(),
+      odds: report()
+    });
+    expect(outcome).toBe("pass");
+  });
+
+  it("fails a perfect-accuracy success when a page has a duplicate row", () => {
+    const { outcome, reason } = judge(successScenario, successResult(), 1, {
+      stats: report({ duplicateRows: 1 }),
+      odds: report()
+    });
+    expect(outcome).toBe("fail");
+    expect(reason).toContain("duplicate");
+  });
+
+  it("fails a perfect-accuracy success when a page has an unexpected (ghost) row", () => {
+    const { outcome, reason } = judge(successScenario, successResult(), 1, {
+      stats: report(),
+      odds: report({ unexpectedRows: 1 })
+    });
+    expect(outcome).toBe("fail");
+    expect(reason).toContain("unexpected");
   });
 });

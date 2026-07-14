@@ -1,4 +1,6 @@
-import { writeFile } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import {
   BenchmarkResultsSchema,
@@ -8,6 +10,7 @@ import {
   mirrorToLatest,
   readJsonOr,
   writeJson,
+  type AccuracyReport,
   type BenchmarkResults,
   type EngineName,
   type PipelineResult,
@@ -24,6 +27,9 @@ import {
 } from "../core";
 import { baselineEngine } from "../baseline";
 import { stagehandEngine } from "../stagehand";
+// Read-only import of the frozen extraction prompts for the provenance hash
+// (Wave E 8j); the stagehand engine itself is not modified in this wave.
+import { ODDS_INSTRUCTION, STATS_INSTRUCTION } from "../stagehand/engine";
 import { hybridEngine } from "../hybrid";
 import { buildComparison, classifyOutcome, summarizeEngine } from "./metrics";
 import { renderResultsMarkdown } from "./markdown";
@@ -46,7 +52,39 @@ export interface BenchmarkRunConfig {
    * ignore it.
    */
   disableRepair?: boolean;
+  /**
+   * Warm-cache seeding (--seed-cache): a healed-cache.json artifact the hybrid
+   * loads as each trial's initial selector cache instead of the bootstrap.
+   * Baseline/stagehand ignore it. Mutually exclusive with seedCacheManifest.
+   */
+  seedCacheFile?: string;
+  /**
+   * Per-scenario warm-cache seeding (--seed-cache-manifest, Wave E 8h). Each
+   * scenario present in the manifest seeds the hybrid from its own healed cache;
+   * a scenario absent from the manifest falls back to the bootstrap. `path` is
+   * the manifest file (hashed for provenance). Mutually exclusive with
+   * seedCacheFile.
+   */
+  seedCacheManifest?: {
+    path: string;
+    scenarios: Record<string, { cacheFile: string; provenance?: unknown }>;
+  };
   onProgress?: (line: string) => void;
+}
+
+/** Shape of a --seed-cache-manifest file (Wave E 8h). */
+export interface SeedCacheManifest {
+  scenarios: Record<
+    string,
+    {
+      cacheFile: string;
+      provenance?: {
+        benchId?: string;
+        healedSteps?: string[];
+        createdAt?: string;
+      };
+    }
+  >;
 }
 
 // Unlike stagehand, hybrid is never auto-skipped: it is designed to run keyless
@@ -62,6 +100,91 @@ const NO_KEY_REASON =
 
 const STAGEHAND_PKG_JSON =
   "packages/agent/node_modules/@browserbasehq/stagehand/package.json";
+
+/**
+ * The hybrid engine's fixed repair-instruction strings (Wave E 8j). These mirror
+ * the literals in packages/agent/src/hybrid/engine.ts, which this wave does not
+ * modify; they are pinned here so `promptsHash` covers the repair prompts as
+ * well as the STATS/ODDS extraction prompts. Keep in sync with the engine.
+ */
+const HYBRID_REPAIR_INSTRUCTIONS = [
+  "find the username text field of the login form",
+  "find the password field of the login form",
+  "find the sign-in / submit button of the login form",
+  "accept the cookie consent so the page content is shown",
+  "close the popup dialog blocking the page",
+  "find the tab or control that reveals the full season standings table",
+  "find the control that advances to the next page of the standings table"
+] as const;
+
+function sha256(text: string): string {
+  return createHash("sha256").update(text).digest("hex");
+}
+
+/** `git rev-parse HEAD`, or null when git/HEAD is unavailable (read-only). */
+function readGitCommit(): string | null {
+  const r = spawnSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" });
+  if (r.status !== 0 || !r.stdout) return null;
+  const commit = r.stdout.trim();
+  return commit.length > 0 ? commit : null;
+}
+
+/** true/false from `git status --porcelain`, or null when git is unavailable. */
+function readGitDirty(): boolean | null {
+  const r = spawnSync("git", ["status", "--porcelain"], { encoding: "utf8" });
+  if (r.status !== 0 || r.stdout == null) return null;
+  return r.stdout.trim().length > 0;
+}
+
+interface Provenance {
+  gitCommit: string | null;
+  gitDirty: boolean | null;
+  disableRepair: boolean;
+  seedCacheMode: "none" | "file" | "manifest";
+  seedCacheHash: string | null;
+  promptsHash: string;
+  lockfileHash: string;
+}
+
+/** Gather the reproducibility provenance recorded in results.environment (8j). */
+async function collectProvenance(config: BenchmarkRunConfig): Promise<Provenance> {
+  const promptsHash = sha256(
+    [STATS_INSTRUCTION, ODDS_INSTRUCTION, ...HYBRID_REPAIR_INSTRUCTIONS].join("\n")
+  );
+  let lockfileHash: string;
+  try {
+    lockfileHash = sha256(
+      await readFile(path.resolve(process.cwd(), "pnpm-lock.yaml"), "utf8")
+    );
+  } catch {
+    lockfileHash = sha256(""); // lockfile unreadable — deterministic sentinel
+  }
+
+  const seedCacheMode: Provenance["seedCacheMode"] = config.seedCacheManifest
+    ? "manifest"
+    : config.seedCacheFile
+      ? "file"
+      : "none";
+  let seedCacheHash: string | null = null;
+  const seedPath = config.seedCacheManifest?.path ?? config.seedCacheFile;
+  if (seedPath) {
+    try {
+      seedCacheHash = sha256(await readFile(seedPath, "utf8"));
+    } catch {
+      seedCacheHash = null;
+    }
+  }
+
+  return {
+    gitCommit: readGitCommit(),
+    gitDirty: readGitDirty(),
+    disableRepair: config.disableRepair === true,
+    seedCacheMode,
+    seedCacheHash,
+    promptsHash,
+    lockfileHash
+  };
+}
 
 export async function runBenchmark(
   config: BenchmarkRunConfig
@@ -84,6 +207,12 @@ export async function runBenchmark(
   let k = 0;
 
   for (const scenario of config.scenarios) {
+    // Per-scenario warm-cache resolution (8h): a manifest seeds each scenario
+    // from its own healed cache (absent scenarios fall back to the bootstrap);
+    // otherwise the single --seed-cache file (if any) seeds every scenario.
+    const scenarioSeedCache = config.seedCacheManifest
+      ? config.seedCacheManifest.scenarios[scenario.id]?.cacheFile
+      : config.seedCacheFile;
     for (const engine of runnableEngines) {
       const impl = ENGINE_IMPLS[engine];
       for (let trial = 1; trial <= config.trialsPerScenario; trial++) {
@@ -138,7 +267,8 @@ export async function runBenchmark(
             navTimeoutMs: DEFAULT_PIPELINE_TIMEOUTS.navTimeoutMs,
             stepTimeoutMs: DEFAULT_PIPELINE_TIMEOUTS.stepTimeoutMs,
             env: "local",
-            ...(config.disableRepair ? { disableRepair: true } : {})
+            ...(config.disableRepair ? { disableRepair: true } : {}),
+            ...(scenarioSeedCache ? { seedCacheFile: scenarioSeedCache } : {})
           });
           record = buildTrialResult(scenario, engine, trial, runId, runDir, result, {
             truth,
@@ -203,6 +333,7 @@ export async function runBenchmark(
     path.resolve(process.cwd(), STAGEHAND_PKG_JSON),
     {}
   );
+  const provenance = await collectProvenance(config);
 
   const results = BenchmarkResultsSchema.parse({
     benchId: config.benchId,
@@ -220,7 +351,8 @@ export async function runBenchmark(
         ? { stagehandModel: envConfig.stagehandModel }
         : {}),
       modelProvider: envConfig.modelProvider ?? null,
-      browserbase: envConfig.browserbase.ready
+      browserbase: envConfig.browserbase.ready,
+      ...provenance
     }
   });
 
@@ -272,20 +404,22 @@ function buildTrialResult(
 ): TrialResult {
   let accuracy: TrialResult["accuracy"] = null;
   let overall: number | undefined;
+  let reports: { stats?: AccuracyReport; odds?: AccuracyReport } | undefined;
   if (result.normalized) {
     const stats = scoreStats(result.normalized.teams, gt.truth, gt.overrides);
     const odds = scoreOdds(result.normalized.markets, gt.truth, gt.overrides);
     overall = overallAccuracy(stats, odds);
     accuracy = { stats, odds, ...(overall !== undefined ? { overall } : {}) };
+    reports = { stats, odds };
   }
 
-  const { outcome, reason } = judge(scenario, result, overall);
+  const { outcome, reason } = judge(scenario, result, overall, reports);
   // Behaviour class is orthogonal to the judged outcome (e.g. a schema-violation
   // refusal is judged PASS but classed safe-failure).
   const outcomeClass = classifyOutcome({
     pipelineSuccess: result.success,
     overall,
-    attempts: result.attempts,
+    expected: scenario.expected,
     ...(result.healedSteps ? { healedSteps: result.healedSteps } : {}),
     ...(result.failureCategory ? { failureCategory: result.failureCategory } : {})
   });
@@ -324,12 +458,16 @@ function buildTrialResult(
  * override-aware scoring and the odds tolerance, 1.0 means every graded cell is
  * correct within tolerance, so a successful pipeline that scores below 1 — or
  * that produced no accuracy sample at all — is a FAIL (it cannot be shown to
- * have extracted the right data). The `validation-failure` branch is unchanged.
+ * have extracted the right data). A success-branch pass ADDITIONALLY requires
+ * zero duplicate and zero unexpected rows on both pages (Wave E 8e), when the
+ * per-page accuracy `reports` are supplied. The `validation-failure` branch is
+ * unchanged.
  */
 export function judge(
   scenario: ScenarioSpec,
   result: PipelineResult,
-  overall: number | undefined
+  overall: number | undefined,
+  reports?: { stats?: AccuracyReport; odds?: AccuracyReport }
 ): { outcome: "pass" | "fail"; reason: string } {
   const accuracyPresent = overall !== undefined;
   const accuracyPerfect = overall !== undefined && overall >= 1 - 1e-9;
@@ -338,6 +476,21 @@ export function judge(
   const failedNote = `pipeline failed [${result.failureCategory ?? "unknown"}] ${
     result.failureDetail ?? ""
   }`.trim();
+  // Entity-completeness gate (8e): duplicate/ghost rows fail a success branch
+  // even at perfect cell accuracy. Skipped when reports are absent (unit tests
+  // that only exercise the accuracy bar).
+  const completenessViolation = ((): string | null => {
+    if (!reports) return null;
+    for (const [page, rep] of [
+      ["stats", reports.stats],
+      ["odds", reports.odds]
+    ] as const) {
+      if (!rep) continue;
+      if (rep.duplicateRows > 0) return `${page} reported ${rep.duplicateRows} duplicate row(s)`;
+      if (rep.unexpectedRows > 0) return `${page} reported ${rep.unexpectedRows} unexpected row(s)`;
+    }
+    return null;
+  })();
 
   switch (scenario.expected) {
     case "success": {
@@ -364,6 +517,9 @@ export function judge(
           reason: `expected success but accuracy 1.00 required, got ${overall!.toFixed(2)}`
         };
       }
+      if (completenessViolation) {
+        return { outcome: "fail", reason: `expected success but ${completenessViolation}` };
+      }
       return { outcome: "pass", reason: `success: pipeline succeeded (${accuracyNote})` };
     }
     case "success-with-warnings": {
@@ -388,6 +544,12 @@ export function judge(
         return {
           outcome: "fail",
           reason: `expected success-with-warnings but accuracy 1.00 required, got ${overall!.toFixed(2)}`
+        };
+      }
+      if (completenessViolation) {
+        return {
+          outcome: "fail",
+          reason: `expected success-with-warnings but ${completenessViolation}`
         };
       }
       return {

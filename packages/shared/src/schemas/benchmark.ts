@@ -74,6 +74,15 @@ export const AccuracyReportSchema = z.object({
   fieldMatches: z.number().int().nonnegative(),
   rowCoverage: z.number().min(0).max(1),
   fieldAccuracy: z.number().min(0).max(1),
+  /**
+   * Entity-completeness guards (Wave E 8e). `duplicateRows` counts extracted
+   * rows whose key repeats (the same team/fixture reported twice);
+   * `unexpectedRows` counts extracted rows whose key is absent from ground
+   * truth (a ghost entity). Both are 0 for a faithful extraction; a
+   * success-branch judge PASS requires both to be 0 on every page.
+   */
+  duplicateRows: z.number().int().nonnegative(),
+  unexpectedRows: z.number().int().nonnegative(),
   /** rowCoverage × fieldAccuracy */
   score: z.number().min(0).max(1)
 });
@@ -130,6 +139,15 @@ export const EngineSummarySchema = z.object({
     recovered: z.number().int().nonnegative(),
     recoveryRate: z.number().min(0).max(1).nullable()
   }),
+  /**
+   * Trials that reached a perfect success only after a whole-attempt RETRY
+   * (from recoveredAfterFailure) — reported separately from the heal-based
+   * `recovered` outcome class (Wave E 8d): a retry-only success is class
+   * `pass`, whereas class `recovered` now requires a semantic repair
+   * (healedSteps nonempty). Equals `recovery.recovered` numerically; surfaced
+   * under a distinct name so the two notions of "recovery" never blur.
+   */
+  retryRecoveries: z.number().int().nonnegative(),
   failuresByCategory: z.record(z.number().int().nonnegative()),
   /** Count of trials per behaviour class (see OutcomeClassSchema keys). */
   outcomeClasses: z.record(z.number().int().nonnegative()),
@@ -170,7 +188,26 @@ export const BenchmarkResultsSchema = z.object({
     stagehandModel: z.string().optional(),
     /** Provider whose key was present ("anthropic" | "openai"), or null. */
     modelProvider: z.string().nullable(),
-    browserbase: z.boolean()
+    browserbase: z.boolean(),
+    // ── Reproducibility provenance (Wave E 8j) ──────────────────────────────
+    /** `git rev-parse HEAD` at run time, or null when git is unavailable. */
+    gitCommit: z.string().nullable(),
+    /** True when `git status --porcelain` was non-empty; null when unknown. */
+    gitDirty: z.boolean().nullable(),
+    /** Whether the hybrid repair path was frozen for this run (--no-repair). */
+    disableRepair: z.boolean(),
+    /** Which warm-cache seeding mode was active. */
+    seedCacheMode: z.enum(["none", "file", "manifest"]),
+    /** sha256 of the seed-cache file / manifest, or null when seedCacheMode is "none". */
+    seedCacheHash: z.string().nullable(),
+    /**
+     * sha256 over the frozen prompt strings that steer inference: the
+     * stagehand engine's STATS_INSTRUCTION + ODDS_INSTRUCTION plus the hybrid's
+     * fixed repair-instruction strings. Pins "the prompts" for the protocol.
+     */
+    promptsHash: z.string(),
+    /** sha256 of pnpm-lock.yaml — pins the exact dependency graph. */
+    lockfileHash: z.string()
   })
 });
 export type BenchmarkResults = z.infer<typeof BenchmarkResultsSchema>;

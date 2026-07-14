@@ -166,7 +166,7 @@ The scenario catalog lives in `packages/shared/src/scenarios.ts` — **24 scenar
 
 `site-v3` deliberately omits `columnShuffle`: probing showed `layoutVariant`'s card grid has a fixed field order that suppresses column shuffling and pagination, so the flag would be inert.
 
-**Judge rules** (`packages/agent/src/reliability/runner.ts`), shared by all three engines. A `success` scenario passes only if the pipeline succeeds *and* extraction accuracy against ground truth is ≥ 0.75 (and, for `session-reuse`, no login step ran); `success-with-warnings` additionally requires at least one domain warning; `validation-failure` passes only when the pipeline fails with failure category exactly `validation`. Silent garbage extraction is a FAIL even when the pipeline "succeeds".
+**Judge rules** (`packages/agent/src/reliability/runner.ts`), shared by all three engines. A `success` scenario passes only if the pipeline succeeds *and* extraction is **perfect** — overall accuracy against ground truth is **1.0 with full row coverage** on both pages (every graded cell correct within the 0.02 odds tolerance). A successful pipeline that scores below 1.0, *or that produced no accuracy sample at all*, is a FAIL: its extraction can't be shown to be right (and, for `session-reuse`, no login step may have run). `success-with-warnings` additionally requires at least one domain warning; `validation-failure` passes only when the pipeline fails with failure category exactly `validation`. Silent garbage extraction is a FAIL even when the pipeline "succeeds".
 
 **Metrics collected** per engine (`packages/agent/src/reliability/metrics.ts`): task-success rate, extraction / validation success rates, mean accuracy, mean duration, retries, recovery rate (of first-attempt failures, how many recovered), failures by category, token usage, and — for the hybrid — `healedTrials`, the count of trials in which the LLM repair path fired at least once.
 
@@ -178,15 +178,34 @@ The scenario catalog lives in `packages/shared/src/scenarios.ts` — **24 scenar
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | stagehand | skipped | — | — | — | — | — | — | — | — |
 | baseline | 18/24 | 75.0% | 83.3% | 70.8% | 95.42% | 4.51s | 4 | 0/4 | n/a |
-| hybrid | 20/24 | 83.3% | 83.3% | 79.2% | 99.79% | 4.12s | 4 | 0/4 | 0 |
+| hybrid (deterministic tier) | 20/24 | 83.3% | 83.3% | 79.2% | 99.79% | 4.12s | 4 | 0/4 | 0 |
 
 The **baseline** passes 18/24 and fails exactly where a static scraper is expected to: `class-drift` (its `#login-form` hook matches nothing, so it dies at login → `not_found`), `layout-variant` (no `<table>` for `#standings` → `not_found`), `column-shuffle` (fixed column indices silently read the wrong fields, caught by domain validation → `validation`), plus the survival/compound scenarios that reprise those breaks (`site-v2`, `site-v3`, `compound-redesign-storm`). `schema-violation` counts as a **pass** because failing cleanly on corrupt data is the correct behaviour there.
 
-The **hybrid** passes 20/24 — clearing the two cases the baseline can't: **`column-shuffle` and `site-v2`**, where header-name mapping reads the right columns at 99.79% accuracy while the baseline silently misreads shuffled columns. Where the DOM itself changes shape — `class-drift` strips the login ids, `layout-variant` / `site-v3` / `compound-redesign-storm` replace the table with a card grid — the hybrid's cached selectors and header-mapped reader also stop, and keyless its repair path can't intervene: those are honest `not_found` / `extraction` failures, labelled *"cached selector failed; semantic repair unavailable (no model key)"*. The hybrid recorded **`llmCalls = 0` on every trial** — `selfHeal: false` closes Stagehand's built-in silent LLM fallback, so the deterministic tier is provably deterministic. Retry never healed a drift failure (0/4 recovery on both engines: deterministic breakage reproduces on the next attempt). The baseline burned 42.5s on `layout-variant` exhausting wait budgets before dying; the hybrid failed fast (4.2s) because its readiness poll is structure-aware.
+The **hybrid's deterministic tier passed 20/24 without invoking semantic repair** — clearing the two cases the baseline can't: **`column-shuffle` and `site-v2`**, where header-name mapping reads the right columns at 99.79% accuracy while the baseline silently misreads shuffled columns. Where the DOM itself changes shape — `class-drift` strips the login ids, `layout-variant` / `site-v3` / `compound-redesign-storm` replace the table with a card grid — the hybrid's cached selectors and header-mapped reader also stop, and keyless its repair path can't intervene: those are honest `not_found` / `extraction` failures, labelled *"cached selector failed; semantic repair unavailable (no model key)"*. Keyed experiments will measure whether LLM repair recovers those remaining drift failures, and at what token and dollar cost — the methodology is frozen in advance (see [Keyed experiment protocol](#keyed-experiment-protocol) below). The hybrid recorded **`llmCalls = 0` on every trial** — `selfHeal: false` closes Stagehand's built-in silent LLM fallback, so the deterministic tier is provably deterministic. Retry never healed a drift failure (0/4 recovery on both engines: deterministic breakage reproduces on the next attempt). The baseline burned 42.5s on `layout-variant` exhausting wait budgets before dying; the hybrid failed fast (4.2s) because its readiness poll is structure-aware.
 
-**Survival curve:** the baseline survives through **v1**; the hybrid through **v2**; Stagehand was not run.
+**Survival curve:** the baseline survives through **v1**; the hybrid's deterministic tier through **v2**; Stagehand was not run.
 
 The Stagehand row is `skipped` because this build environment has no model provider key. The harness reports it skipped and **never fabricates trial data** (`packages/agent/src/reliability/runner.ts`); those columns populate the moment `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` is set — and with a key the hybrid also gains its repair path (expect `llmCalls > 0` only on the trials that actually repair). Numbers in this README are copied from `runs/latest`, never invented.
+
+**Outcome taxonomy** — behaviour classification, orthogonal to pass/fail. A `schema-violation` refusal is judged PASS yet classed a *safe-failure*; **silent-corruption** (success claimed on wrong or unverifiable data) is the headline safety metric:
+
+| Engine | Pass | Recovered | Safe-failure | Silent-corruption | Hard-failure | Silent-corruption rate |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| stagehand | 0 | 0 | 0 | 0 | 0 | — |
+| baseline | 17 | 0 | 3 | 0 | 4 | 0.0% |
+| hybrid (deterministic tier) | 19 | 0 | 2 | 0 | 3 | 0.0% |
+
+Both keyless engines produced **zero silent corruption** on every denominator — **baseline** 0 (0/24 trials, 0/7 failures, 0/17 accepted outputs); **hybrid** 0 (0/24 trials, 0/5 failures, 0/19 accepted outputs). Nothing was ever accepted as valid that wasn't correct: every break is either a clean refusal (*safe-failure*) or visible breakage (*hard-failure*), never quietly-wrong data.
+
+**Frozen configurations.** Two flags pin reproducible engine policies:
+
+- `--no-repair` freezes the hybrid's **structural-deterministic** tier — it never invokes `observe` / `extract` even when a model key is present, so it is guaranteed to make **zero model calls** (tested: a key-present drift trial still records `llmCalls = 0` and fails with a distinct *"repair disabled (--no-repair)"* detail).
+- `--seed-cache <path>` warm-starts the hybrid from a persisted `healed-cache.json`, so a repair discovered in an earlier keyed run replays deterministically in a later one — the basis of the **persistence runs** (tested: a `class-drift` trial passes keyless from a seeded healed cache with `llmCalls = 0`, proving replay-of-repair needs no model).
+
+### Keyed experiment protocol
+
+The keyless results above are committed; the methodology for the *keyed* runs — exact model, prompts, retry and cache policy, scenario seeds, repetitions, and the reliability / silent-corruption / latency / cost comparison — is **prospectively frozen** (decided before any keyed result is observed) in [docs/PROTOCOL.md](docs/PROTOCOL.md).
 
 ## The model
 

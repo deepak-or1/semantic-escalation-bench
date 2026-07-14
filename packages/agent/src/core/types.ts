@@ -51,6 +51,17 @@ export interface PipelineOptions {
    * The baseline and stagehand engines ignore this flag.
    */
   disableRepair?: boolean;
+  /**
+   * Warm-cache seeding (--seed-cache <path>): a path to a healed-cache.json
+   * artifact (the same shape the hybrid engine persists after a repair). When
+   * set, the hybrid engine loads it as the trial's INITIAL selector cache
+   * instead of the bootstrap, so a repair discovered in an earlier keyed run can
+   * be replayed deterministically (zero LLM) in a later run. Unset → behaviour
+   * is byte-identical to today (start from the bootstrap). A missing or
+   * malformed file is a clean internal PipelineStepError that names the path.
+   * The baseline and stagehand engines ignore this option.
+   */
+  seedCacheFile?: string;
 }
 
 export interface AttemptOutcome {

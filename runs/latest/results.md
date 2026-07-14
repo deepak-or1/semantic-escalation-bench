@@ -1,14 +1,14 @@
 # Reliability Benchmark
 
-Created 2026-07-14T10:11:58.910Z · node v20.14.0 · stagehand 3.6.0 · model n/a · provider none · browserbase not configured · 1 trial(s)/scenario
+Created 2026-07-14T11:54:59.566Z · node v20.14.0 · stagehand 3.6.0 · model n/a · provider none · browserbase not configured · 1 trial(s)/scenario
 
 ## Engine summary
 
 | Engine | Trials | Task success | Extraction | Validation | Mean accuracy | Mean duration | Retries | Recovery |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | stagehand | 0 | — | — | — | — | — | 0 | — |
-| baseline | 24 | 75.0% | 83.3% | 70.8% | 95.4% | 4.6s | 4 | 0.0% (0/4) |
-| hybrid | 24 | 83.3% | 83.3% | 79.2% | 99.8% | 4.3s | 4 | 0.0% (0/4) |
+| baseline | 24 | 75.0% | 83.3% | 70.8% | 95.4% | 4.5s | 4 | 0.0% (0/4) |
+| hybrid | 24 | 83.3% | 83.3% | 79.2% | 99.8% | 4.1s | 4 | 0.0% (0/4) |
 
 ## Outcome classes
 
@@ -20,8 +20,8 @@ _Behaviour classification, orthogonal to pass/fail. A schema-violation refusal i
 | baseline | 17 | 0 | 3 | 0 | 4 | 0.0% |
 | hybrid | 19 | 0 | 2 | 0 | 3 | 0.0% |
 
-- **baseline** silent corruption: 0 (0/24 trials, 0/7 failures, 0/17 accepted outputs)
-- **hybrid** silent corruption: 0 (0/24 trials, 0/5 failures, 0/19 accepted outputs)
+- **baseline** silent corruption: 0 (0/24 trials, 0/6 failures, 0/17 accepted outputs)
+- **hybrid** silent corruption: 0 (0/24 trials, 0/4 failures, 0/19 accepted outputs)
 
 ## Scenario comparison
 

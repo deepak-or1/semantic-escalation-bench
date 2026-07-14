@@ -30,6 +30,31 @@ function overridesFor(
   return map;
 }
 
+/**
+ * Entity-completeness guards (Wave E 8e). Given the extracted rows' keys and the
+ * set of ground-truth keys:
+ *  - `duplicateRows`: extracted rows beyond the first occurrence of each key
+ *    (the same entity reported twice) = total − distinct.
+ *  - `unexpectedRows`: extracted rows whose key is absent from ground truth
+ *    (a ghost entity the page never contained), counted per occurrence.
+ * Both are 0 for a faithful extraction; a non-zero value means the row set is
+ * corrupt even if every graded cell happens to match.
+ */
+function completeness(
+  extractedKeys: readonly string[],
+  truthKeys: ReadonlySet<string>
+): { duplicateRows: number; unexpectedRows: number } {
+  const seen = new Set<string>();
+  let duplicateRows = 0;
+  let unexpectedRows = 0;
+  for (const key of extractedKeys) {
+    if (seen.has(key)) duplicateRows += 1;
+    else seen.add(key);
+    if (!truthKeys.has(key)) unexpectedRows += 1;
+  }
+  return { duplicateRows, unexpectedRows };
+}
+
 export function scoreStats(
   teams: readonly NormalizedTeamStats[],
   truth: GroundTruth,
@@ -66,6 +91,10 @@ export function scoreStats(
   const expectedRows = truth.teams.length;
   const rowCoverage = expectedRows === 0 ? 0 : matchedRows / expectedRows;
   const fieldAccuracy = fieldChecks === 0 ? 0 : fieldMatches / fieldChecks;
+  const { duplicateRows, unexpectedRows } = completeness(
+    teams.map((t) => canonicalName(t.name).toLowerCase()),
+    new Set(truth.teams.map((t) => t.name.toLowerCase()))
+  );
   return {
     expectedRows,
     matchedRows,
@@ -73,6 +102,8 @@ export function scoreStats(
     fieldMatches,
     rowCoverage,
     fieldAccuracy,
+    duplicateRows,
+    unexpectedRows,
     score: rowCoverage * fieldAccuracy
   };
 }
@@ -139,6 +170,12 @@ export function scoreOdds(
   const expectedRows = truth.markets.length;
   const rowCoverage = expectedRows === 0 ? 0 : matchedRows / expectedRows;
   const fieldAccuracy = fieldChecks === 0 ? 0 : fieldMatches / fieldChecks;
+  const { duplicateRows, unexpectedRows } = completeness(
+    markets.map(
+      (m) => `${canonicalName(m.homeTeam).toLowerCase()}|${canonicalName(m.awayTeam).toLowerCase()}`
+    ),
+    new Set(truth.markets.map((m) => `${m.homeTeam.toLowerCase()}|${m.awayTeam.toLowerCase()}`))
+  );
   return {
     expectedRows,
     matchedRows,
@@ -146,6 +183,8 @@ export function scoreOdds(
     fieldMatches,
     rowCoverage,
     fieldAccuracy,
+    duplicateRows,
+    unexpectedRows,
     score: rowCoverage * fieldAccuracy
   };
 }

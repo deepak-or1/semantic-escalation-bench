@@ -6,11 +6,19 @@
  *   pnpm agent:local -- --engine baseline             # Playwright baseline
  *   pnpm agent:local -- --scenario class-drift        # a benchmark scenario's lab setup
  *   pnpm agent:local -- --engine hybrid --scenario class-drift --no-repair
+ *   pnpm agent:local -- --engine hybrid --scenario class-drift --seed-cache <healed-cache.json>
  *   pnpm agent:local -- --seed 7 --chaos modal,copyDrift --headed
+ *
+ * LAB OWNERSHIP (Wave E 8a): by default this spawns a PRIVATE lab child on a
+ * free ephemeral port, exclusive to this run, and kills it on exit — it never
+ * reuses an already-running lab. Pass `--lab-url <url>` to target a caller-owned
+ * lab instead (then exclusivity is the caller's responsibility).
  */
 import "dotenv/config";
 import { spawn, type ChildProcess } from "node:child_process";
+import net from "node:net";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   CHAOS_FLAGS,
   ChaosFlagSchema,
@@ -18,7 +26,6 @@ import {
   createRunLogger,
   DEFAULT_SEED,
   LabClient,
-  labBaseUrl,
   labCredentials,
   scenarioById,
   writeJson,
@@ -45,9 +52,15 @@ interface CliArgs {
   pages: Array<"stats" | "odds">;
   headed: boolean;
   scenarioId?: string;
+  /** Caller-owned lab URL (--lab-url); when unset, a private lab is spawned. */
+  labUrl?: string;
   /** Freeze the hybrid engine's repair path (--no-repair). */
   noRepair: boolean;
+  /** Warm-start the hybrid cache from a healed-cache.json artifact (--seed-cache). */
+  seedCacheFile?: string;
 }
+
+const REPO_ROOT = path.resolve(fileURLToPath(import.meta.url), "../..");
 
 function bail(message: string): never {
   console.error(message);
@@ -63,10 +76,15 @@ function parseArgs(argv: string[]): CliArgs {
   let pages: CliArgs["pages"] = ["stats", "odds"];
   let headed = false;
   let scenarioId: string | undefined;
+  let labUrl: string | undefined;
   let noRepair = false;
+  let seedCacheFile: string | undefined;
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
+    // A bare "--" separator (docs use `pnpm agent:local -- --engine ...`) is
+    // skipped so it never trips the argument parser (Wave E 8k).
+    if (arg === "--") continue;
     if (arg === "--engine") {
       const name = argv[++i];
       if (name === "baseline") engine = baselineEngine;
@@ -95,27 +113,80 @@ function parseArgs(argv: string[]): CliArgs {
       headed = true;
     } else if (arg === "--no-repair") {
       noRepair = true;
+    } else if (arg === "--seed-cache") {
+      seedCacheFile = argv[++i];
+      if (!seedCacheFile) bail("--seed-cache needs a path to a healed-cache.json artifact");
+    } else if (arg === "--lab-url") {
+      labUrl = argv[++i];
+      if (!labUrl) bail("--lab-url needs a URL");
     } else if (arg === "--scenario") {
       scenarioId = argv[++i];
       const scenario = scenarioId ? scenarioById(scenarioId) : undefined;
       if (!scenario) bail(`Unknown scenario "${scenarioId}". See packages/shared/src/scenarios.ts`);
       seed = scenario.seed;
       chaos = [...scenario.chaos];
+    } else {
+      bail(`Unknown flag "${arg}"`);
     }
   }
-  return { engine, env, seed, chaos, pages, headed, scenarioId, noRepair };
+  return {
+    engine,
+    env,
+    seed,
+    chaos,
+    pages,
+    headed,
+    ...(scenarioId ? { scenarioId } : {}),
+    ...(labUrl ? { labUrl } : {}),
+    noRepair,
+    ...(seedCacheFile ? { seedCacheFile } : {})
+  };
 }
 
-async function ensureLab(lab: LabClient): Promise<ChildProcess | null> {
-  if (await lab.health()) return null;
-  console.log(`Lab not running at ${lab.baseUrl} — starting it...`);
-  const child = spawn(
-    path.join(process.env.HOME ?? "~", "Library/pnpm/pnpm"),
-    ["exec", "tsx", "apps/lab/src/server.ts"],
-    { cwd: process.cwd(), stdio: "ignore", env: process.env }
-  );
-  await lab.waitUntilReady(20_000);
-  return child;
+/** Ask the OS for a free ephemeral port on the loopback interface. */
+function pickFreePort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const srv = net.createServer();
+    srv.on("error", reject);
+    srv.listen(0, "127.0.0.1", () => {
+      const addr = srv.address();
+      if (addr && typeof addr === "object") {
+        const { port } = addr;
+        srv.close(() => resolve(port));
+      } else {
+        srv.close(() => reject(new Error("could not determine a free ephemeral port")));
+      }
+    });
+  });
+}
+
+/**
+ * Spawn a PRIVATE lab child bound to `port` (Wave E 8a + 8k). Portable spawn:
+ * runs the repo's OWN tsx through the current Node instead of a machine-specific
+ * global pnpm path. `node_modules/.bin/tsx` is pnpm's shim whose target is
+ * `tsx/dist/cli.mjs`; invoking that target via `process.execPath` means the
+ * child depends on nothing on PATH. (Windows caveat: the .bin entry there is
+ * `tsx.CMD`, but running `cli.mjs` through `process.execPath` works the same.)
+ */
+function spawnPrivateLab(port: number): ChildProcess {
+  const tsxCli = path.resolve(REPO_ROOT, "node_modules/tsx/dist/cli.mjs");
+  return spawn(process.execPath, [tsxCli, "apps/lab/src/server.ts"], {
+    cwd: REPO_ROOT,
+    stdio: "ignore",
+    env: { ...process.env, LAB_PORT: String(port) }
+  });
+}
+
+/** Kill a child and confirm it actually exited (Wave E 8a: verify death). */
+async function killAndVerify(child: ChildProcess): Promise<void> {
+  if (child.exitCode !== null || child.signalCode !== null) return;
+  const exited = new Promise<void>((resolve) => child.once("exit", () => resolve()));
+  child.kill("SIGTERM");
+  await Promise.race([exited, new Promise<void>((r) => setTimeout(r, 3000))]);
+  if (child.exitCode === null && child.signalCode === null) {
+    child.kill("SIGKILL");
+    await Promise.race([exited, new Promise<void>((r) => setTimeout(r, 2000))]);
+  }
 }
 
 function formatPct(value: number): string {
@@ -124,8 +195,23 @@ function formatPct(value: number): string {
 
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
-  const lab = new LabClient(labBaseUrl());
-  const labChild = await ensureLab(lab);
+
+  // Resolve the lab: caller-owned (--lab-url) or a private, exclusive child.
+  let labUrl: string;
+  let labChild: ChildProcess | null = null;
+  if (args.labUrl) {
+    labUrl = args.labUrl;
+    console.warn(
+      `--lab-url ${labUrl}: using a CALLER-OWNED lab; this run will not spawn or manage it.`
+    );
+  } else {
+    const port = await pickFreePort();
+    labUrl = `http://127.0.0.1:${port}`;
+    console.log(`Starting a private lab on ${labUrl} (exclusive to this run)...`);
+    labChild = spawnPrivateLab(port);
+    await new LabClient(labUrl).waitUntilReady(20_000);
+  }
+  const lab = new LabClient(labUrl);
 
   try {
     await lab.configure({ seed: args.seed, chaos: args.chaos });
@@ -163,7 +249,8 @@ async function main(): Promise<void> {
       navTimeoutMs: DEFAULT_PIPELINE_TIMEOUTS.navTimeoutMs,
       stepTimeoutMs: DEFAULT_PIPELINE_TIMEOUTS.stepTimeoutMs,
       env: args.env,
-      ...(args.noRepair ? { disableRepair: true } : {})
+      ...(args.noRepair ? { disableRepair: true } : {}),
+      ...(args.seedCacheFile ? { seedCacheFile: args.seedCacheFile } : {})
     });
     await writeJson(path.join(dir, "result.json"), result);
 
@@ -215,7 +302,7 @@ async function main(): Promise<void> {
     console.log(`Artifacts: ${dir}`);
     process.exitCode = result.success ? 0 : 1;
   } finally {
-    if (labChild) labChild.kill();
+    if (labChild) await killAndVerify(labChild);
   }
 }
 

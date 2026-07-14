@@ -129,6 +129,29 @@ from the live sources and machine-verified. Three anchors:
   whose claim is "deterministic," it's contamination. The hybrid sets
   `selfHeal: false` and proves the claim: `llmCalls: 0` recorded on every
   keyless trial.
+- **The determinism gate caught real silent corruption — in our own
+  infrastructure.** Freezing the keyed protocol required two consecutive
+  keyless runs to produce identical outcome vectors. They didn't: three
+  hybrid trials flipped, and the failing run contained the outcome
+  taxonomy's first genuine silent-corruption flags — trials that extracted
+  *structurally valid* league tables at 12–13% accuracy. Fingerprinting the
+  raw extractions showed each corrupted trial had extracted the data of
+  **exactly three scenarios earlier**. The lab was never wrong; the trials
+  were reading stale pages. The enabling condition was environmental debris:
+  a zombie Chrome process tree and nine orphaned lab servers left behind by
+  interrupted runs earlier in development. With the debris cleared, an
+  8-sweep stress run (128 trials) reproduced zero contamination. The
+  permanent fixes attack the root: every benchmark run now owns a **private
+  lab on its own ephemeral port** (runners never reuse an unowned lab — a
+  flaw an external audit also demonstrated live by contaminating an
+  in-flight run through the shared default port), every trial browser
+  launches with `--disable-http-cache` so a page can never be served from a
+  previous trial's cache, leftover browsers are logged as a warning-only
+  forensic census in each bench log, and the determinism gate stays as a
+  trigger for every future freeze. The meta-lesson is the best one in this
+  project: the
+  taxonomy's first real silent-corruption catch was a true positive, fired
+  before a single LLM call had ever been made — the instrument works.
 
 ## The two-layer validation design
 
@@ -151,8 +174,21 @@ reports itself as *skipped* rather than inventing numbers):
 | Engine | Judged pass | Task success | Extraction | Validation | Mean accuracy | Mean duration | Recovery | LLM calls |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
 | baseline (positional) | 18/24 | 75.0% | 83.3% | 70.8% | 95.42% | 4.51s | 0/4 | n/a |
-| hybrid (cache + header names) | 20/24 | **83.3%** | 83.3% | 79.2% | **99.79%** | 4.12s | 0/4 | **0** |
+| hybrid — **deterministic tier** (cache + header names) | 20/24 | **83.3%** | 83.3% | 79.2% | **99.79%** | 4.12s | 0/4 | **0** |
 | stagehand (semantic) | — | *skipped: no model key* | | | | | | |
+
+To say it precisely: **the hybrid's deterministic tier passed 20/24 without
+ever invoking semantic repair** — `llmCalls: 0` on every trial. Whether LLM
+repair recovers the remaining four drift failures, and at what cost, is the
+still-untested claim; the experiment that will test it is prospectively
+frozen in [PROTOCOL.md](./PROTOCOL.md), methodology tagged before any keyed
+result exists. A pass now requires *perfect* extraction (accuracy 1.0 with
+full row coverage — the earlier 0.75 threshold was retired after checking
+that every genuine pass already sat at exactly 1.0), and every trial carries
+an outcome class; the safety headline is that **silent corruption is
+currently 0 across every denominator** (0/48 trials, 0/12 pipeline-reported
+failures, 0/36 accepted outputs) — every failure in the committed run was self-reported
+by the pipeline before grading.
 
 The failure sets are the story:
 
@@ -212,8 +248,12 @@ Naming these beats having them named for me:
    offer — but a live, ToS-respecting adapter behind the same Engine
    interface is the natural next validation step.
 6. **The hybrid's repair path is implemented but keyless-unverified.** Its
-   deterministic tier is fully verified (including `llmCalls: 0`); the
-   observe-heal-replay loop awaits a keyed run.
+   deterministic tier is fully verified (including `llmCalls: 0`, and a
+   `--no-repair` freeze that guarantees zero model calls even with a key
+   present); the observe-heal-replay loop awaits the keyed campaign defined
+   in [PROTOCOL.md](./PROTOCOL.md) — five cold sweeps per keyed
+   configuration, persistence runs from saved repairs, and one warm-cache
+   economics sweep, with the methodology tagged before the first keyed trial.
 
 ## Where Stagehand helped, and where it wasn't enough
 

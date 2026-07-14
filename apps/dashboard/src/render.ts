@@ -179,16 +179,19 @@ function outcomeClassChip(cls: OutcomeClass, extra = ""): string {
 }
 
 /**
- * Silent-corruption framed against three denominators (all from the behaviour
- * class partition): / total trials, / failures, / accepted outputs — where
- * accepted = pass + recovered + silent-corruption. The third is the headline:
- * of the data the pipeline vouched for, how much was wrong.
+ * Silent-corruption framed against three denominators (Wave E 8c):
+ *  - D1 = total trials;
+ *  - D2 = JUDGED failures (outcome === "fail"), passed in from the trial list —
+ *    silent-corruption is always a subset of these;
+ *  - D3 = accepted outputs = pass + recovered + silent-corruption classes.
+ * The third is the headline: of the data the pipeline vouched for, how much was
+ * wrong.
  */
-function silentCorruptionLine(summary: EngineSummary): string {
+function silentCorruptionLine(summary: EngineSummary, judgedFailures: number): string {
   const count = (k: OutcomeClass): number => summary.outcomeClasses[k] ?? 0;
   const silent = count("silent-corruption");
   const accepted = count("pass") + count("recovered") + silent;
-  const failures = summary.trials - accepted;
+  const failures = judgedFailures;
   const text =
     `silent corruption: ${silent} (${silent}/${summary.trials} trials, ` +
     `${silent}/${failures} failures, ${silent}/${accepted} accepted outputs)`;
@@ -383,10 +386,13 @@ function tilesSection(results: BenchmarkResults): string {
       .map((k) => outcomeClassChip(k, String(s.outcomeClasses[k])))
       .join("");
     const classRow = classChips ? `<div class="tile-classes">${classChips}</div>` : "";
+    const judgedFailures = results.trials.filter(
+      (t) => t.engine === engine && t.outcome === "fail"
+    ).length;
     return (
       `<div class="tile" style="--accent:${color}">${head}` +
       `<div class="tile-metrics">${metrics.join("")}</div>${note}` +
-      `${classRow}${silentCorruptionLine(s)}` +
+      `${classRow}${silentCorruptionLine(s, judgedFailures)}` +
       `<p class="tile-foot">${s.trials} trial${s.trials === 1 ? "" : "s"}</p></div>`
     );
   }).join("");
@@ -877,6 +883,7 @@ function buildIsland(data: DashboardData): unknown {
             meanAccuracy: e.meanAccuracy,
             meanDurationMs: e.meanDurationMs,
             healedTrials: e.healedTrials ?? null,
+            retryRecoveries: e.retryRecoveries,
             outcomeClasses: e.outcomeClasses,
             silentCorruptionRate: e.silentCorruptionRate
           })),

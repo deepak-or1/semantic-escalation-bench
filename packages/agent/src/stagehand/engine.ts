@@ -131,7 +131,13 @@ function buildStagehandOptions(
     disableAPI: true,
     disablePino: true,
     verbose: 0,
-    localBrowserLaunchOptions: { headless: options.headless, viewport: VIEWPORT }
+    localBrowserLaunchOptions: {
+      headless: options.headless,
+      viewport: VIEWPORT,
+      // Trial-isolation hardening (2026-07-14): never serve a page from a
+      // previous trial's HTTP cache — benchmark trials must always hit the lab.
+      args: ["--disable-http-cache"]
+    }
   };
 }
 

@@ -121,4 +121,25 @@ describe("hybrid engine vs in-process lab (keyless)", () => {
     expect(result.failureCategory).toBe("not_found");
     expect(result.failureDetail ?? "").toContain("repair disabled (--no-repair)");
   });
+
+  it("KEY-PRESENT + --no-repair proves zero inference on a drift scenario (8g)", async () => {
+    // With a (fake) key present, the repair path is available in principle but
+    // frozen by disableRepair. A fake key means ANY attempted inference would
+    // fail loudly with a provider/auth error — so llmCalls === 0 AND the absence
+    // of any such error text together prove no inference was attempted at all.
+    process.env.ANTHROPIC_API_KEY = "sk-test-fake-not-a-real-key";
+    try {
+      const result = await runScenario("class-drift", { disableRepair: true });
+      expect(result.success).toBe(false);
+      expect(result.tokens?.llmCalls).toBe(0);
+      const detail = result.failureDetail ?? "";
+      expect(detail).toContain("repair disabled");
+      // No provider/auth error text anywhere in the failure detail.
+      expect(detail.toLowerCase()).not.toMatch(
+        /api[_ -]?key|authentication|unauthorized|\b401\b|x-api-key|invalid.*key|anthropic|provider/
+      );
+    } finally {
+      delete process.env.ANTHROPIC_API_KEY;
+    }
+  });
 });

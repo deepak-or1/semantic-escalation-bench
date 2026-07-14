@@ -27,7 +27,7 @@ import {
 import { ODDS_INSTRUCTION, STATS_INSTRUCTION } from "../stagehand/engine";
 import { mergeStatsRows, parsePageInfo } from "../stagehand/helpers";
 import { bootstrapActions, type CacheKey } from "./bootstrap";
-import { SelectorCache } from "./cache";
+import { loadSeedCache, SelectorCache } from "./cache";
 import {
   oddsRowsFrom,
   readVisibleTables,
@@ -136,7 +136,13 @@ function buildHybridStagehandOptions(
     verbose: 0,
     selfHeal: false,
     logger: () => {},
-    localBrowserLaunchOptions: { headless: options.headless, viewport: VIEWPORT }
+    localBrowserLaunchOptions: {
+      headless: options.headless,
+      viewport: VIEWPORT,
+      // Trial-isolation hardening (2026-07-14): never serve a page from a
+      // previous trial's HTTP cache — benchmark trials must always hit the lab.
+      args: ["--disable-http-cache"]
+    }
   };
 }
 
@@ -188,8 +194,14 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
 
   // Per-trial cache + healed-step tracking, shared across the run's attempts so a
   // repair discovered on attempt 1 carries into a retry. Trials stay independent
-  // because each run() builds its own cache from a fresh bootstrap clone.
-  const cache = new SelectorCache(bootstrapActions());
+  // because each run() builds its own cache from a fresh clone. Warm-cache runs
+  // (--seed-cache) start from a persisted healed cache instead of the bootstrap,
+  // replaying an earlier run's repairs deterministically; a missing/malformed
+  // seed file raises a clear internal PipelineStepError naming the path.
+  const bootstrap = options.seedCacheFile
+    ? await loadSeedCache(options.seedCacheFile)
+    : bootstrapActions();
+  const cache = new SelectorCache(bootstrap);
   const healedSteps = new Set<string>();
 
   const attemptFn: AttemptFn = async (attempt): Promise<AttemptOutcome> => {

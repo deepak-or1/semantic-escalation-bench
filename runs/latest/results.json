@@ -1,7 +1,7 @@
 {
-  "benchId": "bench-2026-07-14T10-08-26-842Z",
-  "createdAt": "2026-07-14T10:11:58.910Z",
-  "labUrl": "http://localhost:4517",
+  "benchId": "bench-2026-07-14T11-51-32-727Z",
+  "createdAt": "2026-07-14T11:54:59.566Z",
+  "labUrl": "http://127.0.0.1:51822",
   "trialsPerScenario": 1,
   "scenarios": [
     {
@@ -317,6 +317,8 @@
           "fieldMatches": 48,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "odds": {
@@ -326,14 +328,16 @@
           "fieldMatches": 30,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "overall": 1
       },
-      "durationMs": 1852,
+      "durationMs": 1346,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/clean-extraction-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/clean-extraction-baseline-t1",
       "tokens": null
     },
     {
@@ -355,6 +359,8 @@
           "fieldMatches": 48,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "odds": {
@@ -364,14 +370,16 @@
           "fieldMatches": 30,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "overall": 1
       },
-      "durationMs": 3166,
+      "durationMs": 2152,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/clean-extraction-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/clean-extraction-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -397,6 +405,8 @@
           "fieldMatches": 48,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "odds": {
@@ -406,14 +416,16 @@
           "fieldMatches": 30,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "overall": 1
       },
-      "durationMs": 1279,
+      "durationMs": 1250,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/session-reuse-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/session-reuse-baseline-t1",
       "tokens": null
     },
     {
@@ -435,6 +447,8 @@
           "fieldMatches": 48,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "odds": {
@@ -444,14 +458,16 @@
           "fieldMatches": 30,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "overall": 1
       },
-      "durationMs": 2155,
+      "durationMs": 1947,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/session-reuse-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/session-reuse-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -477,6 +493,8 @@
           "fieldMatches": 48,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "odds": {
@@ -486,14 +504,16 @@
           "fieldMatches": 30,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "overall": 1
       },
-      "durationMs": 1350,
+      "durationMs": 1310,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/expired-session-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/expired-session-baseline-t1",
       "tokens": null
     },
     {
@@ -515,6 +535,8 @@
           "fieldMatches": 48,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "odds": {
@@ -524,14 +546,16 @@
           "fieldMatches": 30,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "overall": 1
       },
-      "durationMs": 2250,
+      "durationMs": 2161,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/expired-session-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/expired-session-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -557,6 +581,8 @@
           "fieldMatches": 48,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "odds": {
@@ -566,14 +592,16 @@
           "fieldMatches": 30,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "overall": 1
       },
-      "durationMs": 1388,
+      "durationMs": 1374,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/cookie-banner-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/cookie-banner-baseline-t1",
       "tokens": null
     },
     {
@@ -595,6 +623,8 @@
           "fieldMatches": 48,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "odds": {
@@ -604,14 +634,16 @@
           "fieldMatches": 30,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "overall": 1
       },
-      "durationMs": 2303,
+      "durationMs": 2203,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/cookie-banner-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/cookie-banner-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -637,6 +669,8 @@
           "fieldMatches": 48,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "odds": {
@@ -646,14 +680,16 @@
           "fieldMatches": 30,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "overall": 1
       },
-      "durationMs": 1341,
+      "durationMs": 1358,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/modal-overlay-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/modal-overlay-baseline-t1",
       "tokens": null
     },
     {
@@ -675,6 +711,8 @@
           "fieldMatches": 48,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "odds": {
@@ -684,14 +722,16 @@
           "fieldMatches": 30,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "overall": 1
       },
-      "durationMs": 2160,
+      "durationMs": 2171,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/modal-overlay-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/modal-overlay-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -717,6 +757,8 @@
           "fieldMatches": 48,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "odds": {
@@ -726,14 +768,16 @@
           "fieldMatches": 30,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "overall": 1
       },
-      "durationMs": 6972,
+      "durationMs": 7002,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/delayed-render-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/delayed-render-baseline-t1",
       "tokens": null
     },
     {
@@ -755,6 +799,8 @@
           "fieldMatches": 48,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "odds": {
@@ -764,14 +810,16 @@
           "fieldMatches": 30,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "overall": 1
       },
-      "durationMs": 7516,
+      "durationMs": 7469,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/delayed-render-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/delayed-render-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -797,6 +845,8 @@
           "fieldMatches": 48,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "odds": {
@@ -806,14 +856,16 @@
           "fieldMatches": 30,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "overall": 1
       },
-      "durationMs": 8826,
+      "durationMs": 8868,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/network-slowdown-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/network-slowdown-baseline-t1",
       "tokens": null
     },
     {
@@ -835,6 +887,8 @@
           "fieldMatches": 48,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "odds": {
@@ -844,14 +898,16 @@
           "fieldMatches": 30,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "overall": 1
       },
-      "durationMs": 10489,
+      "durationMs": 10377,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/network-slowdown-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/network-slowdown-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -870,12 +926,12 @@
       "extractionSuccess": false,
       "validationSuccess": false,
       "accuracy": null,
-      "durationMs": 575,
+      "durationMs": 368,
       "retries": 1,
       "recoveredAfterFailure": false,
       "failureCategory": "not_found",
       "failureDetail": "login form not found — selector #login-form matched nothing",
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/class-drift-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/class-drift-baseline-t1",
       "tokens": null
     },
     {
@@ -890,12 +946,12 @@
       "extractionSuccess": false,
       "validationSuccess": false,
       "accuracy": null,
-      "durationMs": 1451,
+      "durationMs": 1107,
       "retries": 1,
       "recoveredAfterFailure": false,
       "failureCategory": "not_found",
       "failureDetail": "login (#username): cached selector failed; semantic repair unavailable (no model key)",
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/class-drift-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/class-drift-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -921,6 +977,8 @@
           "fieldMatches": 7,
           "rowCoverage": 0.5833333333333334,
           "fieldAccuracy": 0.25,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 0.14583333333333334
         },
         "odds": {
@@ -930,16 +988,18 @@
           "fieldMatches": 30,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "overall": 0.5729166666666666
       },
-      "durationMs": 1389,
+      "durationMs": 1330,
       "retries": 0,
       "recoveredAfterFailure": false,
       "failureCategory": "validation",
       "failureDetail": "Farrow Wanderers: goalsFor Number must be greater than or equal to 0 | Eastvale Athletic: goalsFor Number must be greater than or equal to 0 | Bexley Town: goalsFor Number must be greater than or equal to 0 | Harwick Albion: goalsFor Number must be greater than or equal to 0 | Ironbridge FC: goalsFor Number must be greater than or equal to 0",
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/column-shuffle-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/column-shuffle-baseline-t1",
       "tokens": null
     },
     {
@@ -961,6 +1021,8 @@
           "fieldMatches": 48,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "odds": {
@@ -970,14 +1032,16 @@
           "fieldMatches": 30,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "overall": 1
       },
-      "durationMs": 2297,
+      "durationMs": 2100,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/column-shuffle-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/column-shuffle-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -996,12 +1060,12 @@
       "extractionSuccess": false,
       "validationSuccess": false,
       "accuracy": null,
-      "durationMs": 42635,
+      "durationMs": 42571,
       "retries": 1,
       "recoveredAfterFailure": false,
       "failureCategory": "not_found",
       "failureDetail": "standings table not found — selector #standings matched nothing or stayed empty",
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/layout-variant-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/layout-variant-baseline-t1",
       "tokens": null
     },
     {
@@ -1016,12 +1080,12 @@
       "extractionSuccess": false,
       "validationSuccess": false,
       "accuracy": null,
-      "durationMs": 4919,
+      "durationMs": 4647,
       "retries": 1,
       "recoveredAfterFailure": false,
       "failureCategory": "extraction",
       "failureDetail": "no header-mappable table found; semantic extraction unavailable (no model key)",
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/layout-variant-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/layout-variant-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -1047,6 +1111,8 @@
           "fieldMatches": 48,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "odds": {
@@ -1056,14 +1122,16 @@
           "fieldMatches": 30,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "overall": 1
       },
-      "durationMs": 1365,
+      "durationMs": 1406,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/hidden-tab-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/hidden-tab-baseline-t1",
       "tokens": null
     },
     {
@@ -1085,6 +1153,8 @@
           "fieldMatches": 48,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "odds": {
@@ -1094,14 +1164,16 @@
           "fieldMatches": 30,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "overall": 1
       },
-      "durationMs": 10526,
+      "durationMs": 10640,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/hidden-tab-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/hidden-tab-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -1127,6 +1199,8 @@
           "fieldMatches": 48,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "odds": {
@@ -1136,14 +1210,16 @@
           "fieldMatches": 30,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "overall": 1
       },
-      "durationMs": 2225,
+      "durationMs": 1943,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/pagination-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/pagination-baseline-t1",
       "tokens": null
     },
     {
@@ -1165,6 +1241,8 @@
           "fieldMatches": 48,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "odds": {
@@ -1174,14 +1252,16 @@
           "fieldMatches": 30,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "overall": 1
       },
-      "durationMs": 3460,
+      "durationMs": 3252,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/pagination-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/pagination-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -1207,6 +1287,8 @@
           "fieldMatches": 48,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "odds": {
@@ -1216,14 +1298,16 @@
           "fieldMatches": 28,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "overall": 1
       },
-      "durationMs": 1354,
+      "durationMs": 1320,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/partial-data-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/partial-data-baseline-t1",
       "tokens": null
     },
     {
@@ -1245,6 +1329,8 @@
           "fieldMatches": 48,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "odds": {
@@ -1254,14 +1340,16 @@
           "fieldMatches": 28,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "overall": 1
       },
-      "durationMs": 2205,
+      "durationMs": 2134,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/partial-data-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/partial-data-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -1287,6 +1375,8 @@
           "fieldMatches": 48,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "odds": {
@@ -1296,14 +1386,16 @@
           "fieldMatches": 30,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "overall": 1
       },
-      "durationMs": 1356,
+      "durationMs": 1322,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/copy-drift-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/copy-drift-baseline-t1",
       "tokens": null
     },
     {
@@ -1325,6 +1417,8 @@
           "fieldMatches": 48,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "odds": {
@@ -1334,14 +1428,16 @@
           "fieldMatches": 30,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "overall": 1
       },
-      "durationMs": 2034,
+      "durationMs": 2140,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/copy-drift-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/copy-drift-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -1367,6 +1463,8 @@
           "fieldMatches": 48,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "odds": {
@@ -1376,14 +1474,16 @@
           "fieldMatches": 30,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "overall": 1
       },
-      "durationMs": 1326,
+      "durationMs": 1320,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/odds-format-american-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/odds-format-american-baseline-t1",
       "tokens": null
     },
     {
@@ -1405,6 +1505,8 @@
           "fieldMatches": 48,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "odds": {
@@ -1414,14 +1516,16 @@
           "fieldMatches": 30,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "overall": 1
       },
-      "durationMs": 2232,
+      "durationMs": 1957,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/odds-format-american-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/odds-format-american-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -1447,6 +1551,8 @@
           "fieldMatches": 48,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "odds": {
@@ -1456,14 +1562,16 @@
           "fieldMatches": 30,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "overall": 1
       },
-      "durationMs": 1498,
+      "durationMs": 1456,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/stale-session-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/stale-session-baseline-t1",
       "tokens": null
     },
     {
@@ -1485,6 +1593,8 @@
           "fieldMatches": 48,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "odds": {
@@ -1494,14 +1604,16 @@
           "fieldMatches": 30,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "overall": 1
       },
-      "durationMs": 2512,
+      "durationMs": 2255,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/stale-session-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/stale-session-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -1527,6 +1639,8 @@
           "fieldMatches": 43,
           "rowCoverage": 0.9166666666666666,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 0.9166666666666666
         },
         "odds": {
@@ -1536,16 +1650,18 @@
           "fieldMatches": 27,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "overall": 0.9583333333333333
       },
-      "durationMs": 1364,
+      "durationMs": 1303,
       "retries": 0,
       "recoveredAfterFailure": false,
       "failureCategory": "validation",
       "failureDetail": "Ironbridge FC: played Number must be greater than 0 | Farrow Wanderers: W+D+L (30+5+12) != played (22)",
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/schema-violation-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/schema-violation-baseline-t1",
       "tokens": null
     },
     {
@@ -1567,6 +1683,8 @@
           "fieldMatches": 43,
           "rowCoverage": 0.9166666666666666,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 0.9166666666666666
         },
         "odds": {
@@ -1576,16 +1694,18 @@
           "fieldMatches": 27,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "overall": 0.9583333333333333
       },
-      "durationMs": 2202,
+      "durationMs": 2106,
       "retries": 0,
       "recoveredAfterFailure": false,
       "failureCategory": "validation",
       "failureDetail": "Ironbridge FC: played Number must be greater than 0 | Farrow Wanderers: W+D+L (30+5+12) != played (22)",
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/schema-violation-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/schema-violation-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -1611,6 +1731,8 @@
           "fieldMatches": 48,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "odds": {
@@ -1620,14 +1742,16 @@
           "fieldMatches": 30,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "overall": 1
       },
-      "durationMs": 1334,
+      "durationMs": 1340,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/site-v1-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/site-v1-baseline-t1",
       "tokens": null
     },
     {
@@ -1649,6 +1773,8 @@
           "fieldMatches": 48,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "odds": {
@@ -1658,14 +1784,16 @@
           "fieldMatches": 30,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "overall": 1
       },
-      "durationMs": 2186,
+      "durationMs": 2117,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/site-v1-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/site-v1-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -1691,6 +1819,8 @@
           "fieldMatches": 5,
           "rowCoverage": 0.4166666666666667,
           "fieldAccuracy": 0.25,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 0.10416666666666667
         },
         "odds": {
@@ -1700,16 +1830,18 @@
           "fieldMatches": 30,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "overall": 0.5520833333333334
       },
-      "durationMs": 1340,
+      "durationMs": 1329,
       "retries": 0,
       "recoveredAfterFailure": false,
       "failureCategory": "validation",
       "failureDetail": "Harwick Albion: losses Number must be greater than or equal to 0 | Lowton Harriers: losses Number must be greater than or equal to 0 | Dunmore City: losses Number must be greater than or equal to 0 | Eastvale Athletic: losses Number must be greater than or equal to 0 | Ironbridge FC: losses Number must be greater than or equal to 0",
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/site-v2-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/site-v2-baseline-t1",
       "tokens": null
     },
     {
@@ -1731,6 +1863,8 @@
           "fieldMatches": 48,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "odds": {
@@ -1740,14 +1874,16 @@
           "fieldMatches": 30,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "overall": 1
       },
-      "durationMs": 2205,
+      "durationMs": 2119,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/site-v2-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/site-v2-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -1766,12 +1902,12 @@
       "extractionSuccess": false,
       "validationSuccess": false,
       "accuracy": null,
-      "durationMs": 366,
+      "durationMs": 331,
       "retries": 1,
       "recoveredAfterFailure": false,
       "failureCategory": "not_found",
       "failureDetail": "login form not found — selector #login-form matched nothing",
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/site-v3-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/site-v3-baseline-t1",
       "tokens": null
     },
     {
@@ -1786,12 +1922,12 @@
       "extractionSuccess": false,
       "validationSuccess": false,
       "accuracy": null,
-      "durationMs": 1258,
+      "durationMs": 1076,
       "retries": 1,
       "recoveredAfterFailure": false,
       "failureCategory": "not_found",
       "failureDetail": "login (#username): cached selector failed; semantic repair unavailable (no model key)",
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/site-v3-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/site-v3-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -1817,6 +1953,8 @@
           "fieldMatches": 48,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "odds": {
@@ -1826,14 +1964,16 @@
           "fieldMatches": 30,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "overall": 1
       },
-      "durationMs": 18758,
+      "durationMs": 18873,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/compound-blocked-and-slow-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/compound-blocked-and-slow-baseline-t1",
       "tokens": null
     },
     {
@@ -1855,6 +1995,8 @@
           "fieldMatches": 48,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "odds": {
@@ -1864,14 +2006,16 @@
           "fieldMatches": 30,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "overall": 1
       },
-      "durationMs": 18845,
+      "durationMs": 18447,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/compound-blocked-and-slow-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/compound-blocked-and-slow-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -1897,6 +2041,8 @@
           "fieldMatches": 48,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "odds": {
@@ -1906,14 +2052,16 @@
           "fieldMatches": 30,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "overall": 1
       },
-      "durationMs": 2250,
+      "durationMs": 2242,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/compound-session-churn-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/compound-session-churn-baseline-t1",
       "tokens": null
     },
     {
@@ -1935,6 +2083,8 @@
           "fieldMatches": 48,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "odds": {
@@ -1944,14 +2094,16 @@
           "fieldMatches": 30,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "overall": 1
       },
-      "durationMs": 3823,
+      "durationMs": 3739,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/compound-session-churn-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/compound-session-churn-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -1977,6 +2129,8 @@
           "fieldMatches": 48,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "odds": {
@@ -1986,14 +2140,16 @@
           "fieldMatches": 28,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "overall": 1
       },
-      "durationMs": 7238,
+      "durationMs": 7292,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/compound-messy-data-day-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/compound-messy-data-day-baseline-t1",
       "tokens": null
     },
     {
@@ -2015,6 +2171,8 @@
           "fieldMatches": 48,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "odds": {
@@ -2024,14 +2182,16 @@
           "fieldMatches": 28,
           "rowCoverage": 1,
           "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
           "score": 1
         },
         "overall": 1
       },
-      "durationMs": 8624,
+      "durationMs": 8610,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/compound-messy-data-day-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/compound-messy-data-day-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -2050,12 +2210,12 @@
       "extractionSuccess": false,
       "validationSuccess": false,
       "accuracy": null,
-      "durationMs": 403,
+      "durationMs": 366,
       "retries": 1,
       "recoveredAfterFailure": false,
       "failureCategory": "not_found",
       "failureDetail": "login form not found — selector #login-form matched nothing",
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/compound-redesign-storm-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/compound-redesign-storm-baseline-t1",
       "tokens": null
     },
     {
@@ -2070,12 +2230,12 @@
       "extractionSuccess": false,
       "validationSuccess": false,
       "accuracy": null,
-      "durationMs": 1241,
+      "durationMs": 1096,
       "retries": 1,
       "recoveredAfterFailure": false,
       "failureCategory": "not_found",
       "failureDetail": "login (#username): cached selector failed; semantic repair unavailable (no model key)",
-      "artifactsDir": "runs/bench-2026-07-14T10-08-26-842Z/trials/compound-redesign-storm-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-14T11-51-32-727Z/trials/compound-redesign-storm-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -2099,6 +2259,7 @@
         "recovered": 0,
         "recoveryRate": null
       },
+      "retryRecoveries": 0,
       "failuresByCategory": {},
       "outcomeClasses": {},
       "silentCorruptionRate": null,
@@ -2111,13 +2272,14 @@
       "extractionSuccessRate": 0.8333333333333334,
       "validationSuccessRate": 0.7083333333333334,
       "meanAccuracy": 0.9541666666666668,
-      "meanDurationMs": 4574.333333333333,
+      "meanDurationMs": 4525.833333333333,
       "totalRetries": 4,
       "recovery": {
         "firstAttemptFailures": 4,
         "recovered": 0,
         "recoveryRate": 0
       },
+      "retryRecoveries": 0,
       "failuresByCategory": {
         "not_found": 4,
         "validation": 3
@@ -2137,13 +2299,14 @@
       "extractionSuccessRate": 0.8333333333333334,
       "validationSuccessRate": 0.7916666666666666,
       "meanAccuracy": 0.9979166666666668,
-      "meanDurationMs": 4252.458333333333,
+      "meanDurationMs": 4084.25,
       "totalRetries": 4,
       "recovery": {
         "firstAttemptFailures": 4,
         "recovered": 0,
         "recoveryRate": 0
       },
+      "retryRecoveries": 0,
       "failuresByCategory": {
         "not_found": 3,
         "extraction": 1,
@@ -2366,6 +2529,13 @@
     "node": "v20.14.0",
     "stagehandVersion": "3.6.0",
     "modelProvider": null,
-    "browserbase": false
+    "browserbase": false,
+    "gitCommit": "dffab30978b37f0f704b581f7167e2e3123966ea",
+    "gitDirty": true,
+    "disableRepair": false,
+    "seedCacheMode": "none",
+    "seedCacheHash": null,
+    "promptsHash": "a9758d5885bed18fb8e75b81fc1cb3d92dae458fdb4063ccfe6ddd0ab89972e5",
+    "lockfileHash": "b6f0dd3ad6190377983d2983cfae91216e98463d02b7b5a3948766263a2f0349"
   }
 }

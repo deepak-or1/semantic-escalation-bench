@@ -6,39 +6,51 @@
  *   pnpm bench -- --trials 3                      # 3 trials per scenario/engine
  *   pnpm bench -- --scenarios clean-extraction,class-drift --headed
  *   pnpm bench -- --engines hybrid --no-repair    # frozen structural-deterministic
+ *   pnpm bench -- --seed-cache-manifest heals.json # per-scenario warm caches
  *
  * The default engine set is all three engines: "stagehand,baseline,hybrid".
  * Stagehand is auto-skipped (reported, never run) when no model key is present;
  * baseline and hybrid always run (hybrid is designed to run keyless).
+ *
+ * LAB OWNERSHIP (Wave E 8a): by default this runner NEVER reuses an existing
+ * lab. It spawns a PRIVATE lab child on a free ephemeral port, exclusive to this
+ * run, and kills it on exit — so two benches can run concurrently without
+ * contaminating each other's trial isolation. Pass `--lab-url <url>` to point at
+ * a caller-owned lab instead; then exclusivity is the caller's responsibility.
  */
 import "dotenv/config";
-import { spawn, type ChildProcess } from "node:child_process";
+import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { readFile } from "node:fs/promises";
-import os from "node:os";
+import net from "node:net";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   ENGINES,
   LabClient,
   SCENARIOS,
   createRunDir,
-  labBaseUrl,
   scenarioById,
   type EngineName,
   type ScenarioSpec
 } from "@ssda/shared";
-import { runBenchmark } from "@ssda/agent";
+import { runBenchmark, type SeedCacheManifest } from "@ssda/agent";
 
 interface CliArgs {
   engines: EngineName[];
   trials: number;
   scenarios: ScenarioSpec[];
   headless: boolean;
-  labUrl: string;
+  /** Caller-owned lab URL (--lab-url); when unset, a private lab is spawned. */
+  labUrl?: string;
   /** Freeze the hybrid engine's repair path (--no-repair). */
   noRepair: boolean;
+  /** Warm-start the hybrid cache from a healed-cache.json artifact (--seed-cache). */
+  seedCacheFile?: string;
+  /** Per-scenario warm-cache manifest (--seed-cache-manifest). */
+  seedCacheManifestFile?: string;
 }
 
-const PNPM = path.join(os.homedir(), "Library", "pnpm", "pnpm");
+const REPO_ROOT = path.resolve(fileURLToPath(import.meta.url), "../..");
 
 function bail(message: string): never {
   console.error(message);
@@ -50,11 +62,16 @@ function parseArgs(argv: string[]): CliArgs {
   let trials = 1;
   let scenarios: ScenarioSpec[] = SCENARIOS;
   let headless = true;
-  let labUrl = labBaseUrl();
+  let labUrl: string | undefined;
   let noRepair = false;
+  let seedCacheFile: string | undefined;
+  let seedCacheManifestFile: string | undefined;
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
+    // A bare "--" separator (docs use `pnpm bench -- --engines ...`) is skipped
+    // so it never trips the unknown-flag guard (Wave E 8k).
+    if (arg === "--") continue;
     if (arg === "--engines") {
       const raw = (argv[++i] ?? "").split(",").filter(Boolean);
       if (raw.length === 0) bail("--engines must list at least one engine");
@@ -79,39 +96,155 @@ function parseArgs(argv: string[]): CliArgs {
       headless = false;
     } else if (arg === "--no-repair") {
       noRepair = true;
+    } else if (arg === "--seed-cache") {
+      seedCacheFile = argv[++i];
+      if (!seedCacheFile) bail("--seed-cache needs a path to a healed-cache.json artifact");
+    } else if (arg === "--seed-cache-manifest") {
+      seedCacheManifestFile = argv[++i];
+      if (!seedCacheManifestFile) bail("--seed-cache-manifest needs a path to a manifest.json");
     } else if (arg === "--lab-url") {
-      labUrl = argv[++i] ?? labUrl;
+      labUrl = argv[++i];
+      if (!labUrl) bail("--lab-url needs a URL");
     } else {
       bail(`Unknown flag "${arg}"`);
     }
   }
-  return { engines, trials, scenarios, headless, labUrl, noRepair };
+  if (seedCacheFile && seedCacheManifestFile) {
+    bail("--seed-cache and --seed-cache-manifest are mutually exclusive");
+  }
+  return {
+    engines,
+    trials,
+    scenarios,
+    headless,
+    ...(labUrl ? { labUrl } : {}),
+    noRepair,
+    ...(seedCacheFile ? { seedCacheFile } : {}),
+    ...(seedCacheManifestFile ? { seedCacheManifestFile } : {})
+  };
 }
 
-function startLab(labUrl: string): ChildProcess {
-  console.log(`Lab not running at ${labUrl} — starting it...`);
-  return spawn(PNPM, ["exec", "tsx", "apps/lab/src/server.ts"], {
-    cwd: process.cwd(),
-    stdio: "ignore",
-    env: process.env
+/** Ask the OS for a free ephemeral port on the loopback interface. */
+function pickFreePort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const srv = net.createServer();
+    srv.on("error", reject);
+    srv.listen(0, "127.0.0.1", () => {
+      const addr = srv.address();
+      if (addr && typeof addr === "object") {
+        const { port } = addr;
+        srv.close(() => resolve(port));
+      } else {
+        srv.close(() => reject(new Error("could not determine a free ephemeral port")));
+      }
+    });
   });
 }
 
-async function main(): Promise<void> {
-  const args = parseArgs(process.argv.slice(2));
-  const lab = new LabClient(args.labUrl);
+/**
+ * Spawn a PRIVATE lab child bound to `port` (Wave E 8a + 8k). Portable spawn:
+ * runs the repo's OWN tsx through the current Node instead of a machine-specific
+ * global pnpm path. `node_modules/.bin/tsx` is pnpm's shim whose target is
+ * `tsx/dist/cli.mjs`; invoking that target via `process.execPath` means the
+ * child depends on nothing on PATH. (Windows caveat: the .bin entry there is
+ * `tsx.CMD`, but running `cli.mjs` through `process.execPath` works the same.)
+ */
+function spawnPrivateLab(port: number): ChildProcess {
+  const tsxCli = path.resolve(REPO_ROOT, "node_modules/tsx/dist/cli.mjs");
+  return spawn(process.execPath, [tsxCli, "apps/lab/src/server.ts"], {
+    cwd: REPO_ROOT,
+    stdio: "ignore",
+    env: { ...process.env, LAB_PORT: String(port) }
+  });
+}
 
-  let labChild: ChildProcess | null = null;
-  if (!(await lab.health())) {
-    labChild = startLab(args.labUrl);
-    await lab.waitUntilReady(20_000);
+/** Kill a child and confirm it actually exited (Wave E 8a: verify death). */
+async function killAndVerify(child: ChildProcess): Promise<void> {
+  if (child.exitCode !== null || child.signalCode !== null) return;
+  const exited = new Promise<void>((resolve) => child.once("exit", () => resolve()));
+  child.kill("SIGTERM");
+  await Promise.race([exited, new Promise<void>((r) => setTimeout(r, 3000))]);
+  if (child.exitCode === null && child.signalCode === null) {
+    child.kill("SIGKILL");
+    await Promise.race([exited, new Promise<void>((r) => setTimeout(r, 2000))]);
   }
+}
+
+/** Load + shape-check a --seed-cache-manifest file (Wave E 8h). */
+async function loadSeedCacheManifest(
+  file: string
+): Promise<{ path: string; scenarios: SeedCacheManifest["scenarios"] }> {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(await readFile(file, "utf8"));
+  } catch (error) {
+    bail(`--seed-cache-manifest could not be read at ${file}: ${error instanceof Error ? error.message : error}`);
+  }
+  const scenarios = (raw as { scenarios?: unknown }).scenarios;
+  if (!scenarios || typeof scenarios !== "object") {
+    bail(`--seed-cache-manifest at ${file} must have a "scenarios" object`);
+  }
+  return { path: path.resolve(file), scenarios: scenarios as SeedCacheManifest["scenarios"] };
+}
+
+// NOTE (Wave E 8a): a previous wave added a "pre-flight" that refused to bench
+// whenever ANY `stagehand-v3/profile` chrome process was alive, on the theory
+// that leftover browsers from an interrupted run could read pages rendered under
+// an earlier scenario's SHARED lab configuration and corrupt trial isolation.
+// 8a fixes that at the root — every run now owns a PRIVATE lab on its own
+// ephemeral port, so a browser belonging to another (crashed or concurrent) run
+// points at a different/dead lab and cannot contaminate this run's trials
+// (and --disable-http-cache closes the stale-cache vector). A hard-exit guard
+// would also break legitimate concurrency (two benches at once). What remains
+// is a WARNING-ONLY census: leftover browsers are logged as a forensic signal
+// in every bench log, never a reason to refuse.
+function warnLeftoverBrowsers(): void {
+  if (process.platform === "win32") return; // POSIX-only, best-effort
+  const probe = spawnSync("pgrep", ["-f", "stagehand-v3/profile"], {
+    encoding: "utf8"
+  });
+  const count = (probe.stdout ?? "")
+    .split("\n")
+    .filter((s) => s.trim().length > 0).length;
+  if (count > 0) {
+    console.warn(
+      `Note: ${count} Stagehand chrome process(es) from other/interrupted runs are alive. ` +
+        `This run's private lab and disabled HTTP cache keep trials isolated; ` +
+        `logging for forensics only.`
+    );
+  }
+}
+
+async function main(): Promise<void> {
+  warnLeftoverBrowsers();
+  const args = parseArgs(process.argv.slice(2));
+
+  // Resolve the lab: caller-owned (--lab-url) or a private, exclusive child.
+  let labUrl: string;
+  let labChild: ChildProcess | null = null;
+  if (args.labUrl) {
+    labUrl = args.labUrl;
+    console.warn(
+      `--lab-url ${labUrl}: using a CALLER-OWNED lab; this runner will not spawn or ` +
+        `manage it, and trial isolation (no other run sharing it) is your responsibility.`
+    );
+  } else {
+    const port = await pickFreePort();
+    labUrl = `http://127.0.0.1:${port}`;
+    console.log(`Starting a private lab on ${labUrl} (exclusive to this run)...`);
+    labChild = spawnPrivateLab(port);
+    await new LabClient(labUrl).waitUntilReady(20_000);
+  }
+
+  const seedCacheManifest = args.seedCacheManifestFile
+    ? await loadSeedCacheManifest(args.seedCacheManifestFile)
+    : undefined;
 
   let exitCode = 0;
   try {
     const { runId, dir } = await createRunDir({
       kind: "bench",
-      labUrl: args.labUrl,
+      labUrl,
       description: `reliability benchmark (${args.engines.join("+")}, ${args.trials} trial/scenario)`
     });
 
@@ -121,7 +254,7 @@ async function main(): Promise<void> {
     );
 
     await runBenchmark({
-      labUrl: args.labUrl,
+      labUrl,
       engines: args.engines,
       scenarios: args.scenarios,
       trialsPerScenario: args.trials,
@@ -129,6 +262,8 @@ async function main(): Promise<void> {
       benchDir: dir,
       benchId: runId,
       ...(args.noRepair ? { disableRepair: true } : {}),
+      ...(args.seedCacheFile ? { seedCacheFile: args.seedCacheFile } : {}),
+      ...(seedCacheManifest ? { seedCacheManifest } : {}),
       onProgress: (line) => console.log(line)
     });
 
@@ -147,7 +282,7 @@ async function main(): Promise<void> {
     console.error(error instanceof Error ? error.stack ?? error.message : error);
     exitCode = 1;
   } finally {
-    if (labChild) labChild.kill();
+    if (labChild) await killAndVerify(labChild);
   }
 
   process.exit(exitCode);

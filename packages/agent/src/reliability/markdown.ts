@@ -43,7 +43,8 @@ export function renderResultsMarkdown(results: BenchmarkResults): string {
   lines.push("");
   lines.push(...outcomeClassTable(results.engines));
   lines.push("");
-  for (const line of silentCorruptionLines(results.engines)) lines.push(line);
+  for (const line of silentCorruptionLines(results.engines, judgedFailuresByEngine(results)))
+    lines.push(line);
   lines.push("");
 
   lines.push("## Scenario comparison");
@@ -156,21 +157,38 @@ function outcomeClassTable(engines: EngineSummary[]): string[] {
   return [header, divider, ...rows];
 }
 
+/** Judged failures per engine (outcome === "fail"): the correct D2 denominator (8c). */
+function judgedFailuresByEngine(results: BenchmarkResults): Map<EngineName, number> {
+  const map = new Map<EngineName, number>();
+  for (const summary of results.engines) {
+    map.set(
+      summary.engine,
+      results.trials.filter((t) => t.engine === summary.engine && t.outcome === "fail").length
+    );
+  }
+  return map;
+}
+
 /**
- * Silent-corruption framed against three denominators, all derived from the
- * behaviour-class partition (accepted = pass + recovered + silent-corruption;
- * failures = trials − accepted): / total trials, / failures, / accepted outputs.
+ * Silent-corruption framed against three denominators (Wave E 8c):
+ *  - D1 = total trials;
+ *  - D2 = JUDGED failures (outcome === "fail") — silent-corruption is always a
+ *    subset of these;
+ *  - D3 = accepted outputs = pass + recovered + silent-corruption classes.
  * The third is the headline: of the data the pipeline vouched for, how much was
  * wrong. Skipped engines (no trials) are omitted.
  */
-function silentCorruptionLines(engines: EngineSummary[]): string[] {
+function silentCorruptionLines(
+  engines: EngineSummary[],
+  judgedFailures: Map<EngineName, number>
+): string[] {
   return engines
     .filter((e) => e.trials > 0)
     .map((e) => {
       const silent = classCount(e, "silent-corruption");
       const accepted =
         classCount(e, "pass") + classCount(e, "recovered") + silent;
-      const failures = e.trials - accepted;
+      const failures = judgedFailures.get(e.engine) ?? e.trials - accepted;
       return (
         `- **${e.engine}** silent corruption: ${silent} ` +
         `(${silent}/${e.trials} trials, ${silent}/${failures} failures, ` +

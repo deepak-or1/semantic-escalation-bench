@@ -3,7 +3,8 @@ import {
   type EngineName,
   type PageExtraction,
   type PipelineResult,
-  type StepResult
+  type StepResult,
+  type TokensUsage
 } from "@ssda/shared";
 import { persistNormalized, persistRaw } from "./artifacts";
 import { categorizeError } from "./errors";
@@ -14,6 +15,47 @@ export type AttemptFn = (attempt: number) => Promise<AttemptOutcome>;
 
 function stepDuration(steps: StepResult[], name: string): number {
   return steps.find((s) => s.name === name)?.durationMs ?? 0;
+}
+
+/**
+ * Accumulates token usage across EVERY attempt of a pipeline (Wave E 8f) — a
+ * retry that healed on attempt 1 and succeeded on attempt 2 spent inference on
+ * both, and the reported total must reflect all of it. Semantics: `llmCalls`
+ * counts Stagehand inference operations (observe/act-with-LLM/extract); the
+ * token counts are provider-reported via `stagehand.metrics`. `estimatedCostUsd`
+ * is deliberately never summed here — it stays null in results and is derived at
+ * analysis time from a pinned price table (protocol rule).
+ */
+class TokenAccumulator {
+  private any = false;
+  private llmCalls = 0;
+  private inputTokens = 0;
+  private hasInput = false;
+  private outputTokens = 0;
+  private hasOutput = false;
+
+  add(tokens: TokensUsage | null | undefined): void {
+    if (!tokens) return;
+    this.any = true;
+    this.llmCalls += tokens.llmCalls;
+    if (tokens.inputTokens !== undefined) {
+      this.inputTokens += tokens.inputTokens;
+      this.hasInput = true;
+    }
+    if (tokens.outputTokens !== undefined) {
+      this.outputTokens += tokens.outputTokens;
+      this.hasOutput = true;
+    }
+  }
+
+  total(): TokensUsage | null {
+    if (!this.any) return null;
+    return {
+      llmCalls: this.llmCalls,
+      ...(this.hasInput ? { inputTokens: this.inputTokens } : {}),
+      ...(this.hasOutput ? { outputTokens: this.outputTokens } : {})
+    };
+  }
 }
 
 /**
@@ -33,12 +75,15 @@ export async function runPipeline(
   let outcome: AttemptOutcome | undefined;
   let lastFailure: { category: PipelineResult["failureCategory"]; detail: string; steps: StepResult[]; screenshots: string[]; tokens: AttemptOutcome["tokens"] } | undefined;
   let attempts = 0;
+  // Sum inference cost over ALL attempts, not just the last/successful one.
+  const tokenAcc = new TokenAccumulator();
 
   for (let attempt = 1; attempt <= options.maxAttempts; attempt++) {
     attempts = attempt;
     log.info("attempt:start", { attempt, scenarioId: options.scenarioId });
     try {
       outcome = await attemptFn(attempt);
+      tokenAcc.add(outcome.tokens);
       log.info("attempt:success", { attempt });
       break;
     } catch (error) {
@@ -62,6 +107,7 @@ export async function runPipeline(
               };
             })();
       lastFailure = failure;
+      tokenAcc.add(failure.tokens);
       log.warn("attempt:failed", {
         attempt,
         category: failure.category,
@@ -105,7 +151,8 @@ export async function runPipeline(
         screenshots: failure.screenshots,
         eventsFile
       },
-      tokens: failure.tokens ?? null
+      // Total inference across all attempts (estimatedCostUsd stays null).
+      tokens: tokenAcc.total()
     };
   }
 
@@ -200,7 +247,8 @@ export async function runPipeline(
       screenshots: outcome.screenshots,
       eventsFile
     },
-    tokens: outcome.tokens ?? null,
+    // Total inference across all attempts (estimatedCostUsd stays null).
+    tokens: tokenAcc.total(),
     // Carry the final attempt's healed step names (hybrid only; empty otherwise).
     ...(outcome.healedSteps && outcome.healedSteps.length > 0
       ? { healedSteps: outcome.healedSteps }
