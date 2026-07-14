@@ -77,6 +77,12 @@ export interface AttemptOutcome {
    * attempt's value into PipelineResult.healedSteps.
    */
   healedSteps?: string[];
+  /**
+   * Step names where a hand-written deterministic guard fired after the semantic
+   * act failed to clear a session blocker (stagehand engine only). runPipeline
+   * copies the final attempt's value into PipelineResult.deterministicFallbacks.
+   */
+  deterministicFallbacks?: string[];
 }
 
 /** Thrown by engines when an attempt dies mid-flight. Carries what happened. */

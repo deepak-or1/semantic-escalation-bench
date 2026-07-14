@@ -24,7 +24,17 @@ import {
   type Engine,
   type PipelineOptions
 } from "../core";
-import { ODDS_INSTRUCTION, STATS_INSTRUCTION } from "../stagehand/engine";
+import {
+  CONSENT_ACCEPT_INSTRUCTION,
+  HYBRID_REPAIR_DISMISS_MODAL_INSTRUCTION,
+  HYBRID_REPAIR_LOGIN_SUBMIT_INSTRUCTION,
+  HYBRID_REPAIR_NEXT_PAGE_INSTRUCTION,
+  HYBRID_REPAIR_PASSWORD_INSTRUCTION,
+  HYBRID_REPAIR_USERNAME_INSTRUCTION,
+  ODDS_INSTRUCTION,
+  REVEAL_STANDINGS_INSTRUCTION,
+  STATS_INSTRUCTION
+} from "../instructions";
 import { mergeStatsRows, parsePageInfo } from "../stagehand/helpers";
 import { bootstrapActions, type CacheKey } from "./bootstrap";
 import { loadSeedCache, SelectorCache } from "./cache";
@@ -377,7 +387,7 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
         step: stepName,
         key: "username",
         category: "not_found",
-        repairInstruction: "find the username text field of the login form",
+        repairInstruction: HYBRID_REPAIR_USERNAME_INSTRUCTION,
         repairKind: "fill",
         placeholder: "%username%",
         actOptions: { variables: { username: options.credentials.username }, timeout: options.stepTimeoutMs }
@@ -386,7 +396,7 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
         step: stepName,
         key: "password",
         category: "not_found",
-        repairInstruction: "find the password field of the login form",
+        repairInstruction: HYBRID_REPAIR_PASSWORD_INSTRUCTION,
         repairKind: "fill",
         placeholder: "%password%",
         actOptions: { variables: { password: options.credentials.password }, timeout: options.stepTimeoutMs }
@@ -395,7 +405,7 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
         step: stepName,
         key: "login-submit",
         category: "not_found",
-        repairInstruction: "find the sign-in / submit button of the login form",
+        repairInstruction: HYBRID_REPAIR_LOGIN_SUBMIT_INSTRUCTION,
         repairKind: "click",
         actOptions: { timeout: options.stepTimeoutMs }
       });
@@ -412,7 +422,7 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
           step: "consent",
           key: "consent",
           category: "not_found",
-          repairInstruction: "accept the cookie consent so the page content is shown",
+          repairInstruction: CONSENT_ACCEPT_INSTRUCTION,
           repairKind: "click",
           actOptions: { timeout: options.stepTimeoutMs }
         });
@@ -486,7 +496,7 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
             step: "dismiss-modal",
             key: "dismiss-modal",
             category: "not_found",
-            repairInstruction: "close the popup dialog blocking the page",
+            repairInstruction: HYBRID_REPAIR_DISMISS_MODAL_INSTRUCTION,
             repairKind: "click",
             actOptions: { timeout: options.stepTimeoutMs }
           });
@@ -511,7 +521,7 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
               step: "reveal-table",
               key: "reveal-table",
               category: "not_found",
-              repairInstruction: "find the tab or control that reveals the full season standings table",
+              repairInstruction: REVEAL_STANDINGS_INSTRUCTION,
               repairKind: "click",
               actOptions: { timeout: options.stepTimeoutMs }
             });
@@ -542,7 +552,7 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
                 step: "extract-stats",
                 key: "next-page",
                 category: "not_found",
-                repairInstruction: "find the control that advances to the next page of the standings table",
+                repairInstruction: HYBRID_REPAIR_NEXT_PAGE_INSTRUCTION,
                 repairKind: "click",
                 actOptions: { timeout: options.stepTimeoutMs }
               });

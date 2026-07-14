@@ -6,6 +6,8 @@ import {
   type NormalizedMarket,
   type NormalizedTeamStats
 } from "./schemas/domain";
+import { TrialResultSchema } from "./schemas/benchmark";
+import { PipelineResultSchema } from "./schemas/run";
 import { generateGroundTruth } from "./seed/generate";
 
 function consistentTeams(): NormalizedTeamStats[] {
@@ -111,5 +113,66 @@ describe("assessDataset", () => {
     expect(result.ok).toBe(true);
     expect(result.failures).toEqual([]);
     expect(result.warnings.some((w) => w.includes(teams[0]!.name))).toBe(true);
+  });
+});
+
+// Wave F F2: the deterministicFallbacks disclosure flows PipelineResult →
+// TrialResult exactly like healedSteps. buildTrialResult is not exported, so this
+// is schema-level coverage: both schemas accept and preserve the optional field.
+describe("deterministicFallbacks disclosure (F2)", () => {
+  const trialBase = {
+    scenarioId: "consent-wall",
+    engine: "stagehand" as const,
+    trial: 1,
+    runId: "r",
+    outcome: "pass" as const,
+    outcomeReason: "ok",
+    outcomeClass: "pass" as const,
+    pipelineSuccess: true,
+    extractionSuccess: true,
+    validationSuccess: true,
+    accuracy: null,
+    durationMs: 1,
+    retries: 0,
+    recoveredAfterFailure: false,
+    artifactsDir: "d"
+  };
+
+  const pipelineBase = {
+    engine: "stagehand" as const,
+    runId: "r",
+    labUrl: "http://lab",
+    startedAt: "t0",
+    finishedAt: "t1",
+    durationMs: 1,
+    success: true,
+    attempts: 1,
+    retries: 0,
+    recoveredAfterFailure: false,
+    steps: [],
+    pages: {},
+    validation: { extractOk: true, domainOk: true, issues: [] },
+    artifacts: { dir: "d", screenshots: [], eventsFile: "e" }
+  };
+
+  it("TrialResultSchema accepts and preserves deterministicFallbacks", () => {
+    const parsed = TrialResultSchema.parse({
+      ...trialBase,
+      deterministicFallbacks: ["consent", "dismiss-modal"]
+    });
+    expect(parsed.deterministicFallbacks).toEqual(["consent", "dismiss-modal"]);
+  });
+
+  it("TrialResultSchema leaves it optional (omitted parses)", () => {
+    const parsed = TrialResultSchema.parse(trialBase);
+    expect(parsed.deterministicFallbacks).toBeUndefined();
+  });
+
+  it("PipelineResultSchema accepts deterministicFallbacks (the source of the trial field)", () => {
+    const parsed = PipelineResultSchema.parse({
+      ...pipelineBase,
+      deterministicFallbacks: ["consent"]
+    });
+    expect(parsed.deterministicFallbacks).toEqual(["consent"]);
   });
 });

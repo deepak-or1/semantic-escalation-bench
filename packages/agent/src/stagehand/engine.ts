@@ -25,7 +25,24 @@ import {
   type Engine,
   type PipelineOptions
 } from "../core";
+import {
+  CONSENT_ACCEPT_INSTRUCTION,
+  ODDS_INSTRUCTION,
+  REVEAL_STANDINGS_INSTRUCTION,
+  STAGEHAND_DISMISS_MODAL_INSTRUCTION,
+  STAGEHAND_LOGIN_PASSWORD_INSTRUCTION,
+  STAGEHAND_LOGIN_SUBMIT_INSTRUCTION,
+  STAGEHAND_LOGIN_USERNAME_INSTRUCTION,
+  STAGEHAND_NEXT_PAGE_INSTRUCTION,
+  STAGEHAND_REVEAL_TABLE_CLICK_INSTRUCTION,
+  STATS_INSTRUCTION
+} from "../instructions";
 import { mergeStatsRows, parsePageInfo } from "./helpers";
+
+// The extraction prompts live in the single-source instruction registry
+// (Wave F F1). Re-exported here so existing deep imports of
+// "../stagehand/engine" (the hybrid engine, the runner) keep working unchanged.
+export { STATS_INSTRUCTION, ODDS_INSTRUCTION };
 
 /** The active page type Stagehand hands back, without importing internals. */
 type StagehandPage = NonNullable<ReturnType<Stagehand["context"]["activePage"]>>;
@@ -45,26 +62,6 @@ const CONTENT_POLL_MS = 8_000;
 const MODAL_SETTLE_MS = 1_200;
 
 const CONSENT_SELECTOR = 'form[action="/consent"]';
-
-// Extraction instructions are column/label driven so they survive class drift,
-// column shuffles, copy drift and layout changes without any DOM coupling.
-// Exported so the hybrid engine's key-gated extraction repair reuses the
-// IDENTICAL instructions (its LLM fallback must match this engine's semantics).
-export const STATS_INSTRUCTION =
-  "Extract every team row from the league standings shown on this page. " +
-  "Map columns BY THEIR HEADER NAMES (the column order varies): P/Played -> played, " +
-  "W -> wins, D -> draws, L -> losses, GF -> goalsFor, GA -> goalsAgainst, Pts -> points, " +
-  "Form -> form (a string like WWDLW). Numbers must be integers exactly as displayed, " +
-  "including negative numbers. If a cell shows a dash, N/A, or anything unreadable as a " +
-  "number, use null. Include every visible team.";
-
-export const ODDS_INSTRUCTION =
-  "Extract every fixture row from the odds board. Each row has a match like " +
-  "'Home Team vs Away Team' -> homeTeam/awayTeam, a kickoff time -> kickoff, and odds cells. " +
-  "Copy each odds value VERBATIM as the page displays it, as a string: decimal like '2.20' or " +
-  "American like '+154' or '-120'. The three main odds are homeOdds (1), drawOdds (X), " +
-  "awayOdds (2); the totals columns are overOdds and underOdds with totalsLine '2.5'. " +
-  "Use null for any cell showing a dash or no value.";
 
 const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -233,6 +230,10 @@ async function runStagehandEngine(options: PipelineOptions): Promise<PipelineRes
     let statsRaw: { rows: ExtractedStatsRow[] } | undefined;
     let oddsRaw: { rows: ExtractedOddsRow[] } | undefined;
     let consentHandled = false;
+    // Steps where a hand-written deterministic guard fired AFTER the semantic act
+    // failed to clear a session blocker (Wave F F2). Disclosed on the trial so a
+    // "full semantic" pass never silently leans on hand-written fallback code.
+    const deterministicFallbacks: string[] = [];
 
     // ── LLM call wrappers (count every model-driven call) ──────────────────
     const act = (
@@ -317,15 +318,15 @@ async function runStagehandEngine(options: PipelineOptions): Promise<PipelineRes
     };
 
     const performLogin = async (): Promise<void> => {
-      await act("type %username% into the username field", {
+      await act(STAGEHAND_LOGIN_USERNAME_INSTRUCTION, {
         variables: { username: options.credentials.username },
         timeout: options.stepTimeoutMs
       });
-      await act("type %password% into the password field", {
+      await act(STAGEHAND_LOGIN_PASSWORD_INSTRUCTION, {
         variables: { password: options.credentials.password },
         timeout: options.stepTimeoutMs
       });
-      await act("click the sign-in/submit button of the login form", {
+      await act(STAGEHAND_LOGIN_SUBMIT_INSTRUCTION, {
         timeout: options.stepTimeoutMs
       });
     };
@@ -338,11 +339,12 @@ async function runStagehandEngine(options: PipelineOptions): Promise<PipelineRes
       if (!(await consentPresent(page))) return;
       const view = page;
       await runStep("consent", "blocked_ui", async () => {
-        await act("accept the cookie consent so the page content is shown", {
+        await act(CONSENT_ACCEPT_INSTRUCTION, {
           timeout: options.stepTimeoutMs
         });
         await pollUntil(async () => !(await consentPresent(view)), 5_000);
         if (await consentPresent(view)) {
+          deterministicFallbacks.push("consent");
           await submitConsentForm(view);
           await pollUntil(async () => !(await consentPresent(view)), 5_000);
         }
@@ -414,9 +416,10 @@ async function runStagehandEngine(options: PipelineOptions): Promise<PipelineRes
       await page!.waitForTimeout(MODAL_SETTLE_MS);
       if (await overlayPresent(page!)) {
         await runStep("dismiss-modal", "blocked_ui", async () => {
-          await act("close the popup dialog", { timeout: options.stepTimeoutMs });
+          await act(STAGEHAND_DISMISS_MODAL_INSTRUCTION, { timeout: options.stepTimeoutMs });
           await pollUntil(async () => !(await overlayPresent(page!)), 3_000);
           if (await overlayPresent(page!)) {
+            deterministicFallbacks.push("dismiss-modal");
             await clickOverlayDismiss(page!);
             await pollUntil(async () => !(await overlayPresent(page!)), 3_000);
           }
@@ -434,14 +437,12 @@ async function runStagehandEngine(options: PipelineOptions): Promise<PipelineRes
         await runStep("reveal-table", "not_found", async () => {
           let ready = await waitForContent(page!, CONTENT_POLL_MS, "stats");
           if (!ready) {
-            const [action] = await observe(
-              "find the tab or control that reveals the full season standings table"
-            );
+            const [action] = await observe(REVEAL_STANDINGS_INSTRUCTION);
             if (action) {
               llmCalls += 1;
               await stagehand!.act(action);
             } else {
-              await act("click the tab that reveals the full season standings table", {
+              await act(STAGEHAND_REVEAL_TABLE_CLICK_INSTRUCTION, {
                 timeout: options.stepTimeoutMs
               });
             }
@@ -466,7 +467,7 @@ async function runStagehandEngine(options: PipelineOptions): Promise<PipelineRes
             let budget = info.total + 2;
             while (info && info.current < info.total && budget > 0) {
               budget -= 1;
-              await act("go to the next page of the standings table", {
+              await act(STAGEHAND_NEXT_PAGE_INSTRUCTION, {
                 timeout: options.stepTimeoutMs
               });
               await page!.waitForTimeout(600);
@@ -538,7 +539,8 @@ async function runStagehandEngine(options: PipelineOptions): Promise<PipelineRes
         ...(statsRaw ? { statsRaw } : {}),
         ...(oddsRaw ? { oddsRaw } : {}),
         screenshots,
-        tokens: await currentTokens()
+        tokens: await currentTokens(),
+        ...(deterministicFallbacks.length > 0 ? { deterministicFallbacks } : {})
       };
     } finally {
       try {

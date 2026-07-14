@@ -11,8 +11,15 @@ export { summarizeEngine, buildComparison } from "./metrics";
 export { renderResultsMarkdown } from "./markdown";
 export {
   aggregateCampaign,
+  configurationLabel,
   renderCampaignMarkdown,
   type CampaignReport,
   type CampaignCell
 } from "./campaign";
+export { PINNED_PRICES, PRICES_PINNED_AT, trialCostUsd } from "./prices";
+export {
+  buildHealsManifest,
+  loadAndVerifySeedCacheManifest,
+  type SeedCacheManifestFile
+} from "./seedManifest";
 export { prepSessionState } from "./prepSession";

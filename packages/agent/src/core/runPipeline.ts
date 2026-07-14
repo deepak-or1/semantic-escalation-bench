@@ -252,6 +252,10 @@ export async function runPipeline(
     // Carry the final attempt's healed step names (hybrid only; empty otherwise).
     ...(outcome.healedSteps && outcome.healedSteps.length > 0
       ? { healedSteps: outcome.healedSteps }
+      : {}),
+    // Carry the final attempt's deterministic-fallback step names (stagehand only).
+    ...(outcome.deterministicFallbacks && outcome.deterministicFallbacks.length > 0
+      ? { deterministicFallbacks: outcome.deterministicFallbacks }
       : {})
   };
 }

@@ -186,9 +186,9 @@ result exists. A pass now requires *perfect* extraction (accuracy 1.0 with
 full row coverage — the earlier 0.75 threshold was retired after checking
 that every genuine pass already sat at exactly 1.0), and every trial carries
 an outcome class; the safety headline is that **silent corruption is
-currently 0 across every denominator** (0/48 trials, 0/12 pipeline-reported
-failures, 0/36 accepted outputs) — every failure in the committed run was self-reported
-by the pipeline before grading.
+currently 0 across every denominator** (0/48 trials, 0/10 judged failures,
+0/36 accepted outputs — the frozen D1/D2/D3 of PROTOCOL §6) — every failure
+in the committed run was self-reported by the pipeline before grading.
 
 The failure sets are the story:
 

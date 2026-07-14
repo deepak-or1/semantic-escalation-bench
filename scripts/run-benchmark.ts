@@ -33,7 +33,7 @@ import {
   type EngineName,
   type ScenarioSpec
 } from "@ssda/shared";
-import { runBenchmark, type SeedCacheManifest } from "@ssda/agent";
+import { loadAndVerifySeedCacheManifest, runBenchmark } from "@ssda/agent";
 
 interface CliArgs {
   engines: EngineName[];
@@ -170,23 +170,6 @@ async function killAndVerify(child: ChildProcess): Promise<void> {
   }
 }
 
-/** Load + shape-check a --seed-cache-manifest file (Wave E 8h). */
-async function loadSeedCacheManifest(
-  file: string
-): Promise<{ path: string; scenarios: SeedCacheManifest["scenarios"] }> {
-  let raw: unknown;
-  try {
-    raw = JSON.parse(await readFile(file, "utf8"));
-  } catch (error) {
-    bail(`--seed-cache-manifest could not be read at ${file}: ${error instanceof Error ? error.message : error}`);
-  }
-  const scenarios = (raw as { scenarios?: unknown }).scenarios;
-  if (!scenarios || typeof scenarios !== "object") {
-    bail(`--seed-cache-manifest at ${file} must have a "scenarios" object`);
-  }
-  return { path: path.resolve(file), scenarios: scenarios as SeedCacheManifest["scenarios"] };
-}
-
 // NOTE (Wave E 8a): a previous wave added a "pre-flight" that refused to bench
 // whenever ANY `stagehand-v3/profile` chrome process was alive, on the theory
 // that leftover browsers from an interrupted run could read pages rendered under
@@ -236,8 +219,10 @@ async function main(): Promise<void> {
     await new LabClient(labUrl).waitUntilReady(20_000);
   }
 
+  // Cryptographically verifies every referenced cache before the run trusts it
+  // (Wave F F4); supplies the combinedContentHash recorded as seedCacheHash.
   const seedCacheManifest = args.seedCacheManifestFile
-    ? await loadSeedCacheManifest(args.seedCacheManifestFile)
+    ? await loadAndVerifySeedCacheManifest(args.seedCacheManifestFile)
     : undefined;
 
   let exitCode = 0;

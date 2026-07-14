@@ -119,7 +119,13 @@ export const TrialResultSchema = z.object({
   artifactsDir: z.string(),
   tokens: TokensUsageSchema.nullable().optional(),
   /** Step names the engine repaired via LLM observe this trial (hybrid only). */
-  healedSteps: z.array(z.string()).optional()
+  healedSteps: z.array(z.string()).optional(),
+  /**
+   * Steps where a hand-written deterministic guard fired after the semantic act
+   * failed to clear a session blocker (stagehand engine only). Disclosed so
+   * full-semantic results never silently lean on hand-written code.
+   */
+  deterministicFallbacks: z.array(z.string()).optional()
 });
 export type TrialResult = z.infer<typeof TrialResultSchema>;
 
@@ -198,12 +204,17 @@ export const BenchmarkResultsSchema = z.object({
     disableRepair: z.boolean(),
     /** Which warm-cache seeding mode was active. */
     seedCacheMode: z.enum(["none", "file", "manifest"]),
-    /** sha256 of the seed-cache file / manifest, or null when seedCacheMode is "none". */
+    /**
+     * content hash: sha256 of the seed-cache file for --seed-cache; for
+     * --seed-cache-manifest, sha256 over the manifest hash plus every referenced
+     * cache file's verified content sha256. null when seedCacheMode is "none".
+     */
     seedCacheHash: z.string().nullable(),
     /**
-     * sha256 over the frozen prompt strings that steer inference: the
-     * stagehand engine's STATS_INSTRUCTION + ODDS_INSTRUCTION plus the hybrid's
-     * fixed repair-instruction strings. Pins "the prompts" for the protocol.
+     * sha256 over the canonical sorted registry of ALL fixed instruction strings
+     * (packages/agent/src/instructions.ts): stagehand extraction + act/observe
+     * instructions and the hybrid's repair instructions. Pins the complete
+     * prompt surface for the protocol.
      */
     promptsHash: z.string(),
     /** sha256 of pnpm-lock.yaml — pins the exact dependency graph. */

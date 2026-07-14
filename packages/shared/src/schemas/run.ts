@@ -85,7 +85,13 @@ export const PipelineResultSchema = z.object({
    * Step names whose cached selector failed and was repaired via an LLM observe
    * call (hybrid engine only). Present and non-empty only when a repair ran.
    */
-  healedSteps: z.array(z.string()).optional()
+  healedSteps: z.array(z.string()).optional(),
+  /**
+   * Step names where a hand-written deterministic guard fired after the semantic
+   * act failed to clear a session blocker (stagehand engine only). Present and
+   * non-empty only when a fallback actually fired.
+   */
+  deterministicFallbacks: z.array(z.string()).optional()
 });
 export type PipelineResult = z.infer<typeof PipelineResultSchema>;
 

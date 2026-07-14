@@ -16,6 +16,7 @@ import "dotenv/config";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { BenchmarkResultsSchema, readJson, writeJson } from "@ssda/shared";
+import { buildHealsManifest } from "@ssda/agent";
 
 function bail(message: string): never {
   console.error(message);
@@ -49,11 +50,6 @@ function parseArgs(argv: string[]): Args {
   };
 }
 
-interface ManifestEntry {
-  cacheFile: string;
-  provenance: { benchId: string; healedSteps: string[]; createdAt: string };
-}
-
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
   const resultsFile = path.join(args.benchDir, "results.json");
@@ -63,29 +59,13 @@ async function main(): Promise<void> {
   if (!parsed.success) bail(`results.json at ${resultsFile} did not parse under BenchmarkResultsSchema`);
   const results = parsed.data;
 
-  const scenarios: Record<string, ManifestEntry> = {};
-  let found = 0;
-  for (const trial of results.trials) {
-    if ((trial.healedSteps?.length ?? 0) === 0) continue;
-    // Only the first healed trial per scenario is kept (deterministic pick).
-    if (scenarios[trial.scenarioId]) continue;
-    const cacheFile = path.join(args.benchDir, "trials", trial.runId, "artifacts", "healed-cache.json");
-    if (!existsSync(cacheFile)) {
-      console.warn(`  (skipping ${trial.scenarioId}/${trial.engine}: no healed-cache.json at ${cacheFile})`);
-      continue;
-    }
-    scenarios[trial.scenarioId] = {
-      cacheFile,
-      provenance: {
-        benchId: results.benchId,
-        healedSteps: [...(trial.healedSteps ?? [])],
-        createdAt: results.createdAt
-      }
-    };
-    found += 1;
-  }
+  // v2 manifest (Wave F F4): each entry carries a per-cache content sha256 and
+  // full trial/commit/model provenance; the "first healed trial per scenario in
+  // results order" selection rule is frozen in buildHealsManifest.
+  const { manifest, warnings, found } = await buildHealsManifest(results, args.benchDir);
+  for (const warning of warnings) console.warn(`  (${warning})`);
 
-  await writeJson(args.out, { scenarios });
+  await writeJson(args.out, manifest);
   console.log(`Collected ${found} healed cache(s) from ${resultsFile}`);
   console.log(`Manifest: ${args.out}`);
   if (found === 0) {

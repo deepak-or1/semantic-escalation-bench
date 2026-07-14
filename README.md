@@ -196,7 +196,7 @@ The Stagehand row is `skipped` because this build environment has no model provi
 | baseline | 17 | 0 | 3 | 0 | 4 | 0.0% |
 | hybrid (deterministic tier) | 19 | 0 | 2 | 0 | 3 | 0.0% |
 
-Both keyless engines produced **zero silent corruption** on every denominator — **baseline** 0 (0/24 trials, 0/7 failures, 0/17 accepted outputs); **hybrid** 0 (0/24 trials, 0/5 failures, 0/19 accepted outputs). Nothing was ever accepted as valid that wasn't correct: every break is either a clean refusal (*safe-failure*) or visible breakage (*hard-failure*), never quietly-wrong data.
+Both keyless engines produced **zero silent corruption** on every denominator — **baseline** 0 (0/24 trials, 0/6 judged failures, 0/17 accepted outputs); **hybrid** 0 (0/24 trials, 0/4 judged failures, 0/19 accepted outputs). Nothing was ever accepted as valid that wasn't correct: every break is either a clean refusal (*safe-failure*) or visible breakage (*hard-failure*), never quietly-wrong data.
 
 **Frozen configurations.** Two flags pin reproducible engine policies:
 

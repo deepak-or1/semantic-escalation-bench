@@ -27,9 +27,10 @@ import {
 } from "../core";
 import { baselineEngine } from "../baseline";
 import { stagehandEngine } from "../stagehand";
-// Read-only import of the frozen extraction prompts for the provenance hash
-// (Wave E 8j); the stagehand engine itself is not modified in this wave.
-import { ODDS_INSTRUCTION, STATS_INSTRUCTION } from "../stagehand/engine";
+// The single-source registry of every fixed instruction string sent to a model
+// (Wave F F1). `promptsHash` is computed over this so it covers the complete
+// prompt surface and can never hash a stale hand-maintained copy.
+import { FROZEN_INSTRUCTIONS } from "../instructions";
 import { hybridEngine } from "../hybrid";
 import { buildComparison, classifyOutcome, summarizeEngine } from "./metrics";
 import { renderResultsMarkdown } from "./markdown";
@@ -59,32 +60,28 @@ export interface BenchmarkRunConfig {
    */
   seedCacheFile?: string;
   /**
-   * Per-scenario warm-cache seeding (--seed-cache-manifest, Wave E 8h). Each
+   * Per-scenario warm-cache seeding (--seed-cache-manifest, Wave E 8h / F4). Each
    * scenario present in the manifest seeds the hybrid from its own healed cache;
-   * a scenario absent from the manifest falls back to the bootstrap. `path` is
-   * the manifest file (hashed for provenance). Mutually exclusive with
+   * a scenario absent from the manifest falls back to the bootstrap. Loaded and
+   * cryptographically verified by loadAndVerifySeedCacheManifest, which supplies
+   * `combinedContentHash` (recorded as `seedCacheHash`). Mutually exclusive with
    * seedCacheFile.
    */
-  seedCacheManifest?: {
-    path: string;
-    scenarios: Record<string, { cacheFile: string; provenance?: unknown }>;
-  };
+  seedCacheManifest?: SeedCacheManifest;
   onProgress?: (line: string) => void;
 }
 
-/** Shape of a --seed-cache-manifest file (Wave E 8h). */
+/**
+ * A loaded, verified --seed-cache-manifest (Wave F F4): the runner only needs
+ * each scenario's `cacheFile`, plus the manifest's `combinedContentHash` (sha256
+ * over the manifest text and every referenced cache file's verified content
+ * hash) which becomes the run's `seedCacheHash`. See seedManifest.ts for the
+ * on-disk v2 manifest format and the verifying loader.
+ */
 export interface SeedCacheManifest {
-  scenarios: Record<
-    string,
-    {
-      cacheFile: string;
-      provenance?: {
-        benchId?: string;
-        healedSteps?: string[];
-        createdAt?: string;
-      };
-    }
-  >;
+  path: string;
+  combinedContentHash: string;
+  scenarios: Record<string, { cacheFile: string }>;
 }
 
 // Unlike stagehand, hybrid is never auto-skipped: it is designed to run keyless
@@ -100,22 +97,6 @@ const NO_KEY_REASON =
 
 const STAGEHAND_PKG_JSON =
   "packages/agent/node_modules/@browserbasehq/stagehand/package.json";
-
-/**
- * The hybrid engine's fixed repair-instruction strings (Wave E 8j). These mirror
- * the literals in packages/agent/src/hybrid/engine.ts, which this wave does not
- * modify; they are pinned here so `promptsHash` covers the repair prompts as
- * well as the STATS/ODDS extraction prompts. Keep in sync with the engine.
- */
-const HYBRID_REPAIR_INSTRUCTIONS = [
-  "find the username text field of the login form",
-  "find the password field of the login form",
-  "find the sign-in / submit button of the login form",
-  "accept the cookie consent so the page content is shown",
-  "close the popup dialog blocking the page",
-  "find the tab or control that reveals the full season standings table",
-  "find the control that advances to the next page of the standings table"
-] as const;
 
 function sha256(text: string): string {
   return createHash("sha256").update(text).digest("hex");
@@ -148,8 +129,11 @@ interface Provenance {
 
 /** Gather the reproducibility provenance recorded in results.environment (8j). */
 async function collectProvenance(config: BenchmarkRunConfig): Promise<Provenance> {
+  // Canonical sorted registry of ALL fixed instruction strings (Wave F F1).
   const promptsHash = sha256(
-    [STATS_INSTRUCTION, ODDS_INSTRUCTION, ...HYBRID_REPAIR_INSTRUCTIONS].join("\n")
+    JSON.stringify(
+      Object.entries(FROZEN_INSTRUCTIONS).sort((a, b) => (a[0] < b[0] ? -1 : 1))
+    )
   );
   let lockfileHash: string;
   try {
@@ -166,10 +150,15 @@ async function collectProvenance(config: BenchmarkRunConfig): Promise<Provenance
       ? "file"
       : "none";
   let seedCacheHash: string | null = null;
-  const seedPath = config.seedCacheManifest?.path ?? config.seedCacheFile;
-  if (seedPath) {
+  if (config.seedCacheManifest) {
+    // Manifest mode (Wave F F4): the content hash covers the manifest text AND
+    // every referenced cache file's verified sha256, so a swapped cache changes
+    // the recorded provenance. loadAndVerifySeedCacheManifest computed it.
+    seedCacheHash = config.seedCacheManifest.combinedContentHash;
+  } else if (config.seedCacheFile) {
+    // File mode: hash the single seed-cache file's contents (unchanged).
     try {
-      seedCacheHash = sha256(await readFile(seedPath, "utf8"));
+      seedCacheHash = sha256(await readFile(config.seedCacheFile, "utf8"));
     } catch {
       seedCacheHash = null;
     }
@@ -445,6 +434,9 @@ function buildTrialResult(
     tokens: result.tokens ?? null,
     ...(result.healedSteps && result.healedSteps.length > 0
       ? { healedSteps: result.healedSteps }
+      : {}),
+    ...(result.deterministicFallbacks && result.deterministicFallbacks.length > 0
+      ? { deterministicFallbacks: result.deterministicFallbacks }
       : {})
   };
 }
