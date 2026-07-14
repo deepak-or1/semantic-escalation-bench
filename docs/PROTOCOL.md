@@ -1,7 +1,9 @@
 # Prospectively frozen keyed-experiment protocol
 
-**Status: DRAFT — becomes FROZEN only when this file is committed and the
-annotated tag `protocol-freeze-v1` exists.** The keyless benchmark results
+**Status: FROZEN at annotated tag `protocol-freeze-v1`.** The keyless
+benchmark results committed alongside this file carry provenance
+(`gitCommit`, `gitDirty: false`, prompt and lockfile hashes) proving they
+were generated at the freeze commit. The keyless benchmark results
 in `runs/latest` already exist and predate this document; nothing here is
 pre-registration for them. What this document freezes — *before any keyed
 result has been observed* — is the methodology for the keyed experiment: the
