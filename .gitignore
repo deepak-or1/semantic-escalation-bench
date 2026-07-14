@@ -1,0 +1,18 @@
+node_modules/
+runs/*
+!runs/.gitkeep
+# the committed evidence: small textual results of the latest benchmark run
+# (report.html and per-trial artifacts/screenshots stay untracked — regenerate
+# with `pnpm bench && pnpm report`)
+!runs/latest/
+runs/latest/*
+!runs/latest/results.json
+!runs/latest/results.md
+!runs/latest/failures.jsonl
+.env
+.env.local
+*.log
+dist/
+.DS_Store
+test-results/
+playwright-report/

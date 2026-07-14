@@ -1,0 +1,1 @@
+export { createLabApp } from "./app";
