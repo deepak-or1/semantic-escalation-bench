@@ -72,6 +72,9 @@ async function runAttempt(options: PipelineOptions, attempt: number): Promise<At
       steps,
       screenshots,
       null,
+      // baseline neither heals nor uses deterministic fallbacks.
+      undefined,
+      undefined,
       cause !== undefined ? { cause } : undefined
     );
   };

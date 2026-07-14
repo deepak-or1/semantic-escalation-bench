@@ -14,6 +14,7 @@ import {
   type BenchmarkResults,
   type EngineName,
   type PipelineResult,
+  type RunPurpose,
   type ScenarioSpec,
   type TrialResult
 } from "@ssda/shared";
@@ -68,7 +69,40 @@ export interface BenchmarkRunConfig {
    * seedCacheFile.
    */
   seedCacheManifest?: SeedCacheManifest;
+  /**
+   * Why this run exists (default "cold"). Recorded in `environment.runPurpose` so
+   * evidence separation is machine-enforced: smoke runs can never aggregate with
+   * campaign evidence, and paired persistence runs can never blend with the warm
+   * economics sweep. Validated against the seeding mode by validateRunPurpose.
+   */
+  runPurpose?: RunPurpose;
   onProgress?: (line: string) => void;
+}
+
+/**
+ * Enforce that a run's purpose matches its seeding mode so evidence separation is
+ * machine-checked at run time (before a lab is spawned): "persistence" and "warm"
+ * are seeded-cache campaigns and REQUIRE a seed (file or manifest); "cold" and
+ * "smoke" are unseeded and REQUIRE no seed. A mismatch throws, naming BOTH the
+ * purpose and the seedCacheMode.
+ */
+export function validateRunPurpose(
+  purpose: RunPurpose,
+  seedCacheMode: "none" | "file" | "manifest"
+): void {
+  const seeded = seedCacheMode !== "none";
+  if ((purpose === "persistence" || purpose === "warm") && !seeded) {
+    throw new Error(
+      `runPurpose "${purpose}" requires a seeded cache (seedCacheMode "file" or "manifest"), ` +
+        `but seedCacheMode is "${seedCacheMode}".`
+    );
+  }
+  if ((purpose === "cold" || purpose === "smoke") && seeded) {
+    throw new Error(
+      `runPurpose "${purpose}" requires an unseeded run (seedCacheMode "none"), ` +
+        `but seedCacheMode is "${seedCacheMode}".`
+    );
+  }
 }
 
 /**
@@ -178,6 +212,16 @@ async function collectProvenance(config: BenchmarkRunConfig): Promise<Provenance
 export async function runBenchmark(
   config: BenchmarkRunConfig
 ): Promise<BenchmarkResults> {
+  // Evidence separation is machine-enforced before anything runs: reject a run
+  // whose purpose contradicts its seeding mode (fail fast).
+  const runPurpose: RunPurpose = config.runPurpose ?? "cold";
+  const seedCacheMode: "none" | "file" | "manifest" = config.seedCacheManifest
+    ? "manifest"
+    : config.seedCacheFile
+      ? "file"
+      : "none";
+  validateRunPurpose(runPurpose, seedCacheMode);
+
   const lab = new LabClient(config.labUrl);
   const envConfig = loadAgentEnvConfig();
 
@@ -341,6 +385,7 @@ export async function runBenchmark(
         : {}),
       modelProvider: envConfig.modelProvider ?? null,
       browserbase: envConfig.browserbase.ready,
+      runPurpose,
       ...provenance
     }
   });

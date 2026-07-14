@@ -1,9 +1,9 @@
 # Prospectively frozen keyed-experiment protocol
 
-**Status: FROZEN at annotated tag `protocol-freeze-v2`** (supersedes
-`protocol-freeze-v1` via the pre-key amendment of 2026-07-14 — see §8; the
-v1 tag is preserved unchanged as the historical record, and **no keyed trial
-was run under either tag before v2**). The keyless
+**Status: FROZEN at annotated tag `protocol-freeze-v3`** (supersedes
+`protocol-freeze-v2` and `-v1` via the pre-key amendments of 2026-07-14 —
+see §8; both earlier tags are preserved unchanged as the historical record,
+and **no keyed trial was run under any tag before v3**). The keyless
 benchmark results committed alongside this file carry provenance
 (`gitCommit`, `gitDirty: false`, prompt and lockfile hashes) proving they
 were generated at the freeze commit. The keyless benchmark results
@@ -34,7 +34,7 @@ the identical downstream pipeline — see §2.
 | A | Positional baseline | `--engines baseline` | Hardcoded ids + fixed column indices; competent waits/retries/re-login; no header mapping; no LLM. |
 | B | Structural deterministic | `--engines hybrid --no-repair` | Cached selector replay (`act(action)`, `selfHeal: false`) + header-name column mapping via the fixed synonym dictionary; repair paths hard-disabled; **guaranteed zero model calls** (asserted by test even with a key present). |
 | C | Hybrid repair | `--engines hybrid` (key present) | B, plus: on cached-selector failure or no header-mappable table, ONE explicit repair per step — `observe()` → best Action → replay → heal cache; `extract()` as extraction repair using the identical instructions as D. Every repair is recorded in `healedSteps` and token accounting. |
-| D | Full semantic | `--engines stagehand` (key present) | Instruction-driven `act`/`extract`/`observe` for ALL page addressing; credentials via act variables. Two hand-written deterministic **session-furniture guards** exist — direct consent-form submit and an overlay dismiss-button click — which fire only after the semantic act has already failed to clear that blocker; every firing is recorded on the trial (`deterministicFallbacks`) and must be disclosed alongside any blocked-UI scenario result. |
+| D | Full semantic | `--engines stagehand` (key present) | Instruction-driven `act`/`extract`/`observe` for ALL page addressing; credentials via act variables. Two hand-written deterministic **session-furniture guards** exist — direct consent-form submit and an overlay dismiss-button click — which fire only after the semantic act has already failed to clear that blocker; every firing is recorded on the trial (`deterministicFallbacks`, accumulated across ALL attempts including failed ones) and must be disclosed alongside any blocked-UI scenario result. |
 
 **Frozen parameters** (values live in code at the tagged commit; listed here
 for the record):
@@ -100,14 +100,20 @@ All six must hold before `ANTHROPIC_API_KEY` enters `.env`:
 4. Shared normalize → validate → grade path confirmed for every engine. ✅
    (architectural invariant, §2)
 5. This document committed and tagged (`protocol-freeze-v1`; superseded
-   pre-key by `protocol-freeze-v2` after the second external audit — §8).
+   pre-key by `protocol-freeze-v2`, then `protocol-freeze-v3`, after the
+   second and third external audits — §8).
 6. Repo clean; the pre-key benchmark reruns deterministically (two
    consecutive keyless runs produce identical outcome / outcomeClass /
    accuracy vectors; durations may differ).
 
 ## 5. Smoke test (first keyed action — NOT benchmark evidence)
 
-Four scenarios only, one trial each, before any campaign sweep:
+Four scenarios only, one trial each, before any campaign sweep. Every smoke
+run is launched with `--purpose smoke`, which stamps `runPurpose: "smoke"`
+into the results file — and `campaign:aggregate` **unconditionally refuses**
+to aggregate smoke runs together with campaign evidence (`--allow-mixed`
+does not override this). Evidence separation is machine-enforced, not a
+labeling convention.
 
 | Scenario | Configuration | Verifies |
 |---|---|---|
@@ -160,11 +166,21 @@ mismatch aborts the run), and the recorded `seedCacheHash` covers the
 no longer change without changing the recorded hash. Cross-run campaign
 reporting comes from `pnpm campaign:aggregate` (raw counts, median, min–max
 — never reduced to majority pass/fail), which groups by **scenario ×
-configuration** (A/B/C-cold/C-seeded/D, derived from each run's recorded
-`disableRepair`, `seedCacheMode`, and model-key state — cold, persistence,
-and warm hybrid runs can never silently blend) and **refuses** to aggregate
-runs whose model or promptsHash disagree unless `--allow-mixed` is passed
-explicitly. The keyless seed-cache test proves replay mechanics only; that
+configuration** (A / B / C-cold / C-persistence / C-warm / D, derived from
+each run's recorded `disableRepair`, `seedCacheMode`, model-key state, and
+`runPurpose` — every run records why it exists: smoke | cold | persistence |
+warm, validated against its seeding mode at launch) and **refuses** to
+aggregate runs whose model or promptsHash disagree unless `--allow-mixed`
+is passed explicitly; smoke runs never aggregate with evidence under ANY
+flag. Cost accounting is strict: a trial with `llmCalls > 0` is priced only
+when the provider reported BOTH token sides (a missing side yields an
+unpriced trial, never a silent half-cost); `llmCalls === 0` and baseline
+trials price as an exact $0; every cost total carries its **coverage**
+("n/m trials priced") and is marked an INCOMPLETE lower bound whenever
+coverage is partial. The campaign report renders, per configuration, the
+three frozen silent-corruption denominators (D1/D2/D3), the
+deterministic-fallback firing counts, and **cost per successful workflow**
+— machine-readable in `configTotals`, not just prose. The keyless seed-cache test proves replay mechanics only; that
 semantic repair produces *valid* caches is a keyed question answered by
 campaign step 3.
 
@@ -172,12 +188,15 @@ campaign step 3.
 2. **Five cold hybrid-repair sweeps** (C × 24 × 5, bootstrap cache each trial).
 3. **Persistence runs, paired per sweep:** each of the five step-2 sweeps is
    harvested with `pnpm heals:collect` into its own manifest, and C is re-run
-   once per manifest (`--seed-cache-manifest`) in fresh browsers — five
-   persistence runs, each seeded exclusively from its own source sweep's
-   repairs. "Persistently repaired" = judged pass with `llmCalls === 0`.
+   once per manifest (`--seed-cache-manifest`, `--purpose persistence`) in
+   fresh browsers — five persistence runs, each seeded exclusively from its
+   own source sweep's repairs. "Persistently repaired" = judged pass with
+   `llmCalls === 0`.
 4. **One warm-cache economics sweep** (C × 24, seeded from the FIRST step-2
-   sweep's manifest — fixed in advance so the choice can't chase results):
-   steady-state cost and latency.
+   sweep's manifest — fixed in advance so the choice can't chase results —
+   with `--purpose warm`, so it aggregates as `C-hybrid-repair-warm` and can
+   never blend with step 3's persistence cells even though it shares
+   sweep 1's `seedCacheHash`): steady-state cost and latency.
 5. **Analysis and publication** (§7). Browserbase is added **afterward, as a
    hosted demonstration only** — never a requirement for the core benchmark,
    so model behavior stays the only new paid variable in steps 1–4.
@@ -250,3 +269,36 @@ normalized to the frozen D1/D2/D3 (a per-engine figure had used
 outcome-class passes instead of judged passes). The keyless benchmark
 evidence in `runs/latest` was regenerated at the v2 freeze commit with the
 determinism gate re-verified.
+
+### 2026-07-14 — `protocol-freeze-v3` (pre-key; third external audit)
+
+A third audit verified the v2 freeze mechanics end-to-end (remote tags, hash
+recomputation, tamper detection, concurrent-bench isolation, vector match
+with v1) and found three **machine-enforcement gaps** — places where the
+protocol promised a discipline the code did not yet enforce. All fixed
+pre-key; v1 and v2 tags preserved; still no keyed trial under any tag.
+
+1. **Run purpose is now recorded and enforced.** Every run stamps
+   `runPurpose: smoke | cold | persistence | warm` (validated against its
+   seeding mode at launch). Aggregation keys include it — paired persistence
+   runs and the warm economics sweep land in distinct configurations
+   (`C-hybrid-repair-persistence` / `C-hybrid-repair-warm`) even when they
+   share a manifest, closing a silent blend v2's own amendment had wrongly
+   claimed impossible. Smoke runs are machine-excluded from evidence:
+   `campaign:aggregate` refuses smoke+evidence mixes unconditionally.
+2. **"Every firing is recorded" is now literally true.** Deterministic
+   session-furniture fallbacks (and the hybrid's healed steps) accumulate
+   across ALL attempts — including failed attempts and wholly-failed trials,
+   which previously vanished from the record via the final-attempt-only
+   copy. Campaign reports render the firing counts.
+3. **Cost accounting is strict and coverage-honest.** A trial with
+   `llmCalls > 0` prices only when both token sides were reported (v2 could
+   silently emit half-costs from a missing side); zero-inference and
+   baseline trials price as exact $0; every total carries "n/m trials
+   priced" coverage and is flagged an INCOMPLETE lower bound when partial.
+   The campaign report now renders the protocol-promised D1/D2/D3
+   silent-corruption denominators, fallback counts, and cost per successful
+   workflow, machine-readable in `configTotals`.
+
+The keyless evidence in `runs/latest` was regenerated at the v3 freeze
+commit with the determinism gate re-verified.

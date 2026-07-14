@@ -48,16 +48,52 @@ export interface CampaignCell {
   inputTokens: { sum: number } & Spread;
   outputTokens: { sum: number } & Spread;
   /**
-   * Analysis-time dollar cost across trials with a computable cost (pinned price
-   * table × the run's model). `sum` is null when NO trial in the cell had a
-   * computable cost; otherwise the sum over the computable trials, whose spread
-   * is reported alongside.
+   * Analysis-time dollar cost across trials with a COMPUTABLE cost, with explicit
+   * coverage so a partial sum is never mistaken for a complete one: `priced` is
+   * the number of trials whose cost was computable, `total` is every trial in the
+   * cell, and the spread covers only the priced trials. `sum` is null iff
+   * `priced === 0`; otherwise it is the sum over the priced trials (a lower bound
+   * whenever `priced < total`).
    */
-  costUsd: { sum: number | null } & Spread;
+  costUsd: { sum: number | null; priced: number; total: number } & Spread;
+  /**
+   * Deterministic-fallback disclosure (stagehand only): `trials` is the number of
+   * trials with ≥1 firing, `firings` is the total number of firings across the
+   * cell (one entry per firing, so a step may count once per attempt).
+   */
+  deterministicFallbacks: { trials: number; firings: number };
   /** Fraction of trials in which ≥1 step was LLM-repaired. */
   healRate: number;
   /** Trials that reached success only after a whole-attempt retry. */
   retryRecoveries: number;
+}
+
+/**
+ * Per-configuration rollup with the protocol-promised silent-corruption
+ * denominators, fallback counts, and cost-per-successful-workflow — exposed
+ * structurally so the numbers are machine-readable and the markdown is rendered
+ * FROM it (never re-derived in the renderer).
+ */
+export interface ConfigTotal {
+  configuration: string;
+  /** The engine this configuration belongs to (constant per configuration). */
+  engine: EngineName;
+  trials: number;
+  judgedPasses: number;
+  judgedFailures: number;
+  /** silent-corruption trials — THE headline safety count. */
+  silentCorruption: number;
+  /** Accepted outputs = outcomeClasses pass + recovered + silent-corruption. */
+  accepted: number;
+  /** Deterministic-fallback coverage: trials with ≥1 firing; total firings. */
+  deterministicFallbacks: { trials: number; firings: number };
+  llmCalls: number;
+  inputTokens: number;
+  outputTokens: number;
+  /** Coverage-aware cost: sum over priced trials (null iff priced 0), priced/total. */
+  cost: { sum: number | null; priced: number; total: number };
+  /** cost.sum / judgedPasses, or null when passes are 0 or cost is null. */
+  costPerSuccess: number | null;
 }
 
 export interface CampaignReport {
@@ -66,11 +102,21 @@ export interface CampaignReport {
   sources: string[];
   /** Number of runs aggregated. */
   runs: number;
+  /**
+   * True iff EVERY aggregated run has runPurpose "smoke". A smoke aggregation is
+   * kept structurally separate from evidence: configuration labels are prefixed
+   * `smoke:` and the report is titled so it can never be mistaken for campaign
+   * evidence. Mixing smoke with any non-smoke run is a throw, not a flag.
+   */
+  smoke: boolean;
   cells: CampaignCell[];
+  /** Per-configuration rollups (D1/D2/D3, fallbacks, cost-per-success). */
+  configTotals: ConfigTotal[];
   /**
    * Non-fatal provenance differences across the aggregated runs (e.g. runs span
-   * multiple gitCommit or seedCacheHash values). Never a throw — seeded
-   * persistence runs legitimately differ in seedCacheHash.
+   * multiple gitCommit or seedCacheHash values) plus cost-coverage lower-bound
+   * notices. Never a throw — seeded persistence runs legitimately differ in
+   * seedCacheHash.
    */
   warnings: string[];
 }
@@ -108,8 +154,12 @@ function sum(xs: number[]): number {
  *  - baseline  → "A-baseline"
  *  - stagehand → "D-full-semantic"
  *  - hybrid    → "B-structural" (--no-repair), "hybrid-keyless" (no model key),
- *                "C-hybrid-repair-cold" (keyed, no seed cache), or
- *                "C-hybrid-repair-seeded" (keyed, seeded).
+ *                "C-hybrid-repair-cold" (keyed, no seed cache), or — when keyed
+ *                AND seeded — split by run purpose so paired persistence runs
+ *                never blend into the warm economics sweep (they can share a
+ *                seedCacheHash): "C-hybrid-repair-persistence",
+ *                "C-hybrid-repair-warm", or "C-hybrid-repair-seeded" (defensive
+ *                fallback for any other seeded purpose, e.g. legacy results).
  */
 export function configurationLabel(
   engine: EngineName,
@@ -117,10 +167,12 @@ export function configurationLabel(
 ): string {
   if (engine === "baseline") return "A-baseline";
   if (engine === "stagehand") return "D-full-semantic";
-  // hybrid: precedence is disableRepair → keyless → seed-cache mode.
+  // hybrid: precedence is disableRepair → keyless → seed-cache mode → purpose.
   if (env.disableRepair) return "B-structural";
   if (env.modelProvider == null) return "hybrid-keyless";
   if (env.seedCacheMode === "none") return "C-hybrid-repair-cold";
+  if (env.runPurpose === "persistence") return "C-hybrid-repair-persistence";
+  if (env.runPurpose === "warm") return "C-hybrid-repair-warm";
   return "C-hybrid-repair-seeded";
 }
 
@@ -153,9 +205,16 @@ function cellFor(
     .filter((v): v is number => typeof v === "number");
 
   // Per-trial cost uses the model of the RUN the trial came from, not a global.
-  const costs = cellTrials
-    .map((ct) => trialCostUsd(ct.trial.tokens, ct.model))
-    .filter((v): v is number => v !== null);
+  // Baseline trials are structurally incapable of inference (no Stagehand
+  // instance is ever constructed), so their cost is a real, priced $0 — never
+  // null. Every other engine prices from its run's model via trialCostUsd.
+  const perTrialCost = cellTrials.map((ct) =>
+    engine === "baseline" ? 0 : trialCostUsd(ct.trial.tokens, ct.model)
+  );
+  const pricedCosts = perTrialCost.filter((v): v is number => v !== null);
+
+  const fbTrials = trials.filter((t) => (t.deterministicFallbacks?.length ?? 0) > 0).length;
+  const fbFirings = sum(trials.map((t) => t.deterministicFallbacks?.length ?? 0));
 
   const healed = trials.filter((t) => (t.healedSteps?.length ?? 0) > 0).length;
   const retryRecoveries = trials.filter((t) => t.recoveredAfterFailure).length;
@@ -172,19 +231,88 @@ function cellFor(
     llmCalls: { sum: sum(llmCallValues), ...spread(llmCallValues) },
     inputTokens: { sum: sum(inputValues), ...spread(inputValues) },
     outputTokens: { sum: sum(outputValues), ...spread(outputValues) },
-    costUsd: { sum: costs.length ? sum(costs) : null, ...spread(costs) },
+    costUsd: {
+      sum: pricedCosts.length ? sum(pricedCosts) : null,
+      priced: pricedCosts.length,
+      total: cellTrials.length,
+      ...spread(pricedCosts)
+    },
+    deterministicFallbacks: { trials: fbTrials, firings: fbFirings },
     healRate: trials.length === 0 ? 0 : healed / trials.length,
     retryRecoveries
   };
 }
 
 /**
+ * Roll cells up per configuration (first-appearance order) with the protocol's
+ * silent-corruption denominators, deterministic-fallback counts, cost coverage,
+ * and cost-per-successful-workflow. Pure over the already-built cells.
+ */
+function computeConfigTotals(cells: CampaignCell[]): ConfigTotal[] {
+  const order: string[] = [];
+  const byConfig = new Map<string, ConfigTotal>();
+  for (const c of cells) {
+    let t = byConfig.get(c.configuration);
+    if (!t) {
+      t = {
+        configuration: c.configuration,
+        engine: c.engine,
+        trials: 0,
+        judgedPasses: 0,
+        judgedFailures: 0,
+        silentCorruption: 0,
+        accepted: 0,
+        deterministicFallbacks: { trials: 0, firings: 0 },
+        llmCalls: 0,
+        inputTokens: 0,
+        outputTokens: 0,
+        cost: { sum: null, priced: 0, total: 0 },
+        costPerSuccess: null
+      };
+      byConfig.set(c.configuration, t);
+      order.push(c.configuration);
+    }
+    t.trials += c.trials;
+    t.judgedPasses += c.outcomes.pass;
+    t.judgedFailures += c.outcomes.fail;
+    const sc = c.outcomeClasses["silent-corruption"] ?? 0;
+    t.silentCorruption += sc;
+    // Accepted outputs = pass + recovered + silent-corruption (the three classes
+    // where the engine claimed a result), the D3 denominator.
+    t.accepted += (c.outcomeClasses["pass"] ?? 0) + (c.outcomeClasses["recovered"] ?? 0) + sc;
+    t.deterministicFallbacks.trials += c.deterministicFallbacks.trials;
+    t.deterministicFallbacks.firings += c.deterministicFallbacks.firings;
+    t.llmCalls += c.llmCalls.sum;
+    t.inputTokens += c.inputTokens.sum;
+    t.outputTokens += c.outputTokens.sum;
+    t.cost.priced += c.costUsd.priced;
+    t.cost.total += c.costUsd.total;
+    if (c.costUsd.sum !== null) t.cost.sum = (t.cost.sum ?? 0) + c.costUsd.sum;
+  }
+  for (const t of byConfig.values()) {
+    t.costPerSuccess =
+      t.cost.sum !== null && t.judgedPasses > 0 ? t.cost.sum / t.judgedPasses : null;
+  }
+  return order.map((cfg) => byConfig.get(cfg)!);
+}
+
+/**
  * Aggregate several benchmark runs into a per-(scenario × configuration) campaign
- * report. THROWS (listing the distinct values) when input runs disagree on
+ * report.
+ *
+ * Smoke separation is UNCONDITIONAL and independent of `allowMixed`: mixing any
+ * run with `runPurpose === "smoke"` and any non-smoke run THROWS (smoke results
+ * can never enter campaign evidence). An all-smoke aggregation is allowed (the
+ * protocol's smoke cost check needs it): `report.smoke` is true, every
+ * configuration label is prefixed `smoke:`, and the markdown is titled so it can
+ * never be mistaken for evidence.
+ *
+ * Otherwise THROWS (listing the distinct values) when input runs disagree on
  * `environment.promptsHash` or on non-null `environment.stagehandModel`, unless
  * `opts.allowMixed` — mixing prompts or models makes a single comparison
  * meaningless. Differences in `gitCommit` or `seedCacheHash` are reported as
- * `warnings` (never a throw; seeded persistence runs legitimately differ).
+ * `warnings` (never a throw; seeded persistence runs legitimately differ), as is
+ * any configuration whose cost coverage is incomplete (priced < total).
  *
  * Cells are ordered by first appearance of the scenario, then of the
  * configuration within that scenario.
@@ -194,7 +322,19 @@ export function aggregateCampaign(
   meta: { sources?: string[]; createdAt?: string } = {},
   opts: { allowMixed?: boolean } = {}
 ): CampaignReport {
-  // ── Consistency gate ────────────────────────────────────────────────────
+  // ── Smoke separation (UNCONDITIONAL; allowMixed does NOT override) ────────
+  const purposes = runs.map((r) => r.environment.runPurpose);
+  const hasSmoke = purposes.some((p) => p === "smoke");
+  const hasNonSmoke = purposes.some((p) => p !== "smoke");
+  if (hasSmoke && hasNonSmoke) {
+    throw new Error(
+      "Cannot aggregate: runs mix runPurpose 'smoke' with non-smoke runs. Smoke " +
+        "results can never enter campaign evidence (allowMixed does NOT override this)."
+    );
+  }
+  const smoke = hasSmoke; // by the guard above, all-smoke whenever true
+
+  // ── Consistency gate ──────────────────────────────────────────────────────
   const promptsHashes = [...new Set(runs.map((r) => r.environment.promptsHash))];
   const stagehandModels = [
     ...new Set(
@@ -240,7 +380,10 @@ export function aggregateCampaign(
     const env = run.environment;
     const model = env.stagehandModel;
     for (const trial of run.trials) {
-      const configuration = configurationLabel(trial.engine, env);
+      const baseConfig = configurationLabel(trial.engine, env);
+      // Smoke labels are prefixed so an all-smoke aggregation can never key into
+      // the same cell as a real-evidence configuration.
+      const configuration = smoke ? `smoke:${baseConfig}` : baseConfig;
       if (!scenarioOrder.includes(trial.scenarioId)) scenarioOrder.push(trial.scenarioId);
       const configs = configOrder.get(trial.scenarioId) ?? [];
       if (!configs.includes(configuration)) configs.push(configuration);
@@ -268,11 +411,25 @@ export function aggregateCampaign(
     }
   }
 
+  const configTotals = computeConfigTotals(cells);
+  // Cost-coverage honesty: any configuration with an unpriced trial makes its
+  // cost total a lower bound; disclose it (never a throw).
+  for (const t of configTotals) {
+    if (t.cost.priced < t.cost.total) {
+      const missing = t.cost.total - t.cost.priced;
+      warnings.push(
+        `${t.configuration}: ${missing} of ${t.cost.total} trials have no computable cost — cost totals are lower bounds.`
+      );
+    }
+  }
+
   return {
     createdAt: meta.createdAt ?? new Date().toISOString(),
     sources: meta.sources ?? [],
     runs: runs.length,
+    smoke,
     cells,
+    configTotals,
     warnings
   };
 }
@@ -286,10 +443,18 @@ function range(s: Spread, digits: number): string {
   return s.min === s.max ? fixed(s.min, digits) : `${fixed(s.min, digits)}–${fixed(s.max, digits)}`;
 }
 
+/** "x/N (p%)", or "—" when the denominator is 0. */
+function ratio(numerator: number, denominator: number): string {
+  if (denominator === 0) return "—";
+  return `${numerator}/${denominator} (${((numerator / denominator) * 100).toFixed(0)}%)`;
+}
+
 /** Render a campaign report as Markdown: one row per (scenario × configuration) cell. */
 export function renderCampaignMarkdown(report: CampaignReport): string {
   const lines: string[] = [];
-  lines.push("# Campaign aggregation");
+  lines.push(
+    report.smoke ? "# Campaign aggregation — SMOKE (never evidence)" : "# Campaign aggregation"
+  );
   lines.push("");
   lines.push(
     `Aggregated ${report.runs} run(s) · ${report.cells.length} scenario×configuration cell(s) · ` +
@@ -302,11 +467,11 @@ export function renderCampaignMarkdown(report: CampaignReport): string {
   lines.push("");
   lines.push(
     "| Scenario | Config | Engine | Trials | Pass | Fail | Acc median | Acc range | " +
-      "Dur median (s) | Dur range (s) | llmCalls sum | llmCalls median | " +
-      "Cost sum ($) | Cost range ($) | Heal rate | Retry rec |"
+      "Dur median (s) | Dur range (s) | llmCalls sum | llmCalls median | Det FB (trials) | " +
+      "Cost sum ($, priced) | Cost range ($) | Heal rate | Retry rec |"
   );
   lines.push(
-    "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |"
+    "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |"
   );
   for (const c of report.cells) {
     const durMedS = c.durationMs.median === null ? null : c.durationMs.median / 1000;
@@ -317,7 +482,8 @@ export function renderCampaignMarkdown(report: CampaignReport): string {
         `${fixed(c.accuracy.median, 3)} | ${range(c.accuracy, 3)} | ` +
         `${fixed(durMedS, 2)} | ${range({ n: 0, median: null, min: durMin, max: durMax }, 2)} | ` +
         `${c.llmCalls.sum} | ${fixed(c.llmCalls.median, 1)} | ` +
-        `${fixed(c.costUsd.sum, 4)} | ${range(c.costUsd, 4)} | ` +
+        `${c.deterministicFallbacks.firings} (${c.deterministicFallbacks.trials}) | ` +
+        `${fixed(c.costUsd.sum, 4)} (${c.costUsd.priced}/${c.costUsd.total}) | ${range(c.costUsd, 4)} | ` +
         `${(c.healRate * 100).toFixed(0)}% | ${c.retryRecoveries} |`
     );
   }
@@ -330,46 +496,34 @@ export function renderCampaignMarkdown(report: CampaignReport): string {
     lines.push("");
   }
 
-  // ── Per-configuration totals ──────────────────────────────────────────────
-  interface ConfigTotal {
-    trials: number;
-    passes: number;
-    llmCalls: number;
-    inputTokens: number;
-    outputTokens: number;
-    cost: number | null;
-  }
-  const configOrder: string[] = [];
-  const totals = new Map<string, ConfigTotal>();
-  for (const c of report.cells) {
-    let t = totals.get(c.configuration);
-    if (!t) {
-      t = { trials: 0, passes: 0, llmCalls: 0, inputTokens: 0, outputTokens: 0, cost: null };
-      totals.set(c.configuration, t);
-      configOrder.push(c.configuration);
-    }
-    t.trials += c.trials;
-    t.passes += c.outcomes.pass;
-    t.llmCalls += c.llmCalls.sum;
-    t.inputTokens += c.inputTokens.sum;
-    t.outputTokens += c.outputTokens.sum;
-    if (c.costUsd.sum !== null) t.cost = (t.cost ?? 0) + c.costUsd.sum;
-  }
-
+  // ── Per-configuration totals (rendered FROM report.configTotals) ──────────
   lines.push("## Per-configuration totals");
   lines.push("");
-  lines.push(
-    "| Config | Trials | Judged passes | llmCalls | Input tokens | Output tokens | Cost ($) |"
-  );
-  lines.push("| --- | ---: | ---: | ---: | ---: | ---: | ---: |");
-  for (const config of configOrder) {
-    const t = totals.get(config)!;
+  for (const t of report.configTotals) {
+    lines.push(`### ${t.configuration} (${t.engine})`);
+    lines.push("");
     lines.push(
-      `| ${config} | ${t.trials} | ${t.passes} | ${t.llmCalls} | ${t.inputTokens} | ` +
-        `${t.outputTokens} | ${fixed(t.cost, 4)} |`
+      `- Trials: ${t.trials} · judged passes: ${t.judgedPasses} · judged failures: ${t.judgedFailures}`
     );
+    lines.push(
+      `- Silent corruption — D1 (of trials): ${ratio(t.silentCorruption, t.trials)} · ` +
+        `D2 (of judged failures): ${ratio(t.silentCorruption, t.judgedFailures)} · ` +
+        `D3 (of accepted outputs): ${ratio(t.silentCorruption, t.accepted)}`
+    );
+    lines.push(
+      `- Deterministic fallbacks: ${t.deterministicFallbacks.firings} firing(s) across ` +
+        `${t.deterministicFallbacks.trials} trial(s)`
+    );
+    lines.push(
+      `- llmCalls: ${t.llmCalls} · input tokens: ${t.inputTokens} · output tokens: ${t.outputTokens}`
+    );
+    const costSum = t.cost.sum === null ? "—" : `$${t.cost.sum.toFixed(4)}`;
+    const incomplete = t.cost.priced < t.cost.total ? " — INCOMPLETE, lower bound" : "";
+    lines.push(`- Cost: ${costSum} (priced ${t.cost.priced}/${t.cost.total})${incomplete}`);
+    const cps = t.costPerSuccess === null ? "—" : `$${t.costPerSuccess.toFixed(4)}`;
+    lines.push(`- Cost per successful workflow: ${cps}`);
+    lines.push("");
   }
-  lines.push("");
 
   return lines.join("\n");
 }

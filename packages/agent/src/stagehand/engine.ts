@@ -221,6 +221,15 @@ async function runStagehandEngine(options: PipelineOptions): Promise<PipelineRes
   const wantStats = options.pages.includes("stats");
   const wantOdds = options.pages.includes("odds");
 
+  // Steps where a hand-written deterministic guard fired AFTER the semantic act
+  // failed to clear a session blocker (Wave F F2). Disclosed on the trial so a
+  // "full semantic" pass never silently leans on hand-written fallback code.
+  // Trial-scoped across attempts (exactly how hybrid scopes its healedSteps Set):
+  // a guard that fires on a losing attempt must still be recorded, so this array
+  // outlives any single attempt. Entries stay one-per-firing — the same step name
+  // may therefore appear once per attempt in which its guard fired.
+  const deterministicFallbacks: string[] = [];
+
   const attemptFn: AttemptFn = async (attempt): Promise<AttemptOutcome> => {
     const steps: StepResult[] = [];
     const screenshots: string[] = [];
@@ -230,10 +239,6 @@ async function runStagehandEngine(options: PipelineOptions): Promise<PipelineRes
     let statsRaw: { rows: ExtractedStatsRow[] } | undefined;
     let oddsRaw: { rows: ExtractedOddsRow[] } | undefined;
     let consentHandled = false;
-    // Steps where a hand-written deterministic guard fired AFTER the semantic act
-    // failed to clear a session blocker (Wave F F2). Disclosed on the trial so a
-    // "full semantic" pass never silently leans on hand-written fallback code.
-    const deterministicFallbacks: string[] = [];
 
     // ── LLM call wrappers (count every model-driven call) ──────────────────
     const act = (
@@ -312,6 +317,10 @@ async function runStagehandEngine(options: PipelineOptions): Promise<PipelineRes
           steps,
           screenshots,
           await currentTokens(),
+          // stagehand never heals; carry the trial-level deterministic-fallback
+          // snapshot so a guard that fired on this (losing) attempt is not lost.
+          undefined,
+          [...deterministicFallbacks],
           { cause: error }
         );
       }
@@ -540,7 +549,9 @@ async function runStagehandEngine(options: PipelineOptions): Promise<PipelineRes
         ...(oddsRaw ? { oddsRaw } : {}),
         screenshots,
         tokens: await currentTokens(),
-        ...(deterministicFallbacks.length > 0 ? { deterministicFallbacks } : {})
+        ...(deterministicFallbacks.length > 0
+          ? { deterministicFallbacks: [...deterministicFallbacks] }
+          : {})
       };
     } finally {
       try {

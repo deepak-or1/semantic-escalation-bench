@@ -6,7 +6,12 @@
  *   pnpm bench -- --trials 3                      # 3 trials per scenario/engine
  *   pnpm bench -- --scenarios clean-extraction,class-drift --headed
  *   pnpm bench -- --engines hybrid --no-repair    # frozen structural-deterministic
- *   pnpm bench -- --seed-cache-manifest heals.json # per-scenario warm caches
+ *   pnpm bench -- --seed-cache-manifest heals.json --purpose persistence
+ *   pnpm bench -- --purpose smoke                 # smoke run (never evidence)
+ *
+ * --purpose <smoke|cold|persistence|warm> records why the run exists so evidence
+ * separation is machine-enforced. It defaults to "cold" for an unseeded run and
+ * is REQUIRED when a seed cache is present (persistence vs. warm must be explicit).
  *
  * The default engine set is all three engines: "stagehand,baseline,hybrid".
  * Stagehand is auto-skipped (reported, never run) when no model key is present;
@@ -31,9 +36,12 @@ import {
   createRunDir,
   scenarioById,
   type EngineName,
+  type RunPurpose,
   type ScenarioSpec
 } from "@ssda/shared";
-import { loadAndVerifySeedCacheManifest, runBenchmark } from "@ssda/agent";
+import { loadAndVerifySeedCacheManifest, runBenchmark, validateRunPurpose } from "@ssda/agent";
+
+const RUN_PURPOSES = ["smoke", "cold", "persistence", "warm"] as const;
 
 interface CliArgs {
   engines: EngineName[];
@@ -48,6 +56,12 @@ interface CliArgs {
   seedCacheFile?: string;
   /** Per-scenario warm-cache manifest (--seed-cache-manifest). */
   seedCacheManifestFile?: string;
+  /**
+   * Why this run exists (--purpose). Resolved to "cold" for an unseeded run when
+   * omitted; required (no default) when a seed cache is present so a seeded run
+   * can never blend persistence with the warm sweep.
+   */
+  purpose: RunPurpose;
 }
 
 const REPO_ROOT = path.resolve(fileURLToPath(import.meta.url), "../..");
@@ -66,6 +80,7 @@ function parseArgs(argv: string[]): CliArgs {
   let noRepair = false;
   let seedCacheFile: string | undefined;
   let seedCacheManifestFile: string | undefined;
+  let purpose: RunPurpose | undefined;
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
@@ -102,6 +117,12 @@ function parseArgs(argv: string[]): CliArgs {
     } else if (arg === "--seed-cache-manifest") {
       seedCacheManifestFile = argv[++i];
       if (!seedCacheManifestFile) bail("--seed-cache-manifest needs a path to a manifest.json");
+    } else if (arg === "--purpose") {
+      const raw = argv[++i];
+      if (!raw || !(RUN_PURPOSES as readonly string[]).includes(raw)) {
+        bail(`--purpose must be one of: ${RUN_PURPOSES.join(", ")}`);
+      }
+      purpose = raw as RunPurpose;
     } else if (arg === "--lab-url") {
       labUrl = argv[++i];
       if (!labUrl) bail("--lab-url needs a URL");
@@ -112,6 +133,31 @@ function parseArgs(argv: string[]): CliArgs {
   if (seedCacheFile && seedCacheManifestFile) {
     bail("--seed-cache and --seed-cache-manifest are mutually exclusive");
   }
+
+  // Resolve the run purpose and fail fast on an illegal purpose × seeding combo,
+  // BEFORE any lab is spawned. A seeded run must state its purpose explicitly so
+  // persistence runs never blend with the warm economics sweep; an unseeded run
+  // defaults to "cold".
+  const seedCacheMode: "none" | "file" | "manifest" = seedCacheManifestFile
+    ? "manifest"
+    : seedCacheFile
+      ? "file"
+      : "none";
+  if (purpose === undefined) {
+    if (seedCacheMode !== "none") {
+      bail(
+        "--purpose is required when seeding a cache (--seed-cache / --seed-cache-manifest): " +
+          "pass --purpose persistence or --purpose warm so a seeded run is never mislabelled."
+      );
+    }
+    purpose = "cold";
+  }
+  try {
+    validateRunPurpose(purpose, seedCacheMode);
+  } catch (error) {
+    bail(error instanceof Error ? error.message : String(error));
+  }
+
   return {
     engines,
     trials,
@@ -120,7 +166,8 @@ function parseArgs(argv: string[]): CliArgs {
     ...(labUrl ? { labUrl } : {}),
     noRepair,
     ...(seedCacheFile ? { seedCacheFile } : {}),
-    ...(seedCacheManifestFile ? { seedCacheManifestFile } : {})
+    ...(seedCacheManifestFile ? { seedCacheManifestFile } : {}),
+    purpose
   };
 }
 
@@ -246,6 +293,7 @@ async function main(): Promise<void> {
       headless: args.headless,
       benchDir: dir,
       benchId: runId,
+      runPurpose: args.purpose,
       ...(args.noRepair ? { disableRepair: true } : {}),
       ...(args.seedCacheFile ? { seedCacheFile: args.seedCacheFile } : {}),
       ...(seedCacheManifest ? { seedCacheManifest } : {}),

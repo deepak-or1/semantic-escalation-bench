@@ -31,6 +31,14 @@ export const ScenarioGroupSchema = z.enum(["core", "compound", "survival"]);
 export type ScenarioGroup = z.infer<typeof ScenarioGroupSchema>;
 
 /**
+ * Why this run exists. Recorded so evidence separation is machine-enforced:
+ * smoke runs can never aggregate with campaign evidence, and persistence runs can
+ * never blend with the warm economics sweep.
+ */
+export const RunPurposeSchema = z.enum(["smoke", "cold", "persistence", "warm"]);
+export type RunPurpose = z.infer<typeof RunPurposeSchema>;
+
+/**
  * Behaviour classification of a trial, ORTHOGONAL to the judged pass/fail.
  * Derived from what the pipeline actually did (not from whether it met the
  * scenario's expectation):
@@ -210,6 +218,13 @@ export const BenchmarkResultsSchema = z.object({
      * cache file's verified content sha256. null when seedCacheMode is "none".
      */
     seedCacheHash: z.string().nullable(),
+    /**
+     * Why this run exists. Recorded so evidence separation is machine-enforced:
+     * smoke runs can never aggregate with campaign evidence, and persistence runs
+     * can never blend with the warm economics sweep. The `.default("cold")` keeps
+     * committed pre-v3 results parseable.
+     */
+    runPurpose: RunPurposeSchema.default("cold"),
     /**
      * sha256 over the canonical sorted registry of ALL fixed instruction strings
      * (packages/agent/src/instructions.ts): stagehand extraction + act/observe

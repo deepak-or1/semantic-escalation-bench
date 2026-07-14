@@ -195,4 +195,77 @@ describe("runPipeline", () => {
     await options.logger.flush();
     await assertEventsParse(options.logger.file);
   });
+
+  // ── G2: heals / deterministic-fallback firings are recorded across ALL
+  // attempts, not just the successful/final one. The engine's lists are
+  // trial-scoped, so attempt 1's firing survives into attempt 2's outcome.
+  it("(g2-accumulate-on-recovery) a recovered trial carries lists accumulated across all attempts", async () => {
+    const options = await makeOptions();
+    let calls = 0;
+    const attemptFn: AttemptFn = async () => {
+      calls += 1;
+      if (calls === 1) {
+        // Attempt 1 fires the consent guard and heals login, then fails.
+        throw new AttemptFailure(
+          "consent stuck",
+          "blocked_ui",
+          "consent",
+          [step("consent")],
+          [],
+          null,
+          ["login"], // trial-scoped healedSteps snapshot
+          ["consent"] // trial-scoped deterministicFallbacks snapshot
+        );
+      }
+      // Attempt 2 succeeds; its outcome is TRIAL-scoped, so it still carries
+      // attempt 1's consent firing + login heal, plus a new dismiss-modal firing.
+      return outcome({
+        healedSteps: ["login"],
+        deterministicFallbacks: ["consent", "dismiss-modal"]
+      });
+    };
+    const result = await runPipeline("hybrid", options, attemptFn);
+
+    expect(result.success).toBe(true);
+    expect(result.attempts).toBe(2);
+    expect(result.deterministicFallbacks).toEqual(["consent", "dismiss-modal"]);
+    expect(result.healedSteps).toEqual(["login"]);
+  });
+
+  it("(g2-accumulate-on-total-failure) a wholly-failed trial still carries the last failure's accumulated lists", async () => {
+    const options = await makeOptions({ maxAttempts: 2 });
+    let calls = 0;
+    const attemptFn: AttemptFn = async () => {
+      calls += 1;
+      if (calls === 1) {
+        throw new AttemptFailure(
+          "attempt 1 down",
+          "blocked_ui",
+          "consent",
+          [step("consent")],
+          [],
+          null,
+          ["login"],
+          ["consent"]
+        );
+      }
+      // Attempt 2 also fails; the trial-scoped lists have accumulated further.
+      throw new AttemptFailure(
+        "attempt 2 down",
+        "not_found",
+        "reveal-table",
+        [step("reveal-table")],
+        [],
+        null,
+        ["login", "reveal-table"],
+        ["consent", "dismiss-modal"]
+      );
+    };
+    const result = await runPipeline("hybrid", options, attemptFn);
+
+    expect(result.success).toBe(false);
+    expect(result.attempts).toBe(2);
+    expect(result.deterministicFallbacks).toEqual(["consent", "dismiss-modal"]);
+    expect(result.healedSteps).toEqual(["login", "reveal-table"]);
+  });
 });

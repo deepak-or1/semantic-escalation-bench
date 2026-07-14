@@ -18,23 +18,26 @@ export const PINNED_PRICES: Record<string, { inputUsdPerMTok: number; outputUsdP
 };
 
 /**
- * Dollar cost of one trial's inference, or null when it cannot be computed:
- * null when the model is unknown/absent, or when tokens is null/undefined or
- * carries neither an input nor an output count. Otherwise
- * (input × inRate + output × outRate) / 1e6, treating a missing side as 0.
+ * Dollar cost of one trial's inference. Rules (applied in order):
+ *  - model absent/unknown → null;
+ *  - tokens null/undefined → null (unknown usage);
+ *  - `tokens.llmCalls === 0` → 0 (zero inference is a real, priced $0 —
+ *    deterministic trials must not read as "unpriced");
+ *  - `tokens.llmCalls > 0` → BOTH `inputTokens` and `outputTokens` must be
+ *    present numbers, else null (never a half-cost);
+ *  - otherwise (input × inRate + output × outRate) / 1e6.
  */
 export function trialCostUsd(
-  tokens: { inputTokens?: number; outputTokens?: number } | null | undefined,
+  tokens: { llmCalls: number; inputTokens?: number; outputTokens?: number } | null | undefined,
   model: string | undefined | null
 ): number | null {
   if (!model) return null;
   const price = PINNED_PRICES[model];
   if (!price) return null;
   if (!tokens) return null;
+  if (tokens.llmCalls === 0) return 0;
   const hasInput = typeof tokens.inputTokens === "number";
   const hasOutput = typeof tokens.outputTokens === "number";
-  if (!hasInput && !hasOutput) return null;
-  const input = hasInput ? tokens.inputTokens! : 0;
-  const output = hasOutput ? tokens.outputTokens! : 0;
-  return (input * price.inputUsdPerMTok + output * price.outputUsdPerMTok) / 1e6;
+  if (!hasInput || !hasOutput) return null;
+  return (tokens.inputTokens! * price.inputUsdPerMTok + tokens.outputTokens! * price.outputUsdPerMTok) / 1e6;
 }

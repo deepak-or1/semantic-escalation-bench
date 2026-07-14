@@ -73,7 +73,17 @@ export async function runPipeline(
   const started = Date.now();
 
   let outcome: AttemptOutcome | undefined;
-  let lastFailure: { category: PipelineResult["failureCategory"]; detail: string; steps: StepResult[]; screenshots: string[]; tokens: AttemptOutcome["tokens"] } | undefined;
+  let lastFailure:
+    | {
+        category: PipelineResult["failureCategory"];
+        detail: string;
+        steps: StepResult[];
+        screenshots: string[];
+        tokens: AttemptOutcome["tokens"];
+        healedSteps?: string[];
+        deterministicFallbacks?: string[];
+      }
+    | undefined;
   let attempts = 0;
   // Sum inference cost over ALL attempts, not just the last/successful one.
   const tokenAcc = new TokenAccumulator();
@@ -94,7 +104,12 @@ export async function runPipeline(
               detail: error.message,
               steps: error.steps,
               screenshots: error.screenshots,
-              tokens: error.tokens
+              tokens: error.tokens,
+              // Trial-scoped heal / deterministic-fallback snapshots the engine
+              // carried on the failure, so a trial that fires a guard or heals a
+              // step and then fails entirely still records it (below).
+              healedSteps: error.healedSteps,
+              deterministicFallbacks: error.deterministicFallbacks
             }
           : (() => {
               const cat = categorizeError(error, "unknown");
@@ -103,7 +118,9 @@ export async function runPipeline(
                 detail: cat.detail,
                 steps: [] as StepResult[],
                 screenshots: [] as string[],
-                tokens: null
+                tokens: null,
+                healedSteps: undefined as string[] | undefined,
+                deterministicFallbacks: undefined as string[] | undefined
               };
             })();
       lastFailure = failure;
@@ -152,7 +169,15 @@ export async function runPipeline(
         eventsFile
       },
       // Total inference across all attempts (estimatedCostUsd stays null).
-      tokens: tokenAcc.total()
+      tokens: tokenAcc.total(),
+      // A wholly-failed trial still discloses any heals / deterministic-fallback
+      // firings accumulated across all attempts (nonempty only).
+      ...(failure.healedSteps && failure.healedSteps.length > 0
+        ? { healedSteps: failure.healedSteps }
+        : {}),
+      ...(failure.deterministicFallbacks && failure.deterministicFallbacks.length > 0
+        ? { deterministicFallbacks: failure.deterministicFallbacks }
+        : {})
     };
   }
 
@@ -249,11 +274,15 @@ export async function runPipeline(
     },
     // Total inference across all attempts (estimatedCostUsd stays null).
     tokens: tokenAcc.total(),
-    // Carry the final attempt's healed step names (hybrid only; empty otherwise).
+    // Carry the healed step names accumulated across ALL attempts (hybrid only;
+    // empty otherwise) — the outcome's list is trial-scoped, so it already
+    // includes heals from earlier failed attempts.
     ...(outcome.healedSteps && outcome.healedSteps.length > 0
       ? { healedSteps: outcome.healedSteps }
       : {}),
-    // Carry the final attempt's deterministic-fallback step names (stagehand only).
+    // Carry the deterministic-fallback firings accumulated across ALL attempts
+    // (stagehand only) — likewise trial-scoped, so earlier attempts' firings are
+    // included.
     ...(outcome.deterministicFallbacks && outcome.deterministicFallbacks.length > 0
       ? { deterministicFallbacks: outcome.deterministicFallbacks }
       : {})

@@ -4,6 +4,7 @@
 export {
   runBenchmark,
   judge,
+  validateRunPurpose,
   type BenchmarkRunConfig,
   type SeedCacheManifest
 } from "./runner";
@@ -14,7 +15,8 @@ export {
   configurationLabel,
   renderCampaignMarkdown,
   type CampaignReport,
-  type CampaignCell
+  type CampaignCell,
+  type ConfigTotal
 } from "./campaign";
 export { PINNED_PRICES, PRICES_PINNED_AT, trialCostUsd } from "./prices";
 export {

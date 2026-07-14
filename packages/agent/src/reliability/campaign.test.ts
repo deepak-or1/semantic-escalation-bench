@@ -1,7 +1,7 @@
 import type { BenchmarkResults, ScenarioSpec, TrialResult } from "@ssda/shared";
 import { describe, expect, it } from "vitest";
 import { aggregateCampaign, configurationLabel, renderCampaignMarkdown } from "./campaign";
-import { trialCostUsd } from "./prices";
+import { validateRunPurpose } from "./runner";
 
 type Environment = BenchmarkResults["environment"];
 
@@ -98,9 +98,15 @@ describe("aggregateCampaign", () => {
     expect(cell.durationMs.max).toBe(300);
     expect(cell.llmCalls.sum).toBe(0);
     expect(cell.costUsd.sum).toBeNull(); // keyless: no model → no computable cost
+    expect(cell.costUsd.priced).toBe(0);
+    expect(cell.costUsd.total).toBe(2);
     expect(cell.healRate).toBe(0);
     expect(cell.retryRecoveries).toBe(0);
-    expect(report.warnings).toEqual([]);
+    // Keyless trials are genuinely unpriced, so the only warning is the honest
+    // cost-coverage lower-bound notice (no gitCommit/seedCacheHash disagreement).
+    expect(report.warnings).toEqual([
+      "hybrid-keyless: 2 of 2 trials have no computable cost — cost totals are lower bounds."
+    ]);
   });
 
   it("counts heal rate, retry recoveries, class counts and llmCalls sums", () => {
@@ -265,26 +271,6 @@ describe("aggregateCampaign", () => {
   });
 });
 
-describe("trialCostUsd", () => {
-  const haiku = "anthropic/claude-haiku-4-5";
-
-  it("computes the hand-checked cost (200k in + 40k out on haiku = $0.40)", () => {
-    expect(trialCostUsd({ inputTokens: 200_000, outputTokens: 40_000 }, haiku)).toBeCloseTo(0.4, 10);
-  });
-
-  it("treats a missing side as zero", () => {
-    expect(trialCostUsd({ inputTokens: 1_000_000 }, haiku)).toBeCloseTo(1.0, 10);
-    expect(trialCostUsd({ outputTokens: 1_000_000 }, haiku)).toBeCloseTo(5.0, 10);
-  });
-
-  it("returns null for an unknown/absent model, null tokens, or no token counts", () => {
-    expect(trialCostUsd({ inputTokens: 100 }, "openai/gpt-unknown")).toBeNull();
-    expect(trialCostUsd({ inputTokens: 100 }, undefined)).toBeNull();
-    expect(trialCostUsd(null, haiku)).toBeNull();
-    expect(trialCostUsd({ llmCalls: 3 } as { inputTokens?: number }, haiku)).toBeNull();
-  });
-});
-
 describe("configurationLabel", () => {
   it("baseline → A-baseline (regardless of env)", () => {
     expect(configurationLabel("baseline", env({ disableRepair: true }))).toBe("A-baseline");
@@ -303,9 +289,244 @@ describe("configurationLabel", () => {
       "C-hybrid-repair-cold"
     );
   });
-  it("hybrid + keyed + seeded → C-hybrid-repair-seeded", () => {
+  it("hybrid + keyed + seeded (no purpose) → C-hybrid-repair-seeded (defensive fallback)", () => {
     expect(
       configurationLabel("hybrid", env({ modelProvider: "anthropic", seedCacheMode: "file" }))
     ).toBe("C-hybrid-repair-seeded");
+  });
+  it("hybrid + keyed + seeded + persistence → C-hybrid-repair-persistence", () => {
+    expect(
+      configurationLabel(
+        "hybrid",
+        env({ modelProvider: "anthropic", seedCacheMode: "manifest", runPurpose: "persistence" })
+      )
+    ).toBe("C-hybrid-repair-persistence");
+  });
+  it("hybrid + keyed + seeded + warm → C-hybrid-repair-warm", () => {
+    expect(
+      configurationLabel(
+        "hybrid",
+        env({ modelProvider: "anthropic", seedCacheMode: "manifest", runPurpose: "warm" })
+      )
+    ).toBe("C-hybrid-repair-warm");
+  });
+});
+
+describe("configurationLabel run-purpose split (identical seedCacheHash)", () => {
+  it("persistence and warm runs with the SAME seedCacheHash land in separate cells", () => {
+    // Both are keyed+seeded hybrid on the same scenario with an IDENTICAL
+    // seedCacheHash — only runPurpose differs. They must never blend.
+    const seeded = { modelProvider: "anthropic", seedCacheMode: "manifest", seedCacheHash: "H" } as const;
+    const runs = [
+      run(["clean-extraction"], [trial({})], env({ ...seeded, runPurpose: "persistence" })),
+      run(["clean-extraction"], [trial({})], env({ ...seeded, runPurpose: "warm" }))
+    ];
+    const report = aggregateCampaign(runs);
+    expect(report.cells).toHaveLength(2);
+    expect(new Set(report.cells.map((c) => c.configuration))).toEqual(
+      new Set(["C-hybrid-repair-persistence", "C-hybrid-repair-warm"])
+    );
+    // seedCacheHash is identical → no seedCacheHash warning.
+    expect(report.warnings.some((w) => /seedCacheHash/.test(w))).toBe(false);
+  });
+});
+
+describe("cost coverage + baseline pricing", () => {
+  it("baseline trials cost a priced $0; coverage counts every trial as priced", () => {
+    const runs = [
+      run(
+        ["clean-extraction"],
+        [
+          trial({ engine: "baseline", tokens: null }),
+          trial({ engine: "baseline", tokens: null })
+        ],
+        env()
+      )
+    ];
+    const report = aggregateCampaign(runs);
+    const cell = report.cells[0]!;
+    expect(cell.configuration).toBe("A-baseline");
+    expect(cell.costUsd.sum).toBe(0);
+    expect(cell.costUsd.priced).toBe(2);
+    expect(cell.costUsd.total).toBe(2);
+    // Fully priced → no lower-bound warning.
+    expect(report.warnings.some((w) => /lower bounds/.test(w))).toBe(false);
+  });
+
+  it("a configuration with an unpriced trial reports partial coverage and a lower-bound warning", () => {
+    // Keyed hybrid: one trial has computable cost, one is unpriced (llmCalls>0 but
+    // only one token side present → trialCostUsd returns null).
+    const runs = [
+      run(
+        ["clean-extraction"],
+        [
+          trial({ engine: "hybrid", tokens: { llmCalls: 5, inputTokens: 200_000, outputTokens: 40_000 } }),
+          trial({ engine: "hybrid", tokens: { llmCalls: 5, inputTokens: 200_000 } })
+        ],
+        env({ modelProvider: "anthropic", stagehandModel: "anthropic/claude-haiku-4-5" })
+      )
+    ];
+    const report = aggregateCampaign(runs);
+    const cell = report.cells[0]!;
+    expect(cell.costUsd.priced).toBe(1);
+    expect(cell.costUsd.total).toBe(2);
+    expect(cell.costUsd.sum).toBeCloseTo(0.4, 10); // lower bound over the one priced trial
+    expect(
+      report.warnings.some((w) =>
+        /C-hybrid-repair-cold: 1 of 2 trials have no computable cost — cost totals are lower bounds\./.test(w)
+      )
+    ).toBe(true);
+  });
+});
+
+describe("deterministic-fallback exposure", () => {
+  it("counts fallback trials and total firings per cell", () => {
+    const runs = [
+      run(
+        ["cookie-banner"],
+        [
+          trial({ scenarioId: "cookie-banner", engine: "stagehand", deterministicFallbacks: ["consent", "consent"] }),
+          trial({ scenarioId: "cookie-banner", engine: "stagehand", deterministicFallbacks: ["dismiss-modal"] }),
+          trial({ scenarioId: "cookie-banner", engine: "stagehand" })
+        ],
+        env({ modelProvider: "anthropic", stagehandModel: "anthropic/claude-haiku-4-5" })
+      )
+    ];
+    const cell = aggregateCampaign(runs).cells[0]!;
+    expect(cell.deterministicFallbacks).toEqual({ trials: 2, firings: 3 });
+  });
+});
+
+describe("smoke separation", () => {
+  it("throws when smoke runs mix with non-smoke runs, even with allowMixed", () => {
+    const runs = [
+      run(["clean-extraction"], [trial({})], env({ runPurpose: "smoke" })),
+      run(["clean-extraction"], [trial({})], env({ runPurpose: "cold" }))
+    ];
+    expect(() => aggregateCampaign(runs)).toThrow(/smoke/i);
+    expect(() => aggregateCampaign(runs, {}, { allowMixed: true })).toThrow(/smoke/i);
+  });
+
+  it("aggregates an all-smoke run with smoke:true and smoke:-prefixed labels", () => {
+    const runs = [
+      run(
+        ["clean-extraction"],
+        [trial({ engine: "baseline" }), trial({ engine: "hybrid" })],
+        env({ runPurpose: "smoke" })
+      )
+    ];
+    const report = aggregateCampaign(runs);
+    expect(report.smoke).toBe(true);
+    expect(report.cells.map((c) => c.configuration).sort()).toEqual([
+      "smoke:A-baseline",
+      "smoke:hybrid-keyless"
+    ]);
+    expect(report.configTotals.every((t) => t.configuration.startsWith("smoke:"))).toBe(true);
+    expect(renderCampaignMarkdown(report)).toContain(
+      "# Campaign aggregation — SMOKE (never evidence)"
+    );
+  });
+});
+
+describe("configTotals (D1/D2/D3, fallbacks, cost per success)", () => {
+  it("hand-computes the frozen denominators and cost-per-successful-workflow", () => {
+    // One keyed-hybrid configuration, 4 trials on one scenario:
+    //  - 2 pass  (class pass)
+    //  - 1 silent-corruption (judged fail)
+    //  - 1 hard-failure    (judged fail)
+    // trials = 4, judgedPasses = 2, judgedFailures = 2, sc = 1,
+    // accepted = pass(2) + recovered(0) + sc(1) = 3.
+    // Cost: only the two passes carry priced tokens ($0.40 each = $0.80);
+    // the two failures have null tokens → unpriced. costPerSuccess = 0.80 / 2 = 0.40.
+    const tok = { llmCalls: 5, inputTokens: 200_000, outputTokens: 40_000 };
+    const runs = [
+      run(
+        ["class-drift"],
+        [
+          trial({ scenarioId: "class-drift", engine: "hybrid", outcome: "pass", outcomeClass: "pass", tokens: tok }),
+          trial({ scenarioId: "class-drift", engine: "hybrid", outcome: "pass", outcomeClass: "pass", tokens: tok }),
+          trial({
+            scenarioId: "class-drift",
+            engine: "hybrid",
+            outcome: "fail",
+            outcomeClass: "silent-corruption",
+            pipelineSuccess: false,
+            tokens: null
+          }),
+          trial({
+            scenarioId: "class-drift",
+            engine: "hybrid",
+            outcome: "fail",
+            outcomeClass: "hard-failure",
+            pipelineSuccess: false,
+            tokens: null
+          })
+        ],
+        env({ modelProvider: "anthropic", stagehandModel: "anthropic/claude-haiku-4-5" })
+      )
+    ];
+    const report = aggregateCampaign(runs);
+    expect(report.configTotals).toHaveLength(1);
+    const t = report.configTotals[0]!;
+    expect(t.configuration).toBe("C-hybrid-repair-cold");
+    expect(t.trials).toBe(4);
+    expect(t.judgedPasses).toBe(2);
+    expect(t.judgedFailures).toBe(2);
+    expect(t.silentCorruption).toBe(1);
+    expect(t.accepted).toBe(3);
+    expect(t.cost.priced).toBe(2);
+    expect(t.cost.total).toBe(4);
+    expect(t.cost.sum).toBeCloseTo(0.8, 10);
+    expect(t.costPerSuccess).toBeCloseTo(0.4, 10);
+    // D1 = 1/4, D2 = 1/2, D3 = 1/3 — rendered in the markdown.
+    const md = renderCampaignMarkdown(report);
+    expect(md).toContain("D1 (of trials): 1/4 (25%)");
+    expect(md).toContain("D2 (of judged failures): 1/2 (50%)");
+    expect(md).toContain("D3 (of accepted outputs): 1/3 (33%)");
+  });
+
+  it("costPerSuccess is null when there are zero judged passes", () => {
+    const runs = [
+      run(
+        ["class-drift"],
+        [
+          trial({
+            scenarioId: "class-drift",
+            engine: "hybrid",
+            outcome: "fail",
+            outcomeClass: "hard-failure",
+            pipelineSuccess: false,
+            tokens: { llmCalls: 5, inputTokens: 200_000, outputTokens: 40_000 }
+          })
+        ],
+        env({ modelProvider: "anthropic", stagehandModel: "anthropic/claude-haiku-4-5" })
+      )
+    ];
+    const t = aggregateCampaign(runs).configTotals[0]!;
+    expect(t.judgedPasses).toBe(0);
+    expect(t.costPerSuccess).toBeNull();
+  });
+});
+
+describe("validateRunPurpose", () => {
+  it("persistence REQUIRES a seeded cache", () => {
+    expect(() => validateRunPurpose("persistence", "none")).toThrow(/persistence.*none/s);
+    expect(() => validateRunPurpose("persistence", "file")).not.toThrow();
+    expect(() => validateRunPurpose("persistence", "manifest")).not.toThrow();
+  });
+  it("warm REQUIRES a seeded cache", () => {
+    expect(() => validateRunPurpose("warm", "none")).toThrow(/warm.*none/s);
+    expect(() => validateRunPurpose("warm", "file")).not.toThrow();
+    expect(() => validateRunPurpose("warm", "manifest")).not.toThrow();
+  });
+  it("cold REQUIRES an unseeded run", () => {
+    expect(() => validateRunPurpose("cold", "none")).not.toThrow();
+    expect(() => validateRunPurpose("cold", "file")).toThrow(/cold.*file/s);
+    expect(() => validateRunPurpose("cold", "manifest")).toThrow(/cold.*manifest/s);
+  });
+  it("smoke REQUIRES an unseeded run", () => {
+    expect(() => validateRunPurpose("smoke", "none")).not.toThrow();
+    expect(() => validateRunPurpose("smoke", "file")).toThrow(/smoke.*file/s);
+    expect(() => validateRunPurpose("smoke", "manifest")).toThrow(/smoke.*manifest/s);
   });
 });

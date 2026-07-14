@@ -283,6 +283,10 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
           steps,
           screenshots,
           await currentTokens(),
+          // Carry the trial-level heal snapshot so a trial that heals then fails
+          // entirely still records the heal (hybrid never uses deterministicFallbacks).
+          [...healedSteps],
+          undefined,
           { cause: error }
         );
       }

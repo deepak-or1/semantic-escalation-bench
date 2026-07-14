@@ -73,14 +73,16 @@ export interface AttemptOutcome {
   tokens?: TokensUsage | null;
   /**
    * Step names whose cached selector failed and was repaired via an LLM observe
-   * call this attempt (hybrid engine only). runPipeline copies the final
-   * attempt's value into PipelineResult.healedSteps.
+   * call (hybrid engine only). Trial-scoped across attempts, so it accumulates
+   * heals from earlier failed attempts; runPipeline copies it into
+   * PipelineResult.healedSteps.
    */
   healedSteps?: string[];
   /**
    * Step names where a hand-written deterministic guard fired after the semantic
-   * act failed to clear a session blocker (stagehand engine only). runPipeline
-   * copies the final attempt's value into PipelineResult.deterministicFallbacks.
+   * act failed to clear a session blocker (stagehand engine only). Trial-scoped
+   * across attempts (one entry per firing, so a step may repeat once per attempt);
+   * runPipeline copies it into PipelineResult.deterministicFallbacks.
    */
   deterministicFallbacks?: string[];
 }
@@ -94,6 +96,18 @@ export class AttemptFailure extends Error {
     readonly steps: StepResult[],
     readonly screenshots: string[] = [],
     readonly tokens: TokensUsage | null = null,
+    /**
+     * Trial-scoped step names LLM-repaired so far this trial (hybrid only).
+     * Carried on the failure so a trial that heals then fails entirely still
+     * records the heal (runPipeline's no-outcome path reads it).
+     */
+    readonly healedSteps?: string[],
+    /**
+     * Trial-scoped deterministic-fallback firings so far this trial (stagehand
+     * only). Carried on the failure so a guard that fired on a losing attempt is
+     * never lost when the whole trial fails.
+     */
+    readonly deterministicFallbacks?: string[],
     options?: { cause?: unknown }
   ) {
     super(message, options);
