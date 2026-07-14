@@ -1,6 +1,6 @@
 # Reliability Benchmark
 
-Created 2026-07-14T19:49:46.189Z · node v20.14.0 · stagehand 3.6.0 · model n/a · provider none · browserbase not configured · 1 trial(s)/scenario
+Created 2026-07-14T21:06:53.558Z · node v20.14.0 · stagehand 3.6.0 · model n/a · provider none · browserbase not configured · 1 trial(s)/scenario
 
 ## Engine summary
 
@@ -8,7 +8,7 @@ Created 2026-07-14T19:49:46.189Z · node v20.14.0 · stagehand 3.6.0 · model n/
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | stagehand | 0 | — | — | — | — | — | 0 | — |
 | baseline | 24 | 75.0% | 83.3% | 70.8% | 95.4% | 4.5s | 4 | 0.0% (0/4) |
-| hybrid | 24 | 83.3% | 83.3% | 79.2% | 99.8% | 4.1s | 4 | 0.0% (0/4) |
+| hybrid | 24 | 83.3% | 83.3% | 79.2% | 99.8% | 4.2s | 4 | 0.0% (0/4) |
 
 ## Outcome classes
 
