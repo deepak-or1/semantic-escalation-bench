@@ -1,7 +1,7 @@
 {
-  "benchId": "bench-2026-07-14T21-03-24-320Z",
-  "createdAt": "2026-07-14T21:06:53.558Z",
-  "labUrl": "http://127.0.0.1:52904",
+  "benchId": "bench-2026-07-20T18-35-38-026Z",
+  "createdAt": "2026-07-20T18:39:07.011Z",
+  "labUrl": "http://127.0.0.1:49530",
   "trialsPerScenario": 1,
   "scenarios": [
     {
@@ -334,10 +334,10 @@
         },
         "overall": 1
       },
-      "durationMs": 1355,
+      "durationMs": 1406,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/clean-extraction-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/clean-extraction-baseline-t1",
       "tokens": null
     },
     {
@@ -376,10 +376,10 @@
         },
         "overall": 1
       },
-      "durationMs": 2113,
+      "durationMs": 2383,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/clean-extraction-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/clean-extraction-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -422,10 +422,10 @@
         },
         "overall": 1
       },
-      "durationMs": 1292,
+      "durationMs": 1252,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/session-reuse-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/session-reuse-baseline-t1",
       "tokens": null
     },
     {
@@ -464,10 +464,10 @@
         },
         "overall": 1
       },
-      "durationMs": 1989,
+      "durationMs": 1954,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/session-reuse-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/session-reuse-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -510,10 +510,10 @@
         },
         "overall": 1
       },
-      "durationMs": 1335,
+      "durationMs": 1369,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/expired-session-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/expired-session-baseline-t1",
       "tokens": null
     },
     {
@@ -552,10 +552,10 @@
         },
         "overall": 1
       },
-      "durationMs": 2202,
+      "durationMs": 2238,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/expired-session-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/expired-session-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -598,10 +598,10 @@
         },
         "overall": 1
       },
-      "durationMs": 1438,
+      "durationMs": 1389,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/cookie-banner-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/cookie-banner-baseline-t1",
       "tokens": null
     },
     {
@@ -640,10 +640,10 @@
         },
         "overall": 1
       },
-      "durationMs": 2295,
+      "durationMs": 2349,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/cookie-banner-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/cookie-banner-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -686,10 +686,10 @@
         },
         "overall": 1
       },
-      "durationMs": 1387,
+      "durationMs": 1355,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/modal-overlay-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/modal-overlay-baseline-t1",
       "tokens": null
     },
     {
@@ -728,10 +728,10 @@
         },
         "overall": 1
       },
-      "durationMs": 2098,
+      "durationMs": 2188,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/modal-overlay-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/modal-overlay-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -774,10 +774,10 @@
         },
         "overall": 1
       },
-      "durationMs": 6995,
+      "durationMs": 6961,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/delayed-render-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/delayed-render-baseline-t1",
       "tokens": null
     },
     {
@@ -816,10 +816,10 @@
         },
         "overall": 1
       },
-      "durationMs": 7543,
+      "durationMs": 7508,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/delayed-render-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/delayed-render-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -862,10 +862,10 @@
         },
         "overall": 1
       },
-      "durationMs": 8900,
+      "durationMs": 8884,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/network-slowdown-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/network-slowdown-baseline-t1",
       "tokens": null
     },
     {
@@ -904,10 +904,10 @@
         },
         "overall": 1
       },
-      "durationMs": 10479,
+      "durationMs": 10438,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/network-slowdown-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/network-slowdown-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -926,12 +926,12 @@
       "extractionSuccess": false,
       "validationSuccess": false,
       "accuracy": null,
-      "durationMs": 390,
+      "durationMs": 404,
       "retries": 1,
       "recoveredAfterFailure": false,
       "failureCategory": "not_found",
       "failureDetail": "login form not found — selector #login-form matched nothing",
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/class-drift-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/class-drift-baseline-t1",
       "tokens": null
     },
     {
@@ -946,12 +946,12 @@
       "extractionSuccess": false,
       "validationSuccess": false,
       "accuracy": null,
-      "durationMs": 1240,
+      "durationMs": 1191,
       "retries": 1,
       "recoveredAfterFailure": false,
       "failureCategory": "not_found",
       "failureDetail": "login (#username): cached selector failed; semantic repair unavailable (no model key)",
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/class-drift-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/class-drift-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -994,12 +994,12 @@
         },
         "overall": 0.5729166666666666
       },
-      "durationMs": 1347,
+      "durationMs": 1315,
       "retries": 0,
       "recoveredAfterFailure": false,
       "failureCategory": "validation",
       "failureDetail": "Farrow Wanderers: goalsFor Number must be greater than or equal to 0 | Eastvale Athletic: goalsFor Number must be greater than or equal to 0 | Bexley Town: goalsFor Number must be greater than or equal to 0 | Harwick Albion: goalsFor Number must be greater than or equal to 0 | Ironbridge FC: goalsFor Number must be greater than or equal to 0",
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/column-shuffle-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/column-shuffle-baseline-t1",
       "tokens": null
     },
     {
@@ -1038,10 +1038,10 @@
         },
         "overall": 1
       },
-      "durationMs": 2230,
+      "durationMs": 2104,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/column-shuffle-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/column-shuffle-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -1060,12 +1060,12 @@
       "extractionSuccess": false,
       "validationSuccess": false,
       "accuracy": null,
-      "durationMs": 42613,
+      "durationMs": 42590,
       "retries": 1,
       "recoveredAfterFailure": false,
       "failureCategory": "not_found",
       "failureDetail": "standings table not found — selector #standings matched nothing or stayed empty",
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/layout-variant-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/layout-variant-baseline-t1",
       "tokens": null
     },
     {
@@ -1080,12 +1080,12 @@
       "extractionSuccess": false,
       "validationSuccess": false,
       "accuracy": null,
-      "durationMs": 4449,
+      "durationMs": 4466,
       "retries": 1,
       "recoveredAfterFailure": false,
       "failureCategory": "extraction",
       "failureDetail": "no header-mappable table found; semantic extraction unavailable (no model key)",
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/layout-variant-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/layout-variant-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -1128,10 +1128,10 @@
         },
         "overall": 1
       },
-      "durationMs": 1392,
+      "durationMs": 1390,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/hidden-tab-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/hidden-tab-baseline-t1",
       "tokens": null
     },
     {
@@ -1170,10 +1170,10 @@
         },
         "overall": 1
       },
-      "durationMs": 10568,
+      "durationMs": 10658,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/hidden-tab-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/hidden-tab-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -1216,10 +1216,10 @@
         },
         "overall": 1
       },
-      "durationMs": 1968,
+      "durationMs": 1938,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/pagination-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/pagination-baseline-t1",
       "tokens": null
     },
     {
@@ -1258,10 +1258,10 @@
         },
         "overall": 1
       },
-      "durationMs": 3500,
+      "durationMs": 3453,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/pagination-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/pagination-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -1304,10 +1304,10 @@
         },
         "overall": 1
       },
-      "durationMs": 1381,
+      "durationMs": 1318,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/partial-data-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/partial-data-baseline-t1",
       "tokens": null
     },
     {
@@ -1346,10 +1346,10 @@
         },
         "overall": 1
       },
-      "durationMs": 2255,
+      "durationMs": 2185,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/partial-data-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/partial-data-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -1392,10 +1392,10 @@
         },
         "overall": 1
       },
-      "durationMs": 1354,
+      "durationMs": 1328,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/copy-drift-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/copy-drift-baseline-t1",
       "tokens": null
     },
     {
@@ -1434,10 +1434,10 @@
         },
         "overall": 1
       },
-      "durationMs": 2204,
+      "durationMs": 2153,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/copy-drift-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/copy-drift-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -1480,10 +1480,10 @@
         },
         "overall": 1
       },
-      "durationMs": 1355,
+      "durationMs": 1342,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/odds-format-american-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/odds-format-american-baseline-t1",
       "tokens": null
     },
     {
@@ -1522,10 +1522,10 @@
         },
         "overall": 1
       },
-      "durationMs": 2090,
+      "durationMs": 2219,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/odds-format-american-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/odds-format-american-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -1568,10 +1568,10 @@
         },
         "overall": 1
       },
-      "durationMs": 1405,
+      "durationMs": 1423,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/stale-session-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/stale-session-baseline-t1",
       "tokens": null
     },
     {
@@ -1610,10 +1610,10 @@
         },
         "overall": 1
       },
-      "durationMs": 2577,
+      "durationMs": 2469,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/stale-session-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/stale-session-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -1656,12 +1656,12 @@
         },
         "overall": 0.9583333333333333
       },
-      "durationMs": 1413,
+      "durationMs": 1324,
       "retries": 0,
       "recoveredAfterFailure": false,
       "failureCategory": "validation",
       "failureDetail": "Ironbridge FC: played Number must be greater than 0 | Farrow Wanderers: W+D+L (30+5+12) != played (22)",
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/schema-violation-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/schema-violation-baseline-t1",
       "tokens": null
     },
     {
@@ -1700,12 +1700,12 @@
         },
         "overall": 0.9583333333333333
       },
-      "durationMs": 2210,
+      "durationMs": 2152,
       "retries": 0,
       "recoveredAfterFailure": false,
       "failureCategory": "validation",
       "failureDetail": "Ironbridge FC: played Number must be greater than 0 | Farrow Wanderers: W+D+L (30+5+12) != played (22)",
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/schema-violation-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/schema-violation-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -1748,10 +1748,10 @@
         },
         "overall": 1
       },
-      "durationMs": 1368,
+      "durationMs": 1343,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/site-v1-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/site-v1-baseline-t1",
       "tokens": null
     },
     {
@@ -1790,10 +1790,10 @@
         },
         "overall": 1
       },
-      "durationMs": 2193,
+      "durationMs": 2154,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/site-v1-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/site-v1-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -1836,12 +1836,12 @@
         },
         "overall": 0.5520833333333334
       },
-      "durationMs": 1334,
+      "durationMs": 1307,
       "retries": 0,
       "recoveredAfterFailure": false,
       "failureCategory": "validation",
       "failureDetail": "Harwick Albion: losses Number must be greater than or equal to 0 | Lowton Harriers: losses Number must be greater than or equal to 0 | Dunmore City: losses Number must be greater than or equal to 0 | Eastvale Athletic: losses Number must be greater than or equal to 0 | Ironbridge FC: losses Number must be greater than or equal to 0",
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/site-v2-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/site-v2-baseline-t1",
       "tokens": null
     },
     {
@@ -1880,10 +1880,10 @@
         },
         "overall": 1
       },
-      "durationMs": 2184,
+      "durationMs": 2197,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/site-v2-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/site-v2-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -1902,12 +1902,12 @@
       "extractionSuccess": false,
       "validationSuccess": false,
       "accuracy": null,
-      "durationMs": 384,
+      "durationMs": 333,
       "retries": 1,
       "recoveredAfterFailure": false,
       "failureCategory": "not_found",
       "failureDetail": "login form not found — selector #login-form matched nothing",
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/site-v3-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/site-v3-baseline-t1",
       "tokens": null
     },
     {
@@ -1922,12 +1922,12 @@
       "extractionSuccess": false,
       "validationSuccess": false,
       "accuracy": null,
-      "durationMs": 1221,
+      "durationMs": 1187,
       "retries": 1,
       "recoveredAfterFailure": false,
       "failureCategory": "not_found",
       "failureDetail": "login (#username): cached selector failed; semantic repair unavailable (no model key)",
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/site-v3-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/site-v3-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -1970,10 +1970,10 @@
         },
         "overall": 1
       },
-      "durationMs": 18852,
+      "durationMs": 18798,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/compound-blocked-and-slow-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/compound-blocked-and-slow-baseline-t1",
       "tokens": null
     },
     {
@@ -2012,10 +2012,10 @@
         },
         "overall": 1
       },
-      "durationMs": 18477,
+      "durationMs": 19024,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/compound-blocked-and-slow-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/compound-blocked-and-slow-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -2058,10 +2058,10 @@
         },
         "overall": 1
       },
-      "durationMs": 2062,
+      "durationMs": 1989,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/compound-session-churn-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/compound-session-churn-baseline-t1",
       "tokens": null
     },
     {
@@ -2100,10 +2100,10 @@
         },
         "overall": 1
       },
-      "durationMs": 3842,
+      "durationMs": 3722,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/compound-session-churn-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/compound-session-churn-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -2146,10 +2146,10 @@
         },
         "overall": 1
       },
-      "durationMs": 7233,
+      "durationMs": 7257,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/compound-messy-data-day-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/compound-messy-data-day-baseline-t1",
       "tokens": null
     },
     {
@@ -2188,10 +2188,10 @@
         },
         "overall": 1
       },
-      "durationMs": 8708,
+      "durationMs": 8616,
       "retries": 0,
       "recoveredAfterFailure": false,
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/compound-messy-data-day-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/compound-messy-data-day-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -2210,12 +2210,12 @@
       "extractionSuccess": false,
       "validationSuccess": false,
       "accuracy": null,
-      "durationMs": 412,
+      "durationMs": 396,
       "retries": 1,
       "recoveredAfterFailure": false,
       "failureCategory": "not_found",
       "failureDetail": "login form not found — selector #login-form matched nothing",
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/compound-redesign-storm-baseline-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/compound-redesign-storm-baseline-t1",
       "tokens": null
     },
     {
@@ -2230,12 +2230,12 @@
       "extractionSuccess": false,
       "validationSuccess": false,
       "accuracy": null,
-      "durationMs": 1337,
+      "durationMs": 1309,
       "retries": 1,
       "recoveredAfterFailure": false,
       "failureCategory": "not_found",
       "failureDetail": "login (#username): cached selector failed; semantic repair unavailable (no model key)",
-      "artifactsDir": "runs/bench-2026-07-14T21-03-24-320Z/trials/compound-redesign-storm-hybrid-t1",
+      "artifactsDir": "runs/bench-2026-07-20T18-35-38-026Z/trials/compound-redesign-storm-hybrid-t1",
       "tokens": {
         "llmCalls": 0,
         "inputTokens": 0,
@@ -2272,7 +2272,7 @@
       "extractionSuccessRate": 0.8333333333333334,
       "validationSuccessRate": 0.7083333333333334,
       "meanAccuracy": 0.9541666666666668,
-      "meanDurationMs": 4540.208333333333,
+      "meanDurationMs": 4517.125,
       "totalRetries": 4,
       "recovery": {
         "firstAttemptFailures": 4,
@@ -2299,7 +2299,7 @@
       "extractionSuccessRate": 0.8333333333333334,
       "validationSuccessRate": 0.7916666666666666,
       "meanAccuracy": 0.9979166666666668,
-      "meanDurationMs": 4166.833333333333,
+      "meanDurationMs": 4179.875,
       "totalRetries": 4,
       "recovery": {
         "firstAttemptFailures": 4,
@@ -2530,7 +2530,7 @@
     "stagehandVersion": "3.6.0",
     "modelProvider": null,
     "browserbase": false,
-    "gitCommit": "e942b004c9cc8f861f08ab65897b97e02a2a8832",
+    "gitCommit": "3a9a24c08c9d6ff01dceed52dbad40c30204b728",
     "gitDirty": false,
     "disableRepair": false,
     "seedCacheMode": "none",
