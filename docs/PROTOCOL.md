@@ -1,9 +1,10 @@
 # Prospectively frozen keyed-experiment protocol
 
-**Status: FROZEN at annotated tag `protocol-freeze-v3`** (supersedes
-`protocol-freeze-v2` and `-v1` via the pre-key amendments of 2026-07-14 —
-see §8; both earlier tags are preserved unchanged as the historical record,
-and **no keyed trial was run under any tag before v3**). The keyless
+**Status: FROZEN at annotated tag `protocol-freeze-v4`** (supersedes
+`protocol-freeze-v3`, `-v2` and `-v1` via the pre-key amendments of
+2026-07-14 and 2026-07-20 — see §8; all earlier tags are preserved unchanged
+as the historical record, and **no keyed trial was run under any tag before
+v4**). The keyless
 benchmark results committed alongside this file carry provenance
 (`gitCommit`, `gitDirty: false`, prompt and lockfile hashes) proving they
 were generated at the freeze commit. The keyless benchmark results
@@ -18,8 +19,9 @@ timestamp is the proof that the method predates the results.
 The claim under test: **does semantic execution, or selective semantic
 repair, recover structural drift reliably enough to justify its cost?**
 The keyless benchmark already established the free tiers' boundaries
-(positional dies on any markup change, sometimes silently; structural
-survives reorder/reword but not redesigns). The keyed experiment measures
+(positional dies on any markup change — its shuffled-column misreads were
+caught by domain validation, zero silent corruptions in the committed
+evidence; structural survives reorder/reword but not redesigns). The keyed experiment measures
 whether paying a model closes the remaining gap — and what it costs.
 
 ---
@@ -100,8 +102,8 @@ All six must hold before `ANTHROPIC_API_KEY` enters `.env`:
 4. Shared normalize → validate → grade path confirmed for every engine. ✅
    (architectural invariant, §2)
 5. This document committed and tagged (`protocol-freeze-v1`; superseded
-   pre-key by `protocol-freeze-v2`, then `protocol-freeze-v3`, after the
-   second and third external audits — §8).
+   pre-key by `protocol-freeze-v2`, `-v3`, then `protocol-freeze-v4`, after
+   the second, third and fourth external audits — §8).
 6. Repo clean; the pre-key benchmark reruns deterministically (two
    consecutive keyless runs produce identical outcome / outcomeClass /
    accuracy vectors; durations may differ).
@@ -302,3 +304,38 @@ pre-key; v1 and v2 tags preserved; still no keyed trial under any tag.
 
 The keyless evidence in `runs/latest` was regenerated at the v3 freeze
 commit with the determinism gate re-verified.
+
+### 2026-07-20 — `protocol-freeze-v4` (pre-key; fourth external audit)
+
+Still keyless — no keyed trial has been run under any tag. The auditor's
+fourth pass caught two defects the v3 gate itself missed, one of them inside
+the gate's own enforcement:
+
+1. **The NUL-hygiene test contained the byte it prohibits.** The v3
+   `sourceHygiene.test.ts` carried a raw U+0000 in its doc comment —
+   introduced by the same escape-transcription hazard it exists to police —
+   yet passed at freeze time, because the file was still untracked when the
+   suite ran and `git ls-files` omits untracked files. The frozen v3 tree
+   therefore fails its own suite (1 failed / 309 passed), and the "310
+   tests passing" statement in the v3 handoff described the pre-commit
+   working tree, not the frozen tree. Fixed: the byte is now printable
+   prose, the scan includes untracked files (`git ls-files --cached
+   --others --exclude-standard`), and a fixture test proves the detector
+   detects a deliberately constructed NUL without this source containing
+   one.
+2. **Zero-inference costing contradicted §6 for keyless runs.**
+   `trialCostUsd` checked for a missing model before the `llmCalls === 0`
+   rule, so keyless hybrid trials (which record no model) were reported as
+   unpriced lower bounds where §6 promises an exact $0 — and the campaign
+   test suite asserted that wrong behavior as correct. Fixed: zero calls
+   price as $0 before any model lookup; missing-model and keyless-hybrid
+   cases are now tested at both the price-rule and the campaign level.
+3. **One unsupported sentence corrected (docs only):** the overview's claim
+   that positional extraction failed "sometimes silently" overstated the
+   committed evidence, which records zero silent corruptions — the
+   positional misreads were caught by domain validation.
+
+No runner-affecting code changed in this wave, so the keyless result
+vectors are expected to be unchanged from v3. The evidence in
+`runs/latest` was regenerated at the v4 freeze commit with the determinism
+gate re-verified.

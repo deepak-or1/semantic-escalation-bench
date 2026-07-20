@@ -97,16 +97,14 @@ describe("aggregateCampaign", () => {
     expect(cell.durationMs.min).toBe(100);
     expect(cell.durationMs.max).toBe(300);
     expect(cell.llmCalls.sum).toBe(0);
-    expect(cell.costUsd.sum).toBeNull(); // keyless: no model → no computable cost
-    expect(cell.costUsd.priced).toBe(0);
+    expect(cell.costUsd.sum).toBe(0); // keyless zero-inference trials are an exact, priced $0
+    expect(cell.costUsd.priced).toBe(2);
     expect(cell.costUsd.total).toBe(2);
     expect(cell.healRate).toBe(0);
     expect(cell.retryRecoveries).toBe(0);
-    // Keyless trials are genuinely unpriced, so the only warning is the honest
-    // cost-coverage lower-bound notice (no gitCommit/seedCacheHash disagreement).
-    expect(report.warnings).toEqual([
-      "hybrid-keyless: 2 of 2 trials have no computable cost — cost totals are lower bounds."
-    ]);
+    // llmCalls===0 prices as $0 before any model lookup, so keyless coverage is
+    // full — no lower-bound warning (and no gitCommit/seedCacheHash disagreement).
+    expect(report.warnings).toEqual([]);
   });
 
   it("counts heal rate, retry recoveries, class counts and llmCalls sums", () => {
