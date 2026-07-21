@@ -1,6 +1,6 @@
 # Phase 2A protocol — the policy frontier
 
-**Status: DRAFT (revision 3, after two external design-review rounds) —
+**Status: DRAFT (revision 4, after three external design-review rounds) —
 not yet frozen.** This document specifies Phase 2A before any of it is implemented.
 It becomes binding at the stage-1 tag (`phase2a-policy-freeze-v1`) and is
 completed by the stage-2 tag (`phase2a-suite-freeze-v1`); no keyed trial may
@@ -222,12 +222,20 @@ decoys) or held-out cells:
   downstream behavior fails; `llmCalls === 0`; `healedSteps` empty; and no
   provider/auth error occurs — the fake key proves no model call was even
   *attempted*, which is exactly trigger-blindness.
-- **Keyless A/B/B2 grid** (§8 gate 3): decoy trials must fail without
-  repair activation (B2: empty `deterministicRepairSteps` on the rebound
-  step).
+- **Keyless A/B/B2 grid** (§8 gate 3) checks mechanism instrumentation,
+  never outcomes: (a) the fixture and decoy behavior are mechanically
+  valid — decoy present, inert, carrying the canonical id; functional
+  control present and operable; (b) B2 records no deterministic repair
+  for a rebound action whose cached click reported success. **Final
+  pass/fail outcomes are evidence, never gate conditions.** A policy may
+  legitimately survive a decoy: A's JSON-island pagination fallback can
+  recover the complete dataset after clicking an inert `next-page` decoy,
+  so A can pass F2 level 1 — if observed, that is an admissible and
+  interesting result, not a gate failure.
 
-If either check shows the mechanism does not behave as designed, that is a
-finding to disclose before the keyed grid — not to patch.
+The two check stages carry different failure policies: a **stage-1 canary
+failure is a defect, fixed before the policy tag**; **unexpected held-out
+behavior after stage 2 is disclosed and never patched**.
 
 ### Stratum K — categorical named conditions (no frontier language)
 
@@ -296,8 +304,9 @@ With N=5, "pass/fail" is ambiguous for a 4/5 cell. The prediction enum is:
 An optional free-text predicted mechanism/failure category may accompany
 either value and is scored descriptively. **Prediction misses are analysis
 results**: they are reported in full and can never fail the generic
-verifier, any gate, or the campaign — the verifier gates on `expected`
-only, never on predictions.
+verifier, any gate, or the campaign — the verifier gates only
+completeness, provenance, schema validity, and grading consistency (§5),
+never predictions or judged outcomes.
 
 ## 5. Stage-1 deliverables (implemented before the policy tag)
 
@@ -315,10 +324,14 @@ only, never on predictions.
    of the catalog's canonical JSON serialization, computed by the same
    code path.
 5. **Generic suite verifier** (replaces per-engine `verify.ts` editing —
-   acceptance logic is frozen at stage 1): data-driven runner that, for
-   each scenario × policy, **gates on `expected` only**; the prediction
-   table is scored report-only (§4a — a miss can never fail the
-   verifier). No per-scenario code, ever.
+   acceptance logic is frozen at stage 1): the verifier recomputes the
+   judge from raw trial data plus the scenario oracle and asserts that
+   the recorded verdict/reason are identical. **A judged policy failure
+   is admissible evidence and never fails the verifier.** The verifier
+   gates only completeness, provenance, schema validity, and grading
+   consistency. (All 2A scenarios are `expected: success`; policy
+   failures against them are the result being measured.) The prediction
+   table is scored report-only (§4a). No per-scenario code, ever.
 6. **Provenance**: `results.json` environment gains `protocolId`
    (`"phase2a-v1"`), `repairMode`, and `suiteHash`; the campaign
    aggregator refuses to aggregate runs with mixed `protocolId` or
@@ -380,21 +393,21 @@ present and empty from stage 1), and the gate verifies that every byte of
   on outcomes. A crashed sweep is preserved and rerun once, crash
   artifacts kept (Phase-1 operator rules apply unchanged). Keyless
   results, however surprising, cannot modify the keyed grid.
-- **Budget:** hard cap **$40** of model-inference spend, enforced
-  **pre-trial**: before each keyed trial the runner prices all recorded
-  tokens so far; the trial starts only if spend ≤ $40 minus a frozen
-  $0.10 per-trial worst-case reserve — the campaign can therefore never
-  overshoot the cap by a trial. Projection: 32 scenarios × 5 sweeps × 2
+- **Budget:** operational stop threshold **$39.90** of model-inference
+  spend, checked **pre-trial**: before each keyed trial the runner prices
+  all recorded tokens so far and starts the trial only if spend ≤ $39.90.
+  The engine has no enforced per-trial token ceiling, so the final
+  completed trial may overshoot $40 by its own cost — disclosed here
+  rather than claimed away. Projection: 32 scenarios × 5 sweeps × 2
   keyed policies at D ≈ $0.032 per trial (Phase-1 observed average
   $0.0312) and C projected at $0.004–0.012 per trial (above Phase-1's
   observed $0.0036 average, whose per-cell costs ranged up to ≈$0.029 on
   repair-heavy scenarios, because near-boundary trials fire more repairs)
   ≈ **$5.76–$7.04**. That is a projection, not a bound; D extraction
   under heavy perturbation may also use more tokens, so the actual number
-  may exceed it. The **cap is the bound**: if
-  hit, the campaign halts and is reported **incomplete**, and an
-  incomplete grid supports no frontier claims. Declared now; not adaptive
-  stopping.
+  may exceed it. **The threshold is the stop rule**: if it halts the
+  campaign, the campaign is reported **incomplete**, and an incomplete
+  grid supports no frontier claims. Declared now; not adaptive stopping.
 
 ## 8. Gates before any keyed trial
 
@@ -402,7 +415,8 @@ present and empty from stage 1), and the gate verifies that every byte of
 2. Diff gate passes; sol's package hash matches.
 3. **Keyless full grid** of A, B, B2 (N=5) on the held-out suite —
    complete before any key exists. Also validates every fixture renders
-   and grades, and checks the F2 mechanism claim (§3). Keyless outcomes
+   and grades, and checks the F2 mechanism instrumentation (§3 — never
+   outcomes). Keyless outcomes
    are recorded and cannot alter the keyed grid.
 4. Fresh temporary key, scoped to the campaign, revoked after.
 5. **Smoke (predeclared here):** Phase-1 scenarios `clean-extraction`
