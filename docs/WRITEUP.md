@@ -167,9 +167,11 @@ failure, and silently-plausible garbage is scored as FAIL.
 
 ## Quantitative results
 
-Committed run (`runs/latest`, 24 scenarios × 1 trial, local headless
-Chromium; this environment has no model-provider key, so the Stagehand column
-reports itself as *skipped* rather than inventing numbers):
+Committed keyless run (`runs/latest`, 24 scenarios × 1 trial, local headless
+Chromium, no model-provider key — the Stagehand column reports itself as
+*skipped* rather than inventing numbers; the keyed campaign that measured
+Stagehand and the hybrid's repair path is reported separately in
+[PHASE1_RESULTS.md](./PHASE1_RESULTS.md)):
 
 | Engine | Judged pass | Task success | Extraction | Validation | Mean accuracy | Mean duration | Recovery | LLM calls |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -179,10 +181,13 @@ reports itself as *skipped* rather than inventing numbers):
 
 To say it precisely: **the hybrid's deterministic tier passed 20/24 without
 ever invoking semantic repair** — `llmCalls: 0` on every trial. Whether LLM
-repair recovers the remaining four drift failures, and at what cost, is the
-still-untested claim; the experiment that will test it is prospectively
-frozen in [PROTOCOL.md](./PROTOCOL.md), methodology tagged before any keyed
-result exists. A pass now requires *perfect* extraction (accuracy 1.0 with
+repair recovers the remaining four drift failures, and at what cost, was
+prospectively frozen as a question in [PROTOCOL.md](./PROTOCOL.md)
+(methodology tagged before any keyed result existed) and then answered by
+the 2026-07-20 campaign: the repair path recovered all four in every cold
+sweep, and the full cost accounting — 8.6× cheaper than full semantics per
+success, on this frozen suite — is in
+[PHASE1_RESULTS.md](./PHASE1_RESULTS.md). A pass now requires *perfect* extraction (accuracy 1.0 with
 full row coverage — the earlier 0.75 threshold was retired after checking
 that every genuine pass already sat at exactly 1.0), and every trial carries
 an outcome class; the safety headline is that **silent corruption is
@@ -235,25 +240,34 @@ Naming these beats having them named for me:
    durable claim is categorical — *mechanical obstacles are waitable;
    structural drift is deterministic, unrecoverable-by-retry, and sometimes
    silent* — not any particular percentage.
-3. **One trial per scenario.** Keyless, both engines are deterministic, so
-   variance is minimal by construction; LLM-path variance (the interesting
-   kind) is unmeasured until a key lands. The harness already supports
-   N trials per scenario.
-4. **The Stagehand column is an untested hypothesis here.** The benchmark is
-   built to test it the moment a key exists (`ANTHROPIC_API_KEY=… pnpm
-   bench`), including token cost per trial; until then this project proves
-   where selectors fail, not that semantics succeed.
+3. **One trial per scenario, keyless.** Both keyless engines are
+   deterministic, so variance is minimal by construction; LLM-path variance
+   was measured in the keyed campaign at five sweeps per cold configuration
+   — judged outcomes and call counts did not vary across sweeps on this
+   suite, token counts and latency did
+   ([PHASE1_RESULTS.md](./PHASE1_RESULTS.md)). N=5 bounds what that
+   repetition can detect.
+4. **The Stagehand column here is the keyless report, not the measurement.**
+   Its measurement is the keyed campaign: 120/120 judged-correct across five
+   sweeps at $0.0312 of model inference per success, with token cost
+   recorded per trial ([PHASE1_RESULTS.md](./PHASE1_RESULTS.md)). This
+   document's keyless table proves where selectors fail; the campaign
+   measured what semantics cost.
 5. **The lab is synthetic.** Its chaos modes are modeled on cited real-world
    failure modes, and seeding buys reproducibility that live sites can't
    offer — but a live, ToS-respecting adapter behind the same Engine
    interface is the natural next validation step.
-6. **The hybrid's repair path is implemented but keyless-unverified.** Its
-   deterministic tier is fully verified (including `llmCalls: 0`, and a
-   `--no-repair` freeze that guarantees zero model calls even with a key
-   present); the observe-heal-replay loop awaits the keyed campaign defined
-   in [PROTOCOL.md](./PROTOCOL.md) — five cold sweeps per keyed
-   configuration, persistence runs from saved repairs, and one warm-cache
-   economics sweep, with the methodology tagged before the first keyed trial.
+6. **The hybrid's repair path is verified end-to-end, with a measured
+   boundary.** Its deterministic tier is fully verified keyless (including
+   `llmCalls: 0`, and a `--no-repair` freeze that guarantees zero model
+   calls even with a key present); the observe-heal-replay loop ran in the
+   keyed campaign defined in [PROTOCOL.md](./PROTOCOL.md) — five cold
+   sweeps per keyed configuration, persistence runs from saved repairs, and
+   one warm-cache economics sweep, methodology tagged before the first
+   keyed trial. What it showed: action repairs are cached and replay for
+   free; extraction repairs are re-inferred every run, so a persisted cache
+   cut model calls 60% but cost only 19.7%
+   ([PHASE1_RESULTS.md](./PHASE1_RESULTS.md)).
 
 ## Where Stagehand helped, and where it wasn't enough
 
@@ -307,14 +321,21 @@ argument that most steps of a stable flow should cost zero.
 
 ## What I'd build next
 
-- **The keyed run.** Populate the Stagehand column and the hybrid's repair
-  path on this exact catalog; treat the first run as verification, then
-  N-trial variance bands and cost-per-successful-extraction as first-class
-  metrics.
-- **Heal-once, replay-forever measurement**: after a keyed run heals the
-  hybrid's cache on the drift scenarios, re-run keyless from the healed cache
-  — the token amortization curve (repair cost ÷ subsequent free runs) is the
-  production argument for the cache-and-repair architecture.
+Two items from the original version of this list have since been built and
+run — the keyed campaign (Stagehand and the hybrid's repair path measured on
+this exact catalog, five sweeps per cold configuration, cost per successful
+workflow as a first-class metric) and the heal-once/replay measurement
+(persistence runs from saved repairs, where the amortization argument met a
+real boundary: cached action repairs replay free, extraction repairs are
+re-inferred every run, so calls fell 60% but cost only 19.7%). Both are
+reported with their evidence in [PHASE1_RESULTS.md](./PHASE1_RESULTS.md).
+Still ahead:
+
+- **A suite that can say no.** Every keyed policy passed every scenario, so
+  this suite bounds nothing above the hybrid — a predeclared
+  perturbation-intensity grid on held-out scenarios (Phase 2A) is the
+  experiment that could locate where cache-plus-repair actually stops
+  matching full semantics.
 - **Live-site adapters** behind the same `Engine` contract (one real stats
   source, read-only, ToS-respecting), with the lab remaining the CI target.
 - **CI regression gating**: fail a PR when task success, accuracy, or the
