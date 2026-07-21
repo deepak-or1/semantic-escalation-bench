@@ -438,6 +438,63 @@ describe("verifySuite", () => {
     ).toBe(true);
   });
 
+  it("adversarial (i): a CONSISTENT-replacement copy — new benchId, new createdAt, benchId rewritten through every artifactsDir — is not a distinct sweep (NAMED regression for the consistent-replacement bypass, freeze-v2 external audit)", () => {
+    // NAMED REGRESSION for the consistent-replacement bypass found by the freeze-v2
+    // external audit: copy a valid results.json, change benchId AND createdAt, and
+    // consistently rewrite the OLD benchId to the NEW one inside every trial's
+    // artifactsDir. The forgery has distinct benchIds (shared-benchId check silent), a
+    // SELF-CONSISTENT file (c.6's artifactsDir check silent — every path embeds the
+    // copy's OWN benchId), and — under the OLD raw-content hash — a different hash.
+    // Only the canonical hash (content normalized over run-identity strings) catches it.
+    const suite = loadSuite(["s1", "s2"]);
+    const scenarios = [scenario("s1", 2201), scenario("s2", 2202)];
+    const original = makeResults(scenarios, [passTrial("s1"), passTrial("s2")], suite.suiteHash, {
+      benchId: "bench-real"
+    });
+    // Deep-rewrite every string field of a JSON-serializable value, replacing all
+    // occurrences of `from` with `to`.
+    const deepReplace = (value: unknown, from: string, to: string): unknown => {
+      if (typeof value === "string") return value.split(from).join(to);
+      if (Array.isArray(value)) return value.map((v) => deepReplace(v, from, to));
+      if (value !== null && typeof value === "object") {
+        return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, deepReplace(v, from, to)]));
+      }
+      return value;
+    };
+    // Consistent-replacement forgery: new benchId, a DIFFERENT createdAt, and the OLD
+    // benchId rewritten to the NEW one EVERYWHERE — so every artifactsDir now embeds
+    // "bench-copy" and the file is internally self-consistent.
+    const clone = structuredClone(original);
+    clone.benchId = "bench-copy";
+    clone.createdAt = "2026-07-20T09:09:09.000Z";
+    const forged = deepReplace(clone, "bench-real", "bench-copy") as BenchmarkResults;
+    const report = verifySuite(
+      [
+        { source: "run-real", raw: original },
+        { source: "run-copy", raw: forged }
+      ],
+      suite,
+      { policies: ["A"], trials: 2 }
+    );
+    expect(report.ok).toBe(false);
+    // Distinct benchIds → the shared-benchId check does NOT fire.
+    expect(report.violations.some((v) => /duplicate benchId/.test(v.message))).toBe(false);
+    // The forged file is SELF-CONSISTENT: every artifactsDir embeds its OWN benchId
+    // "bench-copy", so c.6 stays silent — that is the point of this bypass, and only
+    // the canonical trial-content hash catches it.
+    expect(report.violations.some((v) => /artifactsDir not containing/.test(v.message))).toBe(false);
+    // The canonical identical-trial-content check fires, naming BOTH sources.
+    expect(
+      report.violations.some(
+        (v) =>
+          v.check === "completeness" &&
+          /identical trial content/.test(v.message) &&
+          /"run-real"/.test(v.message) &&
+          /"run-copy"/.test(v.message)
+      )
+    ).toBe(true);
+  });
+
   it("adversarial (h): FALSE-POSITIVE control — two genuinely distinct sweeps (distinct benchIds, differing durationMs) pass", () => {
     // Two independent sweeps of the same cell differ in wall-clock durationMs (the
     // minimum by which genuine separate runs always differ), so their trial-content

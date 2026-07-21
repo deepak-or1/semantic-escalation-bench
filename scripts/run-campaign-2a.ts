@@ -6,7 +6,7 @@
  * runBenchmark, and persisting the campaign state atomically after every trial.
  *
  *   pnpm campaign:2a --suite <scenario-suite.json> --phase keyless
- *   pnpm campaign:2a --suite <scenario-suite.json> --phase keyed
+ *   pnpm campaign:2a --suite <scenario-suite.json> --phase keyed [--keyless-state <file>]
  *
  * Each phase defaults to its OWN state file — runs/phase2a/campaign-state.<phase>.json
  * (keyless → …-state.keyless.json, keyed → …-state.keyed.json) — so the keyless and
@@ -19,6 +19,15 @@
  * Key discipline (machine-enforced, §8): the keyless grid MUST complete before any
  * key exists, so --phase keyless refuses to run when a model provider key is
  * present; --phase keyed refuses to run when none is.
+ *
+ * §8 gate 3 (machine-enforced): --phase keyed additionally refuses to START until the
+ * keyless A/B/B2 grid is COMPLETE and passes the frozen suite verifier. Before loading
+ * any keyed state (and after the pinned-model pre-flight), it reads the keyless campaign
+ * state — default runs/phase2a/campaign-state.keyless.json, overridable with
+ * --keyless-state <file> (keyed phase only) — checks it is a complete, schedule-ordered
+ * keyless grid, and re-runs the verify:suite core over its recorded run dirs; any gap,
+ * corruption, or verification violation bails with a usage error (exit 2). The keyed
+ * state's own freshness (loadOrInitState) is checked only after this gate passes.
  *
  * The budget ($39.90, frozen in the driver — NOT a flag) halts the campaign
  * pre-trial; a halted campaign is preserved evidence and exits with a distinct
@@ -42,6 +51,7 @@ import {
   buildSchedule,
   initCampaignState,
   loadAgentEnvConfig,
+  nextEntry,
   runBenchmark,
   runCampaign,
   type CampaignEntry,
@@ -51,6 +61,7 @@ import {
   type EntryRunContext
 } from "@ssda/agent";
 import { existsSync, readFileSync, mkdirSync } from "node:fs";
+import { verifySuite, type VerifyInput, type ExpectGrid } from "./verify-suite";
 import { killAndVerify, pickFreePort, spawnPrivateLab } from "./labControl";
 
 /** The per-phase default state file — keyless and keyed never share a ledger (FIX 5). */
@@ -61,7 +72,7 @@ const PHASES: readonly CampaignPhase[] = ["keyless", "keyed"];
 
 const USAGE =
   "Usage: pnpm campaign:2a --suite <scenario-suite.json> --phase <keyless|keyed> " +
-  "[--state <file>]";
+  "[--state <file>] [--keyless-state <file> (keyed phase only — the §8 gate-3 keyless ledger)]";
 
 function bail(message: string): never {
   console.error(message);
@@ -73,12 +84,15 @@ export interface CampaignCliArgs {
   suiteFile: string;
   phase: CampaignPhase;
   stateFile: string;
+  /** The keyless ledger the §8 gate-3 check reads for --phase keyed (keyed only). */
+  keylessStateFile: string;
 }
 
 export function parseCampaignArgs(argv: string[]): CampaignCliArgs {
   let suiteFile: string | undefined;
   let phase: CampaignPhase | undefined;
   let stateFile: string | undefined;
+  let keylessStateFile: string | undefined;
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === "--") continue;
@@ -94,16 +108,25 @@ export function parseCampaignArgs(argv: string[]): CampaignCliArgs {
     } else if (arg === "--state") {
       stateFile = argv[++i];
       if (!stateFile) bail("--state needs a path to a campaign-state JSON");
+    } else if (arg === "--keyless-state") {
+      keylessStateFile = argv[++i];
+      if (!keylessStateFile) bail("--keyless-state needs a path to the keyless campaign-state JSON");
     } else {
       bail(`Unknown flag "${arg}"`);
     }
   }
   if (!suiteFile) bail("--suite is required");
   if (!phase) bail("--phase is required");
+  // --keyless-state is the §8 gate-3 ledger for the keyed phase only; it is meaningless
+  // (and a likely operator mistake) alongside --phase keyless, which HAS no prerequisite.
+  if (keylessStateFile !== undefined && phase === "keyless") {
+    bail("--keyless-state only applies to --phase keyed");
+  }
   return {
     suiteFile: path.resolve(suiteFile),
     phase,
-    stateFile: path.resolve(stateFile ?? defaultStateFile(phase))
+    stateFile: path.resolve(stateFile ?? defaultStateFile(phase)),
+    keylessStateFile: path.resolve(keylessStateFile ?? defaultStateFile("keyless"))
   };
 }
 
@@ -165,6 +188,102 @@ function enforceKeyDiscipline(phase: CampaignPhase): void {
   }
 }
 
+/**
+ * PROTOCOL_2A §8 gate 3 (machine-enforced): the keyless A/B/B2 grid must be COMPLETE
+ * and VERIFIER-PASSED before any keyed trial may run. Throws a descriptive Error on
+ * any failure; returns void only when the keyless phase is a complete, schedule-ordered
+ * grid whose recorded runs pass the frozen suite verifier. `verify` defaults to the real
+ * verifySuite and is injectable ONLY so unit tests can stub the expensive verification
+ * path — every state-machine check below always runs the real frozen code.
+ */
+export function keyedPhaseGate(
+  keylessStateRaw: unknown,
+  suite: LoadedScenarioSuite,
+  readRunInput: (dir: string) => VerifyInput,
+  verify: typeof verifySuite = verifySuite
+): void {
+  // (a) The keyless ledger must validate as a campaign state.
+  const parsed = CampaignStateSchema.safeParse(keylessStateRaw);
+  if (!parsed.success) {
+    throw new Error(
+      `keyless campaign state failed validation: ${parsed.error.issues
+        .slice(0, 3)
+        .map((iss) => `${iss.path.join(".") || "(root)"}: ${iss.message}`)
+        .join("; ")}`
+    );
+  }
+  const state = parsed.data;
+
+  // (b) It must belong to THIS suite and record only keyless-phase entries.
+  try {
+    assertStateMatches(state, suite, "keyless");
+  } catch (error) {
+    throw new Error(`keyless campaign state ${error instanceof Error ? error.message : String(error)}`);
+  }
+
+  // (c) It must be a COMPLETE prefix of the frozen keyless schedule (all entries done).
+  // nextEntry throws on a corrupt/out-of-order prefix and returns the next unfinished
+  // entry when the grid is merely incomplete.
+  const schedule = buildSchedule("keyless");
+  let next: CampaignEntry | null;
+  try {
+    next = nextEntry(state, schedule);
+  } catch (error) {
+    throw new Error(
+      `keyless campaign state is not a valid schedule prefix: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+  if (next !== null) {
+    const completed = state.entries.filter((e) => e.status === "complete").length;
+    throw new Error(
+      `keyless grid incomplete — next unfinished entry is ${next.phase}/sweep-${next.sweep}/${next.policy}, ` +
+        `${completed}/${schedule.length} entries complete; the keyed phase refuses to start before the ` +
+        `keyless grid is complete and verified (PROTOCOL_2A §8 gate 3)`
+    );
+  }
+
+  // (d) Derive the expect-grid FROM THE SCHEDULE (never hard-coded): the policies in
+  // first-appearance order, each contributing the same number of sweeps (its trial count).
+  const policies: CampaignEntry["policy"][] = [];
+  const counts = new Map<CampaignEntry["policy"], number>();
+  for (const e of schedule) {
+    counts.set(e.policy, (counts.get(e.policy) ?? 0) + 1);
+    if (!policies.includes(e.policy)) policies.push(e.policy);
+  }
+  const first = policies[0];
+  if (first === undefined) {
+    throw new Error("keyless schedule is empty — cannot derive an expect-grid (internal invariant)");
+  }
+  const trials = counts.get(first)!;
+  for (const p of policies) {
+    const c = counts.get(p)!;
+    if (c !== trials) {
+      throw new Error(
+        `keyless schedule is not rectangular: policy ${p} has ${c} entries but policy ${first} has ${trials} — ` +
+          `cannot derive an expect-grid (internal invariant)`
+      );
+    }
+  }
+  const expectGrid: ExpectGrid = { policies: policies as ExpectGrid["policies"], trials };
+
+  // (e) Read each recorded run's results.json. The reader propagates its own throw
+  // (naming the dir) on a missing/unreadable file — the keyless ledger points at run
+  // dirs that must still exist for the grid to be re-verifiable.
+  const inputs = state.entries.map((e) => readRunInput(e.dir));
+
+  // (f) The recorded grid must pass the FROZEN suite verifier exactly.
+  const report = verify(inputs, suite, expectGrid);
+  if (!report.ok) {
+    const firstMessages = report.violations.slice(0, 5).map((v) => `\n  - ${v.message}`).join("");
+    const dirs = state.entries.map((e) => e.dir).join(" ");
+    throw new Error(
+      `keyless grid failed suite verification (${report.violations.length} violation(s)) — first messages:${firstMessages}; ` +
+        `run pnpm verify:suite ${dirs} --suite <suite-file> --expect-policies ${expectGrid.policies.join(",")} ` +
+        `--expect-trials ${expectGrid.trials} for the full report; the keyed phase refuses to start (PROTOCOL_2A §8 gate 3)`
+    );
+  }
+}
+
 /** Spawn a private lab + run dir for one entry; dispose kills the lab. */
 async function prepareRun(entry: CampaignEntry): Promise<EntryRunContext> {
   const port = await pickFreePort();
@@ -212,6 +331,37 @@ async function main(): Promise<void> {
           `pinned price table, so keyed spend cannot be enforced against the budget. ` +
           `Pinned models: ${pinned.join(", ")}. Set STAGEHAND_MODEL to a pinned model (PROTOCOL_2A §7).`
       );
+    }
+
+    // §8 gate 3 (machine-enforced) — the keyless A/B/B2 grid must be COMPLETE AND
+    // verifier-passed before any keyed trial. Enforced here, after the pinned-model
+    // pre-flight and before any keyed state is loaded or lab spawned.
+    if (!existsSync(args.keylessStateFile)) {
+      bail(
+        `--phase keyed refuses to run: no keyless campaign state at ${args.keylessStateFile} — the ` +
+          `keyless grid must be complete and verifier-passed first (PROTOCOL_2A §8 gate 3); pass ` +
+          `--keyless-state if it lives elsewhere.`
+      );
+    }
+    let keylessRaw: unknown;
+    try {
+      keylessRaw = JSON.parse(readFileSync(args.keylessStateFile, "utf8"));
+    } catch (error) {
+      bail(
+        `keyless campaign state at ${args.keylessStateFile} is not valid JSON: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+    const reader = (dir: string): VerifyInput => {
+      const file = path.join(dir, "results.json");
+      if (!existsSync(file)) {
+        throw new Error(`no results.json at ${file} (recorded keyless run dir moved or deleted?)`);
+      }
+      return { source: path.relative(process.cwd(), file), raw: JSON.parse(readFileSync(file, "utf8")) };
+    };
+    try {
+      keyedPhaseGate(keylessRaw, suite!, reader);
+    } catch (error) {
+      bail(error instanceof Error ? error.message : String(error));
     }
   }
 

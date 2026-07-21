@@ -1,24 +1,25 @@
 # Phase 2A protocol — the policy frontier
 
-**Status: DRAFT (revision 6, after the external executable audit of
-`phase2a-policy-freeze-v1`) — not yet frozen.** Revision 6 repairs the
-three blockers that audit found in the freeze-v1 tag: (1) the generic
-verifier now enforces a caller-declared expect-grid — all required
-policies present, exact per-cell trial counts drawn from distinct sweeps,
-duplicate-run rejection — and grades against the supplied suite's oracle,
-never the run's own recorded copy (§5 item 5, §8); (2) the §7 budget rule
-is implemented, not merely promised — a pre-trial hook in the runner plus
-a resumable campaign driver with persisted spend state and the
-machine-enforced ABBA schedule (§5 item 9, §7); (3) F1 levels 1–3 now
-drift a nested seeded fraction of id tokens as well as class tokens — the
-earlier definition renamed only class tokens, which no frozen policy
-reads, leaving the id-addressed policies unperturbed until level 4 (§3).
-(Revision 5 had refined §2/§3 from stage-1 implementation feedback:
-nav-anchor exclusion, card identity-from-heading, capped reveal poll,
-layout-suppresses-pagination, canary judged-failure wording.)
-`phase2a-policy-freeze-v1` is preserved as history and superseded. This
-document becomes binding at the stage-1 tag (`phase2a-policy-freeze-v2`)
-and is completed by the stage-2 tag (`phase2a-suite-freeze-v1`); no keyed
+**Status: DRAFT (revision 7, after the second external executable audit
+— of `phase2a-policy-freeze-v2`) — not yet frozen.** Revision 7 repairs
+that audit's two findings: (1) the verifier's duplicate-run detection was
+still bypassable by a copy whose new benchId was rewritten consistently
+through every trial artifact path — the trial-content hash is now
+computed after normalizing run-identity strings, and the verifier's
+scope statement claims exactly what it detects: exact and identity-only
+copies, never fabricated content (§5 item 5); (2) the keyed campaign
+phase never checked that the keyless grid was complete and
+verifier-passed before running — it now machine-enforces that
+prerequisite from the keyless state file before any keyed trial (§5
+item 9, §8 gates 3/6). (Revision 6 had repaired the three blockers of
+the first audit: expect-grid verification bound to the supplied suite's
+oracle, the §7 budget rule implemented as a pre-trial runner hook plus a
+resumable campaign driver, and F1 id-token drift at levels 1–3.
+Revision 5 had refined §2/§3 from stage-1 implementation feedback.)
+`phase2a-policy-freeze-v1` and `phase2a-policy-freeze-v2` are preserved
+as history and superseded. This document becomes binding
+at the stage-1 tag (`phase2a-policy-freeze-v3`) and is completed by the
+stage-2 tag (`phase2a-suite-freeze-v1`); no keyed
 trial may run before the stage-2 tag exists. Phase 1 ([PHASE1_RESULTS.md](PHASE1_RESULTS.md),
 protocol [PROTOCOL.md](PROTOCOL.md), frozen at `protocol-freeze-v4`) is
 complete and untouched — Phase 2A never modifies Phase-1 evidence, its
@@ -46,8 +47,8 @@ unobserved generalization).
    deterministic-repair policy B2), all prompts/instructions, validator,
    judge, budgets, the *perturbation machinery* (parameterized axes), the
    generic suite loader/verifier, and the diff gate.
-   Tag: `phase2a-policy-freeze-v2` (`…-v1` is preserved history: audited,
-   found blocking, superseded).
+   Tag: `phase2a-policy-freeze-v3` (`…-v1` and `…-v2` are preserved
+   history: audited, found blocking, superseded).
 2. **External audit** of the stage-1 freeze (sol).
 3. **Reveal:** sol authors the held-out scenario package — a machine-readable
    JSON of concrete axis values (vocabularies, permutations, copy strings,
@@ -375,13 +376,16 @@ never predictions or judged outcomes.
    expected trial count, drawn from that many DISTINCT runs (one sweep
    each — N trials inside one run are not N sweeps); no configuration
    outside the expected set may appear; duplicate run inputs (shared
-   benchId, or identical trial content — a relabeled copy of one run is
+   benchId, or identical trial content after normalizing run-identity
+   strings — a relabeled or consistently-rewritten copy of one run is
    not a distinct sweep) are rejected. Scope, stated honestly: the
    verifier checks structure and internal consistency of self-reported
-   evidence files; it detects copy-based forgery but cannot
-   cryptographically prove two files came from separate executions —
-   fabricated fresh content is countered by publishing the raw run
-   artifacts, not by this tool. Grading recomputes
+   evidence files; it detects exact and identity-only copies — a shared
+   benchId, a relabeled copy, or a copy whose benchId was consistently
+   rewritten through its artifact paths — but cannot detect fabricated
+   or hand-edited trial content, nor cryptographically prove two files
+   came from separate executions; fabricated fresh content is countered
+   by publishing the raw run artifacts, not by this tool. Grading recomputes
    the judge from raw trial data against the SUPPLIED SUITE's oracle —
    never the run's own recorded scenarios, which are cross-checked
    against the suite; any divergence is a violation. **A judged policy
@@ -395,7 +399,14 @@ never predictions or judged outcomes.
    and graded against the run's own recorded oracle; the audit
    demonstrated it certifying a one-run, one-policy, N=1 synthetic
    campaign with a contradicting run-local oracle. That exploit is now
-   an adversarial regression test.*
+   an adversarial regression test.* *Revision-7 hardening (second audit,
+   of freeze-v2): the revision-6 trial-content hash covered artifact
+   paths verbatim, so a copy whose new benchId was rewritten
+   consistently through every artifactsDir hashed as distinct AND
+   passed the artifact-path self-consistency check; the hash is now
+   computed after normalizing every input's benchId to a placeholder,
+   and that consistent-replacement bypass is a named adversarial
+   regression test alongside the relabel-only one.*
 6. **Provenance**: `results.json` environment gains `protocolId`
    (`"phase2a-v1"`), `repairMode`, and `suiteHash`; the campaign
    aggregator refuses to aggregate runs with mixed `protocolId` or
@@ -425,14 +436,21 @@ never predictions or judged outcomes.
    in the pinned price table — no keyed trial may execute on an
    unpriceable model; the per-trial unpriceable check remains as
    defense-in-depth (a budget cannot be enforced over spend that cannot
-   be priced). For operator
+   be priced). The keyed phase additionally machine-enforces §8 gate 3
+   as a prerequisite (added in revision 7 after the second audit found
+   it merely operator-sequenced): it refuses to start unless the
+   keyless state file (default
+   `runs/phase2a/campaign-state.keyless.json`; `--keyless-state` to
+   point elsewhere) records the full 15-entry keyless schedule complete
+   AND the recorded runs, read back from their run directories, pass
+   the frozen suite verifier under the §8 keyless expect-grid. For operator
    reproduction, `pnpm bench --scenario-suite <file> --only <ids>` runs
    a subset of a held-out suite with provenance stamps unchanged — a
    filtered run can never satisfy campaign completeness.
 
 ## 6. Diff gate
 
-`scripts/diff-gate-2a.sh` diffs `phase2a-policy-freeze-v2` against a
+`scripts/diff-gate-2a.sh` diffs `phase2a-policy-freeze-v3` against a
 given ref and exits nonzero on any change outside this allowlist:
 
 - `data/phase2a/scenario-suite.json` — sol's exact bytes; the commit
@@ -452,7 +470,7 @@ present and empty from stage 1), and the gate verifies that every byte of
 **Executable stage-2 sequence (fixed; prevents gate/report circularity):**
 
 1. Commit sol's JSON and the §10 appendix — the *suite-candidate* commit.
-2. Run the gate against `phase2a-policy-freeze-v2..HEAD`; write
+2. Run the gate against `phase2a-policy-freeze-v3..HEAD`; write
    `evidence/phase2a/diff-gate.txt`.
 3. Commit the report.
 4. Rerun the gate. Because the gate **excludes its own allowlisted report
@@ -521,7 +539,9 @@ present and empty from stage 1), and the gate verifies that every byte of
    data/phase2a/scenario-suite.json --expect-policies A,B,B2
    --expect-trials 5`. Also validates every fixture renders
    and grades, and checks the F2 mechanism instrumentation (§3 — never
-   outcomes). Keyless outcomes
+   outcomes). This gate is not merely operator-sequenced: the keyed
+   phase re-checks it as a machine-enforced prerequisite before it will
+   start (§5 item 9). Keyless outcomes
    are recorded and cannot alter the keyed grid.
 4. Fresh temporary key, scoped to the campaign, revoked after.
 5. **Smoke (predeclared here):** Phase-1 scenarios `clean-extraction`
@@ -541,9 +561,11 @@ present and empty from stage 1), and the gate verifies that every byte of
    (`anthropic/claude-haiku-4-5`). The keyed grid runs via
    `pnpm campaign:2a --suite data/phase2a/scenario-suite.json --phase
    keyed --state runs/phase2a/campaign-state.keyed.json` (per-phase
-   default; the driver refuses a state file from another phase and
+   default; the driver refuses a state file from another phase,
    refuses any keyed run whose model is not in the pinned price
-   table); final campaign acceptance is verified with
+   table, and refuses to start at all unless the gate-3 keyless grid
+   is complete and verifier-passed, read back from the keyless state
+   file); final campaign acceptance is verified with
    `pnpm verify:suite <all sweep dirs> --suite
    data/phase2a/scenario-suite.json --expect-policies A,B,B2,C,D
    --expect-trials 5` (the §5 item-5 grid contract).
@@ -585,7 +607,7 @@ trial: the revealed scenario table, sol's prediction table and package
 SHA-256, and the frozen scenario count. The diff-gate report is not part
 of the appendix — its single home is `evidence/phase2a/diff-gate.txt`,
 §6. The gate verifies every byte of this file outside the marked region
-is unchanged from `phase2a-policy-freeze-v2`.)
+is unchanged from `phase2a-policy-freeze-v3`.)
 
 <!-- PHASE2A-APPENDIX-START -->
 <!-- PHASE2A-APPENDIX-END -->

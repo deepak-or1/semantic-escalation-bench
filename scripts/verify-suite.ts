@@ -46,9 +46,11 @@
  * them are the measurement, not a defect.
  *
  * SCOPE (honest boundary): the verifier checks the structure and internal
- * consistency of self-reported evidence files — it detects copy-based forgery (a
- * relabeled run, a shared benchId, a benchId edited without touching the trial
- * artifact paths) but cannot cryptographically prove two files came from separate
+ * consistency of self-reported evidence files — it detects EXACT AND IDENTITY-ONLY
+ * COPIES — a shared benchId, a relabeled copy, or a copy whose benchId was
+ * consistently rewritten through its artifact paths (content hashed after
+ * normalizing run-identity strings) — but cannot detect fabricated or hand-edited
+ * trial content, nor cryptographically prove two files came from separate
  * executions; fabricated fresh content is countered by publishing raw run
  * artifacts, not by this tool.
  *
@@ -139,6 +141,32 @@ function joinSources(sources: string[]): string {
   if (quoted.length <= 1) return quoted[0] ?? "";
   if (quoted.length === 2) return `${quoted[0]} and ${quoted[1]}`;
   return `${quoted.slice(0, -1).join(", ")} and ${quoted[quoted.length - 1]}`;
+}
+
+/**
+ * Deep-walk a JSON-serializable value and, in every STRING value, replace each id
+ * in `ids` with the single literal placeholder "«benchId»". `ids` MUST be sorted by
+ * length DESCENDING so an id that is a substring of another is replaced only after
+ * the longer one. Arrays and plain objects are rebuilt in place (keys untouched);
+ * numbers, booleans and null pass through unchanged. Pure — returns a fresh value.
+ * Used by c.4 to normalize run-identity strings before hashing trial content, so a
+ * copy whose benchId was consistently rewritten through its artifact paths hashes
+ * identically to its original. benchId is schema-guaranteed non-empty, so split() is
+ * safe.
+ */
+function canonicalizeRunIdentity(value: unknown, ids: string[]): unknown {
+  if (typeof value === "string") {
+    let s = value;
+    for (const id of ids) s = s.split(id).join("«benchId»");
+    return s;
+  }
+  if (Array.isArray(value)) return value.map((v) => canonicalizeRunIdentity(v, ids));
+  if (value !== null && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value)) out[k] = canonicalizeRunIdentity(v, ids);
+    return out;
+  }
+  return value;
 }
 
 /**
@@ -413,21 +441,33 @@ export function verifySuite(
     );
   }
 
-  // c.4 — duplicate-run rejection: shared benchId, or identical TRIAL CONTENT. The
-  // trial-content hash covers ONLY results.scenarios + results.trials, so the
-  // caller-editable top-level identity fields (benchId, createdAt) are excluded by
-  // construction — a relabeled `cp results.json` with one field edited no longer
-  // slips past as a "distinct sweep" (pre-tag audit finding). Genuine separate
-  // sweeps always differ (distinct wall-clock durationMs at minimum), so this never
-  // false-positives on real runs.
+  // c.4 — duplicate-run rejection: shared benchId, or identical TRIAL CONTENT after
+  // NORMALIZING RUN-IDENTITY STRINGS. Before hashing, each run's {scenarios, trials}
+  // is canonicalized by replacing every occurrence of EVERY input run's benchId (all
+  // inputs', not just the run's own — see below) in every string with the single
+  // placeholder "«benchId»", so identity-only edits cannot change the hash. This
+  // SUBSUMES the old raw-content hash (byte-identical trial content still collides)
+  // and catches two forgeries:
+  //   (a) a relabel-only copy — benchId edited, trial artifact paths untouched (also
+  //       caught by c.6, which sees the paths still carry the ORIGINAL benchId); and
+  //   (b) a consistent-replacement copy — benchId edited AND rewritten inside every
+  //       artifactsDir / derived string: c.6 stays silent because the file is now
+  //       self-consistent, so ONLY this canonical hash catches it (found by the
+  //       external audit of freeze-v2).
+  // We normalize ALL inputs' benchIds rather than each run's OWN because a
+  // relabel-only copy's paths still embed the ORIGINAL's benchId; own-id-only
+  // replacement would be asymmetric and un-catch that case (adversarial (g)). Ids are
+  // applied longest-first so a benchId that is a substring of another is replaced only
+  // after the longer one. Genuine separate sweeps still differ (distinct wall-clock
+  // durationMs at minimum), so this never false-positives on real runs.
+  const allBenchIds = [...new Set(runs.map((r) => r.results.benchId))].sort((a, b) => b.length - a.length);
   const benchIdCounts = new Map<string, number>();
   const trialContentSources = new Map<string, string[]>();
   const createdAtSources = new Map<string, string[]>();
   for (const { source, results } of runs) {
     benchIdCounts.set(results.benchId, (benchIdCounts.get(results.benchId) ?? 0) + 1);
-    const trialHash = createHash("sha256")
-      .update(JSON.stringify({ scenarios: results.scenarios, trials: results.trials }))
-      .digest("hex");
+    const canonical = canonicalizeRunIdentity({ scenarios: results.scenarios, trials: results.trials }, allBenchIds);
+    const trialHash = createHash("sha256").update(JSON.stringify(canonical)).digest("hex");
     const tBucket = trialContentSources.get(trialHash);
     if (tBucket) tBucket.push(source);
     else trialContentSources.set(trialHash, [source]);
@@ -447,7 +487,7 @@ export function verifySuite(
       violations.push(
         reason(
           "completeness",
-          `inputs ${joinSources(sources)} contain identical trial content — a relabeled copy of one run is not a distinct sweep`
+          `inputs ${joinSources(sources)} contain identical trial content (after normalizing run-identity strings) — a relabeled copy of one run is not a distinct sweep`
         )
       );
     }
