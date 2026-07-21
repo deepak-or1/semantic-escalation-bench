@@ -1,0 +1,837 @@
+{
+  "protocolId": "phase2a-v1",
+  "scenarios": [
+    {
+      "id": "f1-class-l0-a",
+      "name": "F1 class drift level 0, instance A",
+      "description": "Unperturbed class and id tokens for paired seed 2209.",
+      "chaos": [],
+      "params": {
+        "classDriftLevel": 0
+      },
+      "seed": 2209,
+      "session": "fresh",
+      "expected": "success",
+      "stratum": "F1",
+      "stratumId": "level-0",
+      "predictions": {
+        "A": "all-pass",
+        "B": "all-pass",
+        "B2": "all-pass",
+        "C": "all-pass",
+        "D": "all-pass"
+      }
+    },
+    {
+      "id": "f1-class-l0-b",
+      "name": "F1 class drift level 0, instance B",
+      "description": "Unperturbed class and id tokens for paired seed 2213.",
+      "chaos": [],
+      "params": {
+        "classDriftLevel": 0
+      },
+      "seed": 2213,
+      "session": "fresh",
+      "expected": "success",
+      "stratum": "F1",
+      "stratumId": "level-0",
+      "predictions": {
+        "A": "all-pass",
+        "B": "all-pass",
+        "B2": "all-pass",
+        "C": "all-pass",
+        "D": "all-pass"
+      }
+    },
+    {
+      "id": "f1-class-l1-a",
+      "name": "F1 class drift level 1, instance A",
+      "description": "A seeded 25 percent of class tokens and an independent seeded 25 percent of id tokens are renamed for paired seed 2209.",
+      "chaos": [],
+      "params": {
+        "classDriftLevel": 1
+      },
+      "seed": 2209,
+      "session": "fresh",
+      "expected": "success",
+      "stratum": "F1",
+      "stratumId": "level-1",
+      "predictions": {
+        "A": "all-pass",
+        "B": "all-pass",
+        "B2": "all-pass",
+        "C": "all-pass",
+        "D": "all-pass"
+      }
+    },
+    {
+      "id": "f1-class-l1-b",
+      "name": "F1 class drift level 1, instance B",
+      "description": "A seeded 25 percent of class tokens and an independent seeded 25 percent of id tokens are renamed for paired seed 2213.",
+      "chaos": [],
+      "params": {
+        "classDriftLevel": 1
+      },
+      "seed": 2213,
+      "session": "fresh",
+      "expected": "success",
+      "stratum": "F1",
+      "stratumId": "level-1",
+      "predictions": {
+        "A": "observed-failure",
+        "B": "all-pass",
+        "B2": "all-pass",
+        "C": "all-pass",
+        "D": "all-pass"
+      }
+    },
+    {
+      "id": "f1-class-l2-a",
+      "name": "F1 class drift level 2, instance A",
+      "description": "A seeded 50 percent of class tokens and an independent seeded 50 percent of id tokens are renamed for paired seed 2209.",
+      "chaos": [],
+      "params": {
+        "classDriftLevel": 2
+      },
+      "seed": 2209,
+      "session": "fresh",
+      "expected": "success",
+      "stratum": "F1",
+      "stratumId": "level-2",
+      "predictions": {
+        "A": "observed-failure",
+        "B": "observed-failure",
+        "B2": "all-pass",
+        "C": "all-pass",
+        "D": "all-pass"
+      }
+    },
+    {
+      "id": "f1-class-l2-b",
+      "name": "F1 class drift level 2, instance B",
+      "description": "A seeded 50 percent of class tokens and an independent seeded 50 percent of id tokens are renamed for paired seed 2213.",
+      "chaos": [],
+      "params": {
+        "classDriftLevel": 2
+      },
+      "seed": 2213,
+      "session": "fresh",
+      "expected": "success",
+      "stratum": "F1",
+      "stratumId": "level-2",
+      "predictions": {
+        "A": "observed-failure",
+        "B": "observed-failure",
+        "B2": "all-pass",
+        "C": "all-pass",
+        "D": "all-pass"
+      }
+    },
+    {
+      "id": "f1-class-l3-a",
+      "name": "F1 class drift level 3, instance A",
+      "description": "All class and id tokens are renamed while ids remain present for paired seed 2209.",
+      "chaos": [],
+      "params": {
+        "classDriftLevel": 3
+      },
+      "seed": 2209,
+      "session": "fresh",
+      "expected": "success",
+      "stratum": "F1",
+      "stratumId": "level-3",
+      "predictions": {
+        "A": "observed-failure",
+        "B": "observed-failure",
+        "B2": "all-pass",
+        "C": "all-pass",
+        "D": "all-pass"
+      }
+    },
+    {
+      "id": "f1-class-l3-b",
+      "name": "F1 class drift level 3, instance B",
+      "description": "All class and id tokens are renamed while ids remain present for paired seed 2213.",
+      "chaos": [],
+      "params": {
+        "classDriftLevel": 3
+      },
+      "seed": 2213,
+      "session": "fresh",
+      "expected": "success",
+      "stratum": "F1",
+      "stratumId": "level-3",
+      "predictions": {
+        "A": "observed-failure",
+        "B": "observed-failure",
+        "B2": "all-pass",
+        "C": "all-pass",
+        "D": "all-pass"
+      }
+    },
+    {
+      "id": "f1-class-l4-a",
+      "name": "F1 class drift level 4, instance A",
+      "description": "All class tokens are renamed and all ids are removed for paired seed 2209.",
+      "chaos": [],
+      "params": {
+        "classDriftLevel": 4
+      },
+      "seed": 2209,
+      "session": "fresh",
+      "expected": "success",
+      "stratum": "F1",
+      "stratumId": "level-4",
+      "predictions": {
+        "A": "observed-failure",
+        "B": "observed-failure",
+        "B2": "all-pass",
+        "C": "all-pass",
+        "D": "all-pass"
+      }
+    },
+    {
+      "id": "f1-class-l4-b",
+      "name": "F1 class drift level 4, instance B",
+      "description": "All class tokens are renamed and all ids are removed for paired seed 2213.",
+      "chaos": [],
+      "params": {
+        "classDriftLevel": 4
+      },
+      "seed": 2213,
+      "session": "fresh",
+      "expected": "success",
+      "stratum": "F1",
+      "stratumId": "level-4",
+      "predictions": {
+        "A": "observed-failure",
+        "B": "observed-failure",
+        "B2": "all-pass",
+        "C": "all-pass",
+        "D": "all-pass"
+      }
+    },
+    {
+      "id": "f2-decoy-l0-a",
+      "name": "F2 decoy rebinding level 0, instance A",
+      "description": "The pagination and hidden-tab scaffold is present, with no controls rebound, for paired seed 2221.",
+      "chaos": [
+        "pagination",
+        "hiddenTab"
+      ],
+      "params": {
+        "decoyLevel": 0,
+        "decoyCopy": {
+          "next-page": "More standings",
+          "reveal-table": "Season details",
+          "login-submit": "Continue"
+        },
+        "decoyPlacement": "before"
+      },
+      "seed": 2221,
+      "session": "fresh",
+      "expected": "success",
+      "stratum": "F2",
+      "stratumId": "level-0",
+      "predictions": {
+        "A": "all-pass",
+        "B": "all-pass",
+        "B2": "all-pass",
+        "C": "all-pass",
+        "D": "all-pass"
+      }
+    },
+    {
+      "id": "f2-decoy-l0-b",
+      "name": "F2 decoy rebinding level 0, instance B",
+      "description": "The pagination and hidden-tab scaffold is present, with no controls rebound, for paired seed 2222.",
+      "chaos": [
+        "pagination",
+        "hiddenTab"
+      ],
+      "params": {
+        "decoyLevel": 0,
+        "decoyCopy": {
+          "next-page": "Browse older",
+          "reveal-table": "View standings",
+          "login-submit": "Open dashboard"
+        },
+        "decoyPlacement": "after"
+      },
+      "seed": 2222,
+      "session": "fresh",
+      "expected": "success",
+      "stratum": "F2",
+      "stratumId": "level-0",
+      "predictions": {
+        "A": "all-pass",
+        "B": "all-pass",
+        "B2": "all-pass",
+        "C": "all-pass",
+        "D": "all-pass"
+      }
+    },
+    {
+      "id": "f2-decoy-l1-a",
+      "name": "F2 decoy rebinding level 1, instance A",
+      "description": "The canonical next-page id is rebound to an inert decoy placed before the functional control for paired seed 2221.",
+      "chaos": [
+        "pagination",
+        "hiddenTab"
+      ],
+      "params": {
+        "decoyLevel": 1,
+        "decoyCopy": {
+          "next-page": "More standings",
+          "reveal-table": "Season details",
+          "login-submit": "Continue"
+        },
+        "decoyPlacement": "before"
+      },
+      "seed": 2221,
+      "session": "fresh",
+      "expected": "success",
+      "stratum": "F2",
+      "stratumId": "level-1",
+      "predictions": {
+        "A": "all-pass",
+        "B": "observed-failure",
+        "B2": "observed-failure",
+        "C": "observed-failure",
+        "D": "all-pass"
+      }
+    },
+    {
+      "id": "f2-decoy-l1-b",
+      "name": "F2 decoy rebinding level 1, instance B",
+      "description": "The canonical next-page id is rebound to an inert decoy placed after the functional control for paired seed 2222.",
+      "chaos": [
+        "pagination",
+        "hiddenTab"
+      ],
+      "params": {
+        "decoyLevel": 1,
+        "decoyCopy": {
+          "next-page": "Browse older",
+          "reveal-table": "View standings",
+          "login-submit": "Open dashboard"
+        },
+        "decoyPlacement": "after"
+      },
+      "seed": 2222,
+      "session": "fresh",
+      "expected": "success",
+      "stratum": "F2",
+      "stratumId": "level-1",
+      "predictions": {
+        "A": "all-pass",
+        "B": "observed-failure",
+        "B2": "observed-failure",
+        "C": "observed-failure",
+        "D": "all-pass"
+      }
+    },
+    {
+      "id": "f2-decoy-l2-a",
+      "name": "F2 decoy rebinding level 2, instance A",
+      "description": "The next-page and reveal-table ids are rebound to inert decoys placed before their functional controls for paired seed 2221.",
+      "chaos": [
+        "pagination",
+        "hiddenTab"
+      ],
+      "params": {
+        "decoyLevel": 2,
+        "decoyCopy": {
+          "next-page": "More standings",
+          "reveal-table": "Season details",
+          "login-submit": "Continue"
+        },
+        "decoyPlacement": "before"
+      },
+      "seed": 2221,
+      "session": "fresh",
+      "expected": "success",
+      "stratum": "F2",
+      "stratumId": "level-2",
+      "predictions": {
+        "A": "observed-failure",
+        "B": "observed-failure",
+        "B2": "observed-failure",
+        "C": "observed-failure",
+        "D": "all-pass"
+      }
+    },
+    {
+      "id": "f2-decoy-l2-b",
+      "name": "F2 decoy rebinding level 2, instance B",
+      "description": "The next-page and reveal-table ids are rebound to inert decoys placed after their functional controls for paired seed 2222.",
+      "chaos": [
+        "pagination",
+        "hiddenTab"
+      ],
+      "params": {
+        "decoyLevel": 2,
+        "decoyCopy": {
+          "next-page": "Browse older",
+          "reveal-table": "View standings",
+          "login-submit": "Open dashboard"
+        },
+        "decoyPlacement": "after"
+      },
+      "seed": 2222,
+      "session": "fresh",
+      "expected": "success",
+      "stratum": "F2",
+      "stratumId": "level-2",
+      "predictions": {
+        "A": "observed-failure",
+        "B": "observed-failure",
+        "B2": "observed-failure",
+        "C": "observed-failure",
+        "D": "all-pass"
+      }
+    },
+    {
+      "id": "f2-decoy-l3-a",
+      "name": "F2 decoy rebinding level 3, instance A",
+      "description": "The next-page, reveal-table, and login-submit ids are rebound to inert decoys placed before their functional controls for paired seed 2221.",
+      "chaos": [
+        "pagination",
+        "hiddenTab"
+      ],
+      "params": {
+        "decoyLevel": 3,
+        "decoyCopy": {
+          "next-page": "More standings",
+          "reveal-table": "Season details",
+          "login-submit": "Continue"
+        },
+        "decoyPlacement": "before"
+      },
+      "seed": 2221,
+      "session": "fresh",
+      "expected": "success",
+      "stratum": "F2",
+      "stratumId": "level-3",
+      "predictions": {
+        "A": "observed-failure",
+        "B": "observed-failure",
+        "B2": "observed-failure",
+        "C": "observed-failure",
+        "D": "all-pass"
+      }
+    },
+    {
+      "id": "f2-decoy-l3-b",
+      "name": "F2 decoy rebinding level 3, instance B",
+      "description": "The next-page, reveal-table, and login-submit ids are rebound to inert decoys placed after their functional controls for paired seed 2222.",
+      "chaos": [
+        "pagination",
+        "hiddenTab"
+      ],
+      "params": {
+        "decoyLevel": 3,
+        "decoyCopy": {
+          "next-page": "Browse older",
+          "reveal-table": "View standings",
+          "login-submit": "Open dashboard"
+        },
+        "decoyPlacement": "after"
+      },
+      "seed": 2222,
+      "session": "fresh",
+      "expected": "success",
+      "stratum": "F2",
+      "stratumId": "level-3",
+      "predictions": {
+        "A": "observed-failure",
+        "B": "observed-failure",
+        "B2": "observed-failure",
+        "C": "observed-failure",
+        "D": "all-pass"
+      }
+    },
+    {
+      "id": "f3-page-size-5-a",
+      "name": "F3 pagination stress page size 5, instance A",
+      "description": "The standings are paginated at five rows per page for paired seed 2231.",
+      "chaos": [],
+      "params": {
+        "pageSize": 5
+      },
+      "seed": 2231,
+      "session": "fresh",
+      "expected": "success",
+      "stratum": "F3",
+      "stratumId": "page-size-5",
+      "predictions": {
+        "A": "all-pass",
+        "B": "all-pass",
+        "B2": "all-pass",
+        "C": "all-pass",
+        "D": "all-pass"
+      }
+    },
+    {
+      "id": "f3-page-size-5-b",
+      "name": "F3 pagination stress page size 5, instance B",
+      "description": "The standings are paginated at five rows per page for paired seed 2232.",
+      "chaos": [],
+      "params": {
+        "pageSize": 5
+      },
+      "seed": 2232,
+      "session": "fresh",
+      "expected": "success",
+      "stratum": "F3",
+      "stratumId": "page-size-5",
+      "predictions": {
+        "A": "all-pass",
+        "B": "all-pass",
+        "B2": "all-pass",
+        "C": "all-pass",
+        "D": "all-pass"
+      }
+    },
+    {
+      "id": "f3-page-size-3-a",
+      "name": "F3 pagination stress page size 3, instance A",
+      "description": "The standings are paginated at three rows per page for paired seed 2231.",
+      "chaos": [],
+      "params": {
+        "pageSize": 3
+      },
+      "seed": 2231,
+      "session": "fresh",
+      "expected": "success",
+      "stratum": "F3",
+      "stratumId": "page-size-3",
+      "predictions": {
+        "A": "all-pass",
+        "B": "all-pass",
+        "B2": "all-pass",
+        "C": "all-pass",
+        "D": "all-pass"
+      }
+    },
+    {
+      "id": "f3-page-size-3-b",
+      "name": "F3 pagination stress page size 3, instance B",
+      "description": "The standings are paginated at three rows per page for paired seed 2232.",
+      "chaos": [],
+      "params": {
+        "pageSize": 3
+      },
+      "seed": 2232,
+      "session": "fresh",
+      "expected": "success",
+      "stratum": "F3",
+      "stratumId": "page-size-3",
+      "predictions": {
+        "A": "all-pass",
+        "B": "all-pass",
+        "B2": "all-pass",
+        "C": "all-pass",
+        "D": "all-pass"
+      }
+    },
+    {
+      "id": "f3-page-size-2-a",
+      "name": "F3 pagination stress page size 2, instance A",
+      "description": "The standings are paginated at two rows per page for paired seed 2231.",
+      "chaos": [],
+      "params": {
+        "pageSize": 2
+      },
+      "seed": 2231,
+      "session": "fresh",
+      "expected": "success",
+      "stratum": "F3",
+      "stratumId": "page-size-2",
+      "predictions": {
+        "A": "all-pass",
+        "B": "all-pass",
+        "B2": "all-pass",
+        "C": "all-pass",
+        "D": "all-pass"
+      }
+    },
+    {
+      "id": "f3-page-size-2-b",
+      "name": "F3 pagination stress page size 2, instance B",
+      "description": "The standings are paginated at two rows per page for paired seed 2232.",
+      "chaos": [],
+      "params": {
+        "pageSize": 2
+      },
+      "seed": 2232,
+      "session": "fresh",
+      "expected": "success",
+      "stratum": "F3",
+      "stratumId": "page-size-2",
+      "predictions": {
+        "A": "all-pass",
+        "B": "all-pass",
+        "B2": "all-pass",
+        "C": "all-pass",
+        "D": "all-pass"
+      }
+    },
+    {
+      "id": "k-header-vocabulary",
+      "name": "K unfamiliar but human-readable header vocabulary",
+      "description": "Stats and odds headers use clear football terminology outside the frozen deterministic synonym dictionaries.",
+      "chaos": [],
+      "params": {
+        "headerVocab": {
+          "team": "Entrant",
+          "P": "Appearances",
+          "W": "Victories",
+          "D": "Level finishes",
+          "L": "Setbacks",
+          "GF": "Goals tallied",
+          "GA": "Goals allowed",
+          "GD": "Goal balance",
+          "Pts": "League score",
+          "Form": "Last five results",
+          "match": "Contest",
+          "home": "Host price",
+          "draw": "Tie price",
+          "away": "Visitor price",
+          "over": "Above 2.5 goals",
+          "under": "Below 2.5 goals"
+        }
+      },
+      "seed": 2251,
+      "session": "fresh",
+      "expected": "success",
+      "stratum": "K",
+      "stratumId": "header-vocabulary",
+      "predictions": {
+        "A": "all-pass",
+        "B": "observed-failure",
+        "B2": "observed-failure",
+        "C": "all-pass",
+        "D": "all-pass"
+      }
+    },
+    {
+      "id": "k-ui-copy",
+      "name": "K unfamiliar but task-clear UI copy",
+      "description": "All nine interface-copy surfaces use held-out language while preserving clear human intent.",
+      "chaos": [],
+      "params": {
+        "uiCopy": {
+          "siteName": "Northstar Football Data",
+          "statsHeading": "Competition rankings",
+          "oddsHeading": "Fixture pricing",
+          "loginHeading": "Member verification",
+          "loginButton": "Open workspace",
+          "fullTableTab": "Complete rankings",
+          "nextButton": "Advance",
+          "prevButton": "Return",
+          "acceptCookies": "Permit required cookies"
+        }
+      },
+      "seed": 2252,
+      "session": "fresh",
+      "expected": "success",
+      "stratum": "K",
+      "stratumId": "ui-copy",
+      "predictions": {
+        "A": "all-pass",
+        "B": "all-pass",
+        "B2": "all-pass",
+        "C": "all-pass",
+        "D": "all-pass"
+      }
+    },
+    {
+      "id": "k-column-order",
+      "name": "K fully deranged stat-column order",
+      "description": "All nine stat columns move away from their canonical positions while retaining canonical headers.",
+      "chaos": [],
+      "params": {
+        "columnOrder": [
+          "Form",
+          "Pts",
+          "GA",
+          "GF",
+          "L",
+          "D",
+          "W",
+          "P",
+          "GD"
+        ]
+      },
+      "seed": 2253,
+      "session": "fresh",
+      "expected": "success",
+      "stratum": "K",
+      "stratumId": "column-order",
+      "predictions": {
+        "A": "observed-failure",
+        "B": "all-pass",
+        "B2": "all-pass",
+        "C": "all-pass",
+        "D": "all-pass"
+      }
+    },
+    {
+      "id": "k-layout-cards",
+      "name": "K card-grid layout",
+      "description": "Stats and odds leave table markup and render as labeled card collections.",
+      "chaos": [],
+      "params": {
+        "layoutCondition": "cards"
+      },
+      "seed": 2254,
+      "session": "fresh",
+      "expected": "success",
+      "stratum": "K",
+      "stratumId": "layout-cards",
+      "predictions": {
+        "A": "observed-failure",
+        "B": "observed-failure",
+        "B2": "observed-failure",
+        "C": "all-pass",
+        "D": "all-pass"
+      }
+    },
+    {
+      "id": "x-cards-header-vocabulary",
+      "name": "X card-grid layout with unfamiliar header vocabulary",
+      "description": "Card collections use clear held-out field labels outside the deterministic synonym dictionaries.",
+      "chaos": [],
+      "params": {
+        "layoutCondition": "cards",
+        "headerVocab": {
+          "team": "Entrant",
+          "P": "Appearances",
+          "W": "Victories",
+          "D": "Level finishes",
+          "L": "Setbacks",
+          "GF": "Goals tallied",
+          "GA": "Goals allowed",
+          "GD": "Goal balance",
+          "Pts": "League score",
+          "Form": "Last five results",
+          "match": "Contest",
+          "home": "Host price",
+          "draw": "Tie price",
+          "away": "Visitor price",
+          "over": "Above 2.5 goals",
+          "under": "Below 2.5 goals"
+        }
+      },
+      "seed": 2261,
+      "session": "fresh",
+      "expected": "success",
+      "stratum": "X",
+      "stratumId": "cards-x-header-vocabulary",
+      "predictions": {
+        "A": "observed-failure",
+        "B": "observed-failure",
+        "B2": "observed-failure",
+        "C": "all-pass",
+        "D": "all-pass"
+      }
+    },
+    {
+      "id": "x-class-l2-decoy-l2",
+      "name": "X class drift level 2 with decoy rebinding level 2",
+      "description": "Half-strength class and id drift is composed with trigger-blind next-page and reveal-table decoys.",
+      "chaos": [
+        "pagination",
+        "hiddenTab"
+      ],
+      "params": {
+        "classDriftLevel": 2,
+        "decoyLevel": 2,
+        "decoyCopy": {
+          "next-page": "Continue standings",
+          "reveal-table": "Season detail",
+          "login-submit": "Enter workspace"
+        },
+        "decoyPlacement": "before"
+      },
+      "seed": 2262,
+      "session": "fresh",
+      "expected": "success",
+      "stratum": "X",
+      "stratumId": "class-l2-x-decoy-l2",
+      "predictions": {
+        "A": "observed-failure",
+        "B": "observed-failure",
+        "B2": "observed-failure",
+        "C": "observed-failure",
+        "D": "all-pass"
+      }
+    },
+    {
+      "id": "x-class-l3-page-size-2",
+      "name": "X class drift level 3 with page size 2",
+      "description": "Every class and id token is renamed while the standings require six paginated views.",
+      "chaos": [],
+      "params": {
+        "classDriftLevel": 3,
+        "pageSize": 2
+      },
+      "seed": 2263,
+      "session": "fresh",
+      "expected": "success",
+      "stratum": "X",
+      "stratumId": "class-l3-x-page-size-2",
+      "predictions": {
+        "A": "observed-failure",
+        "B": "observed-failure",
+        "B2": "all-pass",
+        "C": "all-pass",
+        "D": "all-pass"
+      }
+    },
+    {
+      "id": "x-wrapped-column-copy",
+      "name": "X wrapped layout with deranged columns and held-out copy",
+      "description": "Non-semantic wrappers are composed with a fully deranged stat-column order and unfamiliar but task-clear UI copy.",
+      "chaos": [],
+      "params": {
+        "layoutCondition": "wrapped",
+        "columnOrder": [
+          "Form",
+          "Pts",
+          "GA",
+          "GF",
+          "L",
+          "D",
+          "W",
+          "P",
+          "GD"
+        ],
+        "uiCopy": {
+          "siteName": "Northstar Match Centre",
+          "statsHeading": "Competition rankings",
+          "oddsHeading": "Fixture pricing",
+          "loginHeading": "Member verification",
+          "loginButton": "Open workspace",
+          "fullTableTab": "Complete rankings",
+          "nextButton": "Advance",
+          "prevButton": "Return",
+          "acceptCookies": "Permit required cookies"
+        }
+      },
+      "seed": 2264,
+      "session": "fresh",
+      "expected": "success",
+      "stratum": "X",
+      "stratumId": "wrapped-x-column-order-x-ui-copy",
+      "predictions": {
+        "A": "observed-failure",
+        "B": "all-pass",
+        "B2": "all-pass",
+        "C": "all-pass",
+        "D": "all-pass"
+      }
+    }
+  ]
+}

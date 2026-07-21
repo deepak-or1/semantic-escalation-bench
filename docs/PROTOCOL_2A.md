@@ -610,4 +610,98 @@ of the appendix — its single home is `evidence/phase2a/diff-gate.txt`,
 is unchanged from `phase2a-policy-freeze-v3`.)
 
 <!-- PHASE2A-APPENDIX-START -->
+
+### Stage-2 appendix: the revealed held-out suite
+
+Revealed by sol on 2026-07-21, after the stage-1 freeze
+(`phase2a-policy-freeze-v3`) and sol's third executable audit (pass, no
+blockers). Package: `data/phase2a/scenario-suite.json`, committed
+byte-for-byte — 23522 bytes, SHA-256
+`a3e77433869ff77f513a0cdb435c5c46fd6627e6b0905be50fc20e1c129ab722`
+(sol's published hash; the frozen loader's computed `suiteHash` is this
+same value, so every campaign state file binds to it).
+
+**Frozen scenario count: 32** — F1 10 (class/id drift levels 0-4, paired seeds 2209/2213), F2 8 (decoy rebinding levels 0-3, paired seeds 2221/2222), F3 6 (page sizes 5/3/2, paired seeds 2231/2232), K 4, X 4. All scenarios: `session: fresh`,
+`expected: success` (judged failures ARE the measurement, §5).
+
+#### Scenario table (informative rendering; the JSON is normative)
+
+| id | stratum | stratumId | seed | chaos | params |
+| --- | --- | --- | --- | --- | --- |
+| `f1-class-l0-a` | F1 | level-0 | 2209 | - | classDriftLevel=0 |
+| `f1-class-l0-b` | F1 | level-0 | 2213 | - | classDriftLevel=0 |
+| `f1-class-l1-a` | F1 | level-1 | 2209 | - | classDriftLevel=1 |
+| `f1-class-l1-b` | F1 | level-1 | 2213 | - | classDriftLevel=1 |
+| `f1-class-l2-a` | F1 | level-2 | 2209 | - | classDriftLevel=2 |
+| `f1-class-l2-b` | F1 | level-2 | 2213 | - | classDriftLevel=2 |
+| `f1-class-l3-a` | F1 | level-3 | 2209 | - | classDriftLevel=3 |
+| `f1-class-l3-b` | F1 | level-3 | 2213 | - | classDriftLevel=3 |
+| `f1-class-l4-a` | F1 | level-4 | 2209 | - | classDriftLevel=4 |
+| `f1-class-l4-b` | F1 | level-4 | 2213 | - | classDriftLevel=4 |
+| `f2-decoy-l0-a` | F2 | level-0 | 2221 | pagination+hiddenTab | decoyLevel=0, decoyCopy(3 entries), decoyPlacement=before |
+| `f2-decoy-l0-b` | F2 | level-0 | 2222 | pagination+hiddenTab | decoyLevel=0, decoyCopy(3 entries), decoyPlacement=after |
+| `f2-decoy-l1-a` | F2 | level-1 | 2221 | pagination+hiddenTab | decoyLevel=1, decoyCopy(3 entries), decoyPlacement=before |
+| `f2-decoy-l1-b` | F2 | level-1 | 2222 | pagination+hiddenTab | decoyLevel=1, decoyCopy(3 entries), decoyPlacement=after |
+| `f2-decoy-l2-a` | F2 | level-2 | 2221 | pagination+hiddenTab | decoyLevel=2, decoyCopy(3 entries), decoyPlacement=before |
+| `f2-decoy-l2-b` | F2 | level-2 | 2222 | pagination+hiddenTab | decoyLevel=2, decoyCopy(3 entries), decoyPlacement=after |
+| `f2-decoy-l3-a` | F2 | level-3 | 2221 | pagination+hiddenTab | decoyLevel=3, decoyCopy(3 entries), decoyPlacement=before |
+| `f2-decoy-l3-b` | F2 | level-3 | 2222 | pagination+hiddenTab | decoyLevel=3, decoyCopy(3 entries), decoyPlacement=after |
+| `f3-page-size-5-a` | F3 | page-size-5 | 2231 | - | pageSize=5 |
+| `f3-page-size-5-b` | F3 | page-size-5 | 2232 | - | pageSize=5 |
+| `f3-page-size-3-a` | F3 | page-size-3 | 2231 | - | pageSize=3 |
+| `f3-page-size-3-b` | F3 | page-size-3 | 2232 | - | pageSize=3 |
+| `f3-page-size-2-a` | F3 | page-size-2 | 2231 | - | pageSize=2 |
+| `f3-page-size-2-b` | F3 | page-size-2 | 2232 | - | pageSize=2 |
+| `k-header-vocabulary` | K | header-vocabulary | 2251 | - | headerVocab(16 entries) |
+| `k-ui-copy` | K | ui-copy | 2252 | - | uiCopy(9 entries) |
+| `k-column-order` | K | column-order | 2253 | - | columnOrder=[Form Pts GA GF L D W P GD] |
+| `k-layout-cards` | K | layout-cards | 2254 | - | layoutCondition=cards |
+| `x-cards-header-vocabulary` | X | cards-x-header-vocabulary | 2261 | - | layoutCondition=cards, headerVocab(16 entries) |
+| `x-class-l2-decoy-l2` | X | class-l2-x-decoy-l2 | 2262 | pagination+hiddenTab | classDriftLevel=2, decoyLevel=2, decoyCopy(3 entries), decoyPlacement=before |
+| `x-class-l3-page-size-2` | X | class-l3-x-page-size-2 | 2263 | - | classDriftLevel=3, pageSize=2 |
+| `x-wrapped-column-copy` | X | wrapped-x-column-order-x-ui-copy | 2264 | - | layoutCondition=wrapped, columnOrder=[Form Pts GA GF L D W P GD], uiCopy(9 entries) |
+
+#### Sol's prediction table (informative, never gating)
+
+Predictions are sol's pre-registered expectations per §5: the enum is
+`all-pass` | `observed-failure`; the verifier reports divergences from
+them but a missed prediction never gates a run.
+
+| id | A | B | B2 | C | D |
+| --- | --- | --- | --- | --- | --- |
+| `f1-class-l0-a` | pass | pass | pass | pass | pass |
+| `f1-class-l0-b` | pass | pass | pass | pass | pass |
+| `f1-class-l1-a` | pass | pass | pass | pass | pass |
+| `f1-class-l1-b` | FAIL | pass | pass | pass | pass |
+| `f1-class-l2-a` | FAIL | FAIL | pass | pass | pass |
+| `f1-class-l2-b` | FAIL | FAIL | pass | pass | pass |
+| `f1-class-l3-a` | FAIL | FAIL | pass | pass | pass |
+| `f1-class-l3-b` | FAIL | FAIL | pass | pass | pass |
+| `f1-class-l4-a` | FAIL | FAIL | pass | pass | pass |
+| `f1-class-l4-b` | FAIL | FAIL | pass | pass | pass |
+| `f2-decoy-l0-a` | pass | pass | pass | pass | pass |
+| `f2-decoy-l0-b` | pass | pass | pass | pass | pass |
+| `f2-decoy-l1-a` | pass | FAIL | FAIL | FAIL | pass |
+| `f2-decoy-l1-b` | pass | FAIL | FAIL | FAIL | pass |
+| `f2-decoy-l2-a` | FAIL | FAIL | FAIL | FAIL | pass |
+| `f2-decoy-l2-b` | FAIL | FAIL | FAIL | FAIL | pass |
+| `f2-decoy-l3-a` | FAIL | FAIL | FAIL | FAIL | pass |
+| `f2-decoy-l3-b` | FAIL | FAIL | FAIL | FAIL | pass |
+| `f3-page-size-5-a` | pass | pass | pass | pass | pass |
+| `f3-page-size-5-b` | pass | pass | pass | pass | pass |
+| `f3-page-size-3-a` | pass | pass | pass | pass | pass |
+| `f3-page-size-3-b` | pass | pass | pass | pass | pass |
+| `f3-page-size-2-a` | pass | pass | pass | pass | pass |
+| `f3-page-size-2-b` | pass | pass | pass | pass | pass |
+| `k-header-vocabulary` | pass | FAIL | FAIL | pass | pass |
+| `k-ui-copy` | pass | pass | pass | pass | pass |
+| `k-column-order` | FAIL | pass | pass | pass | pass |
+| `k-layout-cards` | FAIL | FAIL | FAIL | pass | pass |
+| `x-cards-header-vocabulary` | FAIL | FAIL | FAIL | pass | pass |
+| `x-class-l2-decoy-l2` | FAIL | FAIL | FAIL | FAIL | pass |
+| `x-class-l3-page-size-2` | FAIL | FAIL | pass | pass | pass |
+| `x-wrapped-column-copy` | FAIL | pass | pass | pass | pass |
+
+Predicted all-pass/observed-failure counts per policy: A 15/17; B 15/17; B2 22/10; C 25/7; D 32/0.
+
 <!-- PHASE2A-APPENDIX-END -->
