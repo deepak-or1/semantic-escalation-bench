@@ -1,7 +1,7 @@
 # Phase 2A protocol — the policy frontier
 
-**Status: DRAFT (revision 2, after external design review) — not yet
-frozen.** This document specifies Phase 2A before any of it is implemented.
+**Status: DRAFT (revision 3, after two external design-review rounds) —
+not yet frozen.** This document specifies Phase 2A before any of it is implemented.
 It becomes binding at the stage-1 tag (`phase2a-policy-freeze-v1`) and is
 completed by the stage-2 tag (`phase2a-suite-freeze-v1`); no keyed trial may
 run before the stage-2 tag exists. Phase 1 ([PHASE1_RESULTS.md](PHASE1_RESULTS.md),
@@ -67,7 +67,10 @@ Phase 1.** The exact carry-forward status of each:
 
 **Carry-forward disclosures.**
 
-- **A, B:** code paths unchanged from Phase 1.
+- **A:** unchanged from Phase 1.
+- **B:** behaviorally carried forward through the new `--repair-mode`
+  dispatch (`off` must reproduce Phase-1 `--no-repair` behavior exactly;
+  asserted by stage-1 tests).
 - **C:** shares the hybrid engine with B2's new flag plumbing. The
   `llm`-mode dispatch must be left behaviorally identical; stage-1 tests
   assert the llm branch's call structure is unchanged, and the frozen
@@ -203,16 +206,28 @@ first observed failure level, per policy, per axis.
 | Axis | Param | Levels |
 | --- | --- | --- |
 | **F1 class drift** | `classDriftLevel` | 0 off · 1 = 25% of class tokens renamed (seeded per-token choice), ids kept · 2 = 50%, ids kept · 3 = 100%, ids kept · 4 = 100% + all ids removed (≡ Phase-1 `classDrift`) |
-| **F2 decoy rebinding** *(new; trigger-blind)* | `decoyLevel` | Fixed control order **[next-page, reveal-tab, login-submit]**; level k rebinds the first k. Rebinding a control: the canonical id attaches to a same-tag, visually plausible, **inert** decoy element (no handler; clicking it is a no-op), while the functional control renders with seed-drifted class-only markup, no canonical id, and its canonical visible text. Selector-faithful policies (A, B, B2, C) act on the decoy and *observe success at the act layer*; whether and where each policy fails downstream is the measurement. Semantic addressing can still identify the functional control by its text/role. |
-| **F3 pagination stress** | `pageSize` | 5 (≡ today) · 3 · 2 |
+| **F2 decoy rebinding** *(new; trigger-blind)* | `decoyLevel` | **Fixed scaffold at every level (including 0):** every F2 scenario carries chaos `[pagination, hiddenTab]`, so `next-page` and `reveal-table` exist at all levels — the lab renders those controls only under their flags, so without the scaffold, levels 1–2 would rebind controls that do not exist. Fixed control order **[next-page, reveal-table, login-submit]** (names = the engine step names B2's §2 rungs repair); level k rebinds the first k. Rebinding a control: the canonical id attaches to a same-tag, **inert** decoy element (no handler; clicking it is a no-op), while the functional control renders with seed-drifted class-only markup, no canonical id. The decoy's visible text and its placement relative to the functional control are **held-out parameters** (`decoyCopy`: map control → decoy text; `decoyPlacement`: `before` \| `after` the functional control in document order) — sol, not the policy author, chooses the cues semantic addressing sees, and holds them constant across the nested levels of the series. Selector-faithful policies (A, B, B2, C) act on the decoy and *observe success at the act layer*; whether and where each policy fails downstream is the measurement. |
+| **F3 pagination stress** | `pageSize` | 5 · 3 · 2. **`pageSize` activates pagination** (it is the parameterized form of the `pagination` flag, subject to the flag-XOR-param rule): `pageSize: 5` ≡ the Phase-1 `pagination` flag; lower values raise the click-and-merge demand. |
 
 Design intent for F2, stated for the audit: C repairs only on act failure;
 a decoy click does not fail, so C's repair should never trigger. That
-mechanism claim is *verified, not assumed*: the keyless A/B/B2 grid run and
-the smoke test must show decoy trials failing without repair activation
-(B2: empty `deterministicRepairSteps` on the rebound step) before the keyed
-grid runs — if the mechanism does not behave as designed, that is a stage-2
-finding to disclose, not to patch.
+mechanism claim is *verified, not assumed*, by two checks that precede any
+keyed trial — neither uses smoke (the frozen smoke scenarios contain no
+decoys) or held-out cells:
+
+- **Stage-1 fake-key canary** (part of the frozen test suite, never
+  evidence): a built-in decoy fixture — not a held-out scenario — run with
+  `--repair-mode llm` and a syntactically valid **fake key**. Required
+  observations: the cached click reports success at the act layer;
+  downstream behavior fails; `llmCalls === 0`; `healedSteps` empty; and no
+  provider/auth error occurs — the fake key proves no model call was even
+  *attempted*, which is exactly trigger-blindness.
+- **Keyless A/B/B2 grid** (§8 gate 3): decoy trials must fail without
+  repair activation (B2: empty `deterministicRepairSteps` on the rebound
+  step).
+
+If either check shows the mechanism does not behave as designed, that is a
+finding to disclose before the keyed grid — not to patch.
 
 ### Stratum K — categorical named conditions (no frontier language)
 
@@ -232,11 +247,12 @@ Compositions of ≥2 axes (e.g., `cards` × `headerVocab`; `classDriftLevel`
 × `decoyLevel`). Reported separately; never pooled with F or K; no
 frontier language. Sol declares each interaction cell explicitly.
 
-### Stratum S — secondary (non-frontier) strata
+### Stratum S — reserved, unused in Phase 2A
 
-Poison/corrupt-data, partial-data, and session-failure scenarios are
-labelled `stratum: "S"` and analyzed only as safety/robustness checks.
-**Primary strata (F, K, X) cells are `expected: success`, fresh-session,
+The `S` label (poison/corrupt-data, partial-data, session-failure) exists
+in the schema but the Phase-2A package contains **no S scenarios**:
+validator safety belongs to Phase 2B, under its own protocol and tag.
+**All Phase-2A cells (F, K, X) are `expected: success`, fresh-session,
 presentation/addressing perturbations only.**
 
 ### Timing (not an axis)
@@ -250,17 +266,38 @@ descriptively, not as a frontier.
 Sol's package is a machine-readable JSON plus its SHA-256, containing for
 each scenario: id, name, description, `chaos` flags and/or `params`
 (subject to §3 precedence), seed (reserved range **2201–2299**, disjoint
-from Phase 1), session mode, `expected`, `stratum` (`F1|F2|F3|K|X|S` with
-the condition/level identifier), and a predicted outcome per policy
-(A, B, B2, C, D). The package must include **at least two distinct seed
-instances per F-axis level** for any level a frontier claim will rest on
-(single-instance levels are reported but marked non-generalizing). The
-exact scenario count is frozen verbatim into the §10 appendix at reveal,
-before implementation.
+from Phase 1), session mode, `expected`, `stratum` (`F1|F2|F3|K|X` with
+the condition/level identifier), and a per-policy prediction (§4a).
+
+**Binding size and allocation: exactly 32 scenarios — 24 F + 4 K + 4 X.**
+The F allocation is two instances at every level of every series:
+F1 5 levels × 2 = 10, F2 4 levels × 2 = 8, F3 3 levels × 2 = 6.
+(S is omitted; §3.)
+
+**Paired seeds across levels.** The two instances of an F series use the
+**same two underlying seeds at every level** of that series, so that
+raising the level changes only the perturbation, never the generated page
+content. Seed reuse across scenarios is therefore intentional and the
+suite loader must permit it: **uniqueness is enforced on scenario ids,
+not on seeds.** Decoy copy/placement (F2) are likewise held constant
+across the levels of the series.
 
 Sol may compose any axes, params within declared ranges, and existing
 chaos flags. Sol may not request machinery changes — that is a stage-1
 amendment requiring a new policy tag and re-audit.
+
+### 4a. Prediction semantics (frozen)
+
+With N=5, "pass/fail" is ambiguous for a 4/5 cell. The prediction enum is:
+
+- `all-pass` — observed 5/5 judged-correct.
+- `observed-failure` — observed 0–4/5 (at least one judged failure).
+
+An optional free-text predicted mechanism/failure category may accompany
+either value and is scored descriptively. **Prediction misses are analysis
+results**: they are reported in full and can never fail the generic
+verifier, any gate, or the campaign — the verifier gates on `expected`
+only, never on predictions.
 
 ## 5. Stage-1 deliverables (implemented before the policy tag)
 
@@ -271,23 +308,32 @@ amendment requiring a new policy tag and re-audit.
 3. Axis machinery per §3, each param covered by lab render tests at fixed
    seeds, plus the precedence/contradiction validation.
 4. **Generic suite loader**: `--scenario-suite <path>` loads and validates
-   a scenario-suite JSON (schema, seed range, uniqueness, stratum labels,
+   a scenario-suite JSON (schema, seed range, **scenario-id uniqueness —
+   seeds may intentionally repeat across levels, §4**, stratum labels,
    precedence rules) and computes `suiteHash` = SHA-256 of the file bytes.
+   Runs on the built-in Phase-1 catalog record `suiteHash` as the SHA-256
+   of the catalog's canonical JSON serialization, computed by the same
+   code path.
 5. **Generic suite verifier** (replaces per-engine `verify.ts` editing —
    acceptance logic is frozen at stage 1): data-driven runner that, for
-   each scenario × policy, compares the judged outcome to `expected` and
-   to the prediction table. No per-scenario code, ever.
+   each scenario × policy, **gates on `expected` only**; the prediction
+   table is scored report-only (§4a — a miss can never fail the
+   verifier). No per-scenario code, ever.
 6. **Provenance**: `results.json` environment gains `protocolId`
    (`"phase2a-v1"`), `repairMode`, and `suiteHash`; the campaign
    aggregator refuses to aggregate runs with mixed `protocolId` or
    `suiteHash`.
 7. Diff-gate script (§6).
+8. **Fake-key decoy canary** (§3 F2): a built-in decoy fixture and a test
+   that runs it under `--repair-mode llm` with a fake key and asserts
+   act-layer success, downstream failure, `llmCalls === 0`, empty
+   `healedSteps`, and no provider/auth error. Never evidence; part of the
+   frozen suite.
 
 ## 6. Diff gate
 
-`scripts/diff-gate-2a.sh` diffs `phase2a-policy-freeze-v1` against
-`phase2a-suite-freeze-v1` and exits nonzero on any change outside this
-allowlist:
+`scripts/diff-gate-2a.sh` diffs `phase2a-policy-freeze-v1` against a
+given ref and exits nonzero on any change outside this allowlist:
 
 - `data/phase2a/scenario-suite.json` — sol's exact bytes; the commit
   message records sol's published SHA-256 and the gate re-verifies it.
@@ -296,9 +342,23 @@ allowlist:
 - `evidence/phase2a/diff-gate.txt` — the gate's own output.
 
 Explicitly **not** changeable at stage 2: anything under `packages/`,
-`apps/`, `scripts/`, tests, per-engine verify harnesses. The gate's output
-lives at the allowlisted `evidence/phase2a/diff-gate.txt` and is committed
-with the stage-2 evidence.
+`apps/`, `scripts/`, tests, per-engine verify harnesses.
+
+The §10 appendix is delimited by frozen literal markers
+(`<!-- PHASE2A-APPENDIX-START -->` / `<!-- PHASE2A-APPENDIX-END -->`,
+present and empty from stage 1), and the gate verifies that every byte of
+`docs/PROTOCOL_2A.md` outside that region is unchanged.
+
+**Executable stage-2 sequence (fixed; prevents gate/report circularity):**
+
+1. Commit sol's JSON and the §10 appendix — the *suite-candidate* commit.
+2. Run the gate against `phase2a-policy-freeze-v1..HEAD`; write
+   `evidence/phase2a/diff-gate.txt`.
+3. Commit the report.
+4. Rerun the gate. Because the gate **excludes its own allowlisted report
+   path from its calculation**, the rerun must produce byte-identical
+   output; any difference stops the process.
+5. Only then create `phase2a-suite-freeze-v1`.
 
 ## 7. The grid — fixed in advance
 
@@ -320,14 +380,18 @@ with the stage-2 evidence.
   on outcomes. A crashed sweep is preserved and rerun once, crash
   artifacts kept (Phase-1 operator rules apply unchanged). Keyless
   results, however surprising, cannot modify the keyed grid.
-- **Budget:** hard cap **$40** of model-inference spend. Projection:
-  ≤24 scenarios × 5 sweeps × 2 keyed policies at D ≈ $0.032 per trial
-  (Phase-1 observed average $0.0312) and C projected at $0.004–0.012 per
-  trial (above Phase-1's observed $0.0036 average, whose per-cell costs
-  ranged up to ≈$0.029 on repair-heavy scenarios, because near-boundary
-  trials fire more repairs) ≈ **$4.30–$5.30**. That is a projection, not
-  a bound; D extraction under heavy perturbation may also use more
-  tokens, so the actual number may exceed it. The **cap is the bound**: if
+- **Budget:** hard cap **$40** of model-inference spend, enforced
+  **pre-trial**: before each keyed trial the runner prices all recorded
+  tokens so far; the trial starts only if spend ≤ $40 minus a frozen
+  $0.10 per-trial worst-case reserve — the campaign can therefore never
+  overshoot the cap by a trial. Projection: 32 scenarios × 5 sweeps × 2
+  keyed policies at D ≈ $0.032 per trial (Phase-1 observed average
+  $0.0312) and C projected at $0.004–0.012 per trial (above Phase-1's
+  observed $0.0036 average, whose per-cell costs ranged up to ≈$0.029 on
+  repair-heavy scenarios, because near-boundary trials fire more repairs)
+  ≈ **$5.76–$7.04**. That is a projection, not a bound; D extraction
+  under heavy perturbation may also use more tokens, so the actual number
+  may exceed it. The **cap is the bound**: if
   hit, the campaign halts and is reported **incomplete**, and an
   incomplete grid supports no frontier claims. Declared now; not adaptive
   stopping.
@@ -348,7 +412,9 @@ with the stage-2 evidence.
    pass per policy; C heals `class-drift` (nonempty `healedSteps`,
    `llmCalls > 0`); D records `llmCalls > 0` with both token sides; all
    trials priced; stamps (`gitCommit`, `gitDirty: false`, `protocolId`,
-   `promptsHash`, `repairMode`) correct. Smoke is never evidence. Any
+   `promptsHash`, `repairMode`, and `suiteHash` — the built-in Phase-1
+   catalog hash, since smoke runs on that catalog; §5 item 4) correct.
+   Smoke is never evidence. Any
    smoke-driven code change invalidates the suite tag: new tag, new
    audit, new smoke.
 6. Campaign start. Model, pinned prices (2026-07-14), and
@@ -367,13 +433,16 @@ with the stage-2 evidence.
   modeled.
 - **Stratum S:** safety outcomes only (the three silent-corruption
   denominators D1/D2/D3 exactly as Phase 1 §7; safe- vs hard-failure
-  classes).
+  classes). No S scenarios exist in 2A (§3); the rule is stated for
+  completeness.
 - **Cost:** model-inference cost per successful workflow per cell (C, D);
   repair activation counts (`healedSteps` for C, `deterministicRepairSteps`
   for B2); zero-model-inference-cost policies reported at $0.00 with the
   phrase "zero model-inference cost" (compute/wall-clock is not costed).
-- **Predictions:** sol's frozen prediction table scored per cell — hits
-  and misses both reported, per policy.
+- **Predictions:** sol's frozen prediction table scored per cell under
+  the §4a semantics (`all-pass` ⇔ 5/5; `observed-failure` ⇔ 0–4/5) —
+  hits and misses both reported, per policy. Misses are analysis
+  results, never gate or verifier failures.
 - **Language rules (binding):** "matched/separated on this held-out grid",
   never "equivalent/superior in general". B2's failures bound *this
   implementation* of deterministic repair, not the concept. If every
@@ -384,7 +453,12 @@ with the stage-2 evidence.
 
 ## 10. Amendments
 
-None. (Stage 2 will add, as a dated appendix before any keyed trial: the
-revealed scenario table, sol's prediction table and package SHA-256, and
-the frozen scenario count. The diff-gate report is not part of the
-appendix — its single home is `evidence/phase2a/diff-gate.txt`, §6.)
+None. (Stage 2 will add, inside the markers below and before any keyed
+trial: the revealed scenario table, sol's prediction table and package
+SHA-256, and the frozen scenario count. The diff-gate report is not part
+of the appendix — its single home is `evidence/phase2a/diff-gate.txt`,
+§6. The gate verifies every byte of this file outside the marked region
+is unchanged from `phase2a-policy-freeze-v1`.)
+
+<!-- PHASE2A-APPENDIX-START -->
+<!-- PHASE2A-APPENDIX-END -->
