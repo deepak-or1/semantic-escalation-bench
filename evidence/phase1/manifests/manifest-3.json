@@ -1,0 +1,50 @@
+{
+  "generatedAt": "2026-07-20T20:19:00.243Z",
+  "selectionRule": "first-healed-trial-in-results-order",
+  "source": {
+    "benchId": "bench-2026-07-20T20-06-18-943Z",
+    "gitCommit": "a7c9cf59e9b05f61da5a3a7317d697c61dd52464",
+    "gitDirty": false,
+    "stagehandModel": "anthropic/claude-haiku-4-5",
+    "promptsHash": "5c07ce1fbc35431dce46022d8e4e23a52d5b649b7edd756abe19f1bf16345d99"
+  },
+  "scenarios": {
+    "class-drift": {
+      "cacheFile": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T20-06-18-943Z/trials/class-drift-hybrid-t1/artifacts/healed-cache.json",
+      "cacheSha256": "af93a6833ef9c8bc4eb8233f118855942ec4010bf9ea7b827139e21b51ec3915",
+      "trialRunId": "class-drift-hybrid-t1",
+      "engine": "hybrid",
+      "trial": 1,
+      "healedSteps": [
+        "login"
+      ],
+      "createdAt": "2026-07-20T20:08:51.110Z"
+    },
+    "site-v3": {
+      "cacheFile": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T20-06-18-943Z/trials/site-v3-hybrid-t1/artifacts/healed-cache.json",
+      "cacheSha256": "af93a6833ef9c8bc4eb8233f118855942ec4010bf9ea7b827139e21b51ec3915",
+      "trialRunId": "site-v3-hybrid-t1",
+      "engine": "hybrid",
+      "trial": 1,
+      "healedSteps": [
+        "login",
+        "extract-stats",
+        "extract-odds"
+      ],
+      "createdAt": "2026-07-20T20:08:51.110Z"
+    },
+    "compound-redesign-storm": {
+      "cacheFile": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T20-06-18-943Z/trials/compound-redesign-storm-hybrid-t1/artifacts/healed-cache.json",
+      "cacheSha256": "af93a6833ef9c8bc4eb8233f118855942ec4010bf9ea7b827139e21b51ec3915",
+      "trialRunId": "compound-redesign-storm-hybrid-t1",
+      "engine": "hybrid",
+      "trial": 1,
+      "healedSteps": [
+        "login",
+        "extract-stats",
+        "extract-odds"
+      ],
+      "createdAt": "2026-07-20T20:08:51.110Z"
+    }
+  }
+}

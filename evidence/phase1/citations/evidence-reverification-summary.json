@@ -1,0 +1,6 @@
+{
+ "checkedAt": "2026-07-20",
+ "checked": 28,
+ "flagged": 0,
+ "notes": "All 28 EVIDENCE.md citations verified: URLs live, claims supported, quotes verbatim. 27 were checked by the parallel re-verification sweep; the 28th (baseballr issue #408 \u2014 its bracketed title defeated the extraction regex) was caught by the writeup audit and verified individually: live, quote verbatim ('It appears that Savant has added a 119th column (miss_distance) recently that needs to be added.'). Two Stagehand docs pages initially reported paraphrase-only by the summarizing fetcher; raw-HTML curl re-checks confirmed both quotes bit-exact. No EVIDENCE.md changes needed."
+}

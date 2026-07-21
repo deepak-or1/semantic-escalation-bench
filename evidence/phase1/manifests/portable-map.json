@@ -1,0 +1,102 @@
+{
+ "manifest-1.json": {
+  "manifestSha256": "632a62c7f1cbb45d0c9a243fe7d9c4e50c8b7c159a6ec4d7dac00a3c59f38b28",
+  "scenarios": {
+   "class-drift": {
+    "cacheSha256": "af93a6833ef9c8bc4eb8233f118855942ec4010bf9ea7b827139e21b51ec3915",
+    "bundlePath": "caches/af93a6833ef9c8bc4eb8233f118855942ec4010bf9ea7b827139e21b51ec3915.json",
+    "originalPath": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T20-01-04-151Z/trials/class-drift-hybrid-t1/artifacts/healed-cache.json"
+   },
+   "site-v3": {
+    "cacheSha256": "af93a6833ef9c8bc4eb8233f118855942ec4010bf9ea7b827139e21b51ec3915",
+    "bundlePath": "caches/af93a6833ef9c8bc4eb8233f118855942ec4010bf9ea7b827139e21b51ec3915.json",
+    "originalPath": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T20-01-04-151Z/trials/site-v3-hybrid-t1/artifacts/healed-cache.json"
+   },
+   "compound-redesign-storm": {
+    "cacheSha256": "af93a6833ef9c8bc4eb8233f118855942ec4010bf9ea7b827139e21b51ec3915",
+    "bundlePath": "caches/af93a6833ef9c8bc4eb8233f118855942ec4010bf9ea7b827139e21b51ec3915.json",
+    "originalPath": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T20-01-04-151Z/trials/compound-redesign-storm-hybrid-t1/artifacts/healed-cache.json"
+   }
+  }
+ },
+ "manifest-2.json": {
+  "manifestSha256": "64cb439c59c3a24dda626155f49927bd160567b19ffb79a0fd3c10d436d5e260",
+  "scenarios": {
+   "class-drift": {
+    "cacheSha256": "af93a6833ef9c8bc4eb8233f118855942ec4010bf9ea7b827139e21b51ec3915",
+    "bundlePath": "caches/af93a6833ef9c8bc4eb8233f118855942ec4010bf9ea7b827139e21b51ec3915.json",
+    "originalPath": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T20-03-41-665Z/trials/class-drift-hybrid-t1/artifacts/healed-cache.json"
+   },
+   "site-v3": {
+    "cacheSha256": "af93a6833ef9c8bc4eb8233f118855942ec4010bf9ea7b827139e21b51ec3915",
+    "bundlePath": "caches/af93a6833ef9c8bc4eb8233f118855942ec4010bf9ea7b827139e21b51ec3915.json",
+    "originalPath": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T20-03-41-665Z/trials/site-v3-hybrid-t1/artifacts/healed-cache.json"
+   },
+   "compound-redesign-storm": {
+    "cacheSha256": "af93a6833ef9c8bc4eb8233f118855942ec4010bf9ea7b827139e21b51ec3915",
+    "bundlePath": "caches/af93a6833ef9c8bc4eb8233f118855942ec4010bf9ea7b827139e21b51ec3915.json",
+    "originalPath": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T20-03-41-665Z/trials/compound-redesign-storm-hybrid-t1/artifacts/healed-cache.json"
+   }
+  }
+ },
+ "manifest-3.json": {
+  "manifestSha256": "59f28076574767ae2e9f27f0aa8f715761c4147ca70bfa55233c328fe669829a",
+  "scenarios": {
+   "class-drift": {
+    "cacheSha256": "af93a6833ef9c8bc4eb8233f118855942ec4010bf9ea7b827139e21b51ec3915",
+    "bundlePath": "caches/af93a6833ef9c8bc4eb8233f118855942ec4010bf9ea7b827139e21b51ec3915.json",
+    "originalPath": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T20-06-18-943Z/trials/class-drift-hybrid-t1/artifacts/healed-cache.json"
+   },
+   "site-v3": {
+    "cacheSha256": "af93a6833ef9c8bc4eb8233f118855942ec4010bf9ea7b827139e21b51ec3915",
+    "bundlePath": "caches/af93a6833ef9c8bc4eb8233f118855942ec4010bf9ea7b827139e21b51ec3915.json",
+    "originalPath": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T20-06-18-943Z/trials/site-v3-hybrid-t1/artifacts/healed-cache.json"
+   },
+   "compound-redesign-storm": {
+    "cacheSha256": "af93a6833ef9c8bc4eb8233f118855942ec4010bf9ea7b827139e21b51ec3915",
+    "bundlePath": "caches/af93a6833ef9c8bc4eb8233f118855942ec4010bf9ea7b827139e21b51ec3915.json",
+    "originalPath": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T20-06-18-943Z/trials/compound-redesign-storm-hybrid-t1/artifacts/healed-cache.json"
+   }
+  }
+ },
+ "manifest-4.json": {
+  "manifestSha256": "ca3a77b0837a0fc86cfda13289bbdc118814718d79e1477def5e4fea8f405954",
+  "scenarios": {
+   "class-drift": {
+    "cacheSha256": "af93a6833ef9c8bc4eb8233f118855942ec4010bf9ea7b827139e21b51ec3915",
+    "bundlePath": "caches/af93a6833ef9c8bc4eb8233f118855942ec4010bf9ea7b827139e21b51ec3915.json",
+    "originalPath": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T20-08-52-496Z/trials/class-drift-hybrid-t1/artifacts/healed-cache.json"
+   },
+   "site-v3": {
+    "cacheSha256": "af93a6833ef9c8bc4eb8233f118855942ec4010bf9ea7b827139e21b51ec3915",
+    "bundlePath": "caches/af93a6833ef9c8bc4eb8233f118855942ec4010bf9ea7b827139e21b51ec3915.json",
+    "originalPath": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T20-08-52-496Z/trials/site-v3-hybrid-t1/artifacts/healed-cache.json"
+   },
+   "compound-redesign-storm": {
+    "cacheSha256": "af93a6833ef9c8bc4eb8233f118855942ec4010bf9ea7b827139e21b51ec3915",
+    "bundlePath": "caches/af93a6833ef9c8bc4eb8233f118855942ec4010bf9ea7b827139e21b51ec3915.json",
+    "originalPath": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T20-08-52-496Z/trials/compound-redesign-storm-hybrid-t1/artifacts/healed-cache.json"
+   }
+  }
+ },
+ "manifest-5.json": {
+  "manifestSha256": "9af7283089f7ba947b12be72bc8cea29be94cbc10fade0543819a508b115709a",
+  "scenarios": {
+   "class-drift": {
+    "cacheSha256": "af93a6833ef9c8bc4eb8233f118855942ec4010bf9ea7b827139e21b51ec3915",
+    "bundlePath": "caches/af93a6833ef9c8bc4eb8233f118855942ec4010bf9ea7b827139e21b51ec3915.json",
+    "originalPath": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T20-11-29-594Z/trials/class-drift-hybrid-t1/artifacts/healed-cache.json"
+   },
+   "site-v3": {
+    "cacheSha256": "af93a6833ef9c8bc4eb8233f118855942ec4010bf9ea7b827139e21b51ec3915",
+    "bundlePath": "caches/af93a6833ef9c8bc4eb8233f118855942ec4010bf9ea7b827139e21b51ec3915.json",
+    "originalPath": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T20-11-29-594Z/trials/site-v3-hybrid-t1/artifacts/healed-cache.json"
+   },
+   "compound-redesign-storm": {
+    "cacheSha256": "af93a6833ef9c8bc4eb8233f118855942ec4010bf9ea7b827139e21b51ec3915",
+    "bundlePath": "caches/af93a6833ef9c8bc4eb8233f118855942ec4010bf9ea7b827139e21b51ec3915.json",
+    "originalPath": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T20-11-29-594Z/trials/compound-redesign-storm-hybrid-t1/artifacts/healed-cache.json"
+   }
+  }
+ }
+}

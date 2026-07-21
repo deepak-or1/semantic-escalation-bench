@@ -1,0 +1,1619 @@
+{
+  "benchId": "bench-2026-07-20T20-08-52-496Z",
+  "createdAt": "2026-07-20T20:11:28.166Z",
+  "labUrl": "http://127.0.0.1:57972",
+  "trialsPerScenario": 1,
+  "scenarios": [
+    {
+      "id": "clean-extraction",
+      "name": "Clean login + extraction",
+      "description": "No chaos. Fresh login, then extract stats and odds.",
+      "chaos": [],
+      "seed": 1101,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core"
+    },
+    {
+      "id": "session-reuse",
+      "name": "Existing session reuse",
+      "description": "The browser starts with a valid saved session; the agent should reach the data without seeing the login form.",
+      "chaos": [],
+      "seed": 1102,
+      "session": "reuse",
+      "expected": "success",
+      "group": "core"
+    },
+    {
+      "id": "expired-session",
+      "name": "Expired session re-login",
+      "description": "A saved session is force-expired server-side; the agent must notice the redirect and log in again.",
+      "chaos": [],
+      "seed": 1103,
+      "session": "expired",
+      "expected": "success",
+      "group": "core"
+    },
+    {
+      "id": "cookie-banner",
+      "name": "Cookie banner blocks table",
+      "description": "A consent banner overlays the page and intercepts clicks until accepted.",
+      "chaos": [
+        "cookieBanner"
+      ],
+      "seed": 1104,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core"
+    },
+    {
+      "id": "modal-overlay",
+      "name": "Modal overlay blocks table",
+      "description": "A newsletter modal appears shortly after load and must be dismissed to reach the content.",
+      "chaos": [
+        "modal"
+      ],
+      "seed": 1105,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core"
+    },
+    {
+      "id": "delayed-render",
+      "name": "Delayed table render",
+      "description": "Tables render client-side behind a skeleton after a seeded 1.5–4s delay.",
+      "chaos": [
+        "delayedRender"
+      ],
+      "seed": 1106,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core"
+    },
+    {
+      "id": "network-slowdown",
+      "name": "Network slowdown",
+      "description": "Every response is delayed by a seeded 0.5–2.5s latency.",
+      "chaos": [
+        "networkDelay"
+      ],
+      "seed": 1107,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core"
+    },
+    {
+      "id": "class-drift",
+      "name": "CSS class drift",
+      "description": "All CSS class names carry a seed-derived suffix; ids and data-testids are removed.",
+      "chaos": [
+        "classDrift"
+      ],
+      "seed": 1108,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core"
+    },
+    {
+      "id": "column-shuffle",
+      "name": "Changed column order",
+      "description": "Stats table columns are deterministically permuted.",
+      "chaos": [
+        "columnShuffle"
+      ],
+      "seed": 1109,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core"
+    },
+    {
+      "id": "layout-variant",
+      "name": "DOM layout change",
+      "description": "Stats render as a card grid instead of a table; odds switch to a stacked list.",
+      "chaos": [
+        "layoutVariant"
+      ],
+      "seed": 1110,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core"
+    },
+    {
+      "id": "hidden-tab",
+      "name": "Hidden tab required",
+      "description": "Season stats live behind a non-default tab that must be clicked first.",
+      "chaos": [
+        "hiddenTab"
+      ],
+      "seed": 1111,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core"
+    },
+    {
+      "id": "pagination",
+      "name": "Pagination required",
+      "description": "The stats table shows 5 rows per page; the rest require clicking Next.",
+      "chaos": [
+        "pagination"
+      ],
+      "seed": 1112,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core"
+    },
+    {
+      "id": "partial-data",
+      "name": "Partial data missing",
+      "description": "A few cells render as em-dashes; extraction should degrade gracefully with explicit warnings, not fail.",
+      "chaos": [
+        "partialData"
+      ],
+      "seed": 1113,
+      "session": "fresh",
+      "expected": "success-with-warnings",
+      "group": "core"
+    },
+    {
+      "id": "copy-drift",
+      "name": "Page copy changes",
+      "description": "Headings, labels and button text are swapped for synonyms between runs.",
+      "chaos": [
+        "copyDrift"
+      ],
+      "seed": 1114,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core"
+    },
+    {
+      "id": "odds-format-american",
+      "name": "Odds format variation",
+      "description": "Odds display as American moneyline (+120 / -145) instead of decimal and must be normalised.",
+      "chaos": [
+        "oddsFormatAmerican"
+      ],
+      "seed": 1115,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core"
+    },
+    {
+      "id": "stale-session",
+      "name": "Stale session mid-flow",
+      "description": "The session is invalidated server-side after the first authenticated page view; the agent is bounced to login between the stats and odds pages and must recover.",
+      "chaos": [
+        "staleSession"
+      ],
+      "seed": 1117,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core"
+    },
+    {
+      "id": "schema-violation",
+      "name": "Corrupt data → validation failure",
+      "description": "The page serves malformed values (negative played, inconsistent W/D/L, unparseable odds). Correct behaviour is a clean, categorised validation failure — not silently bad data.",
+      "chaos": [
+        "corruptData"
+      ],
+      "seed": 1116,
+      "session": "fresh",
+      "expected": "validation-failure",
+      "group": "core"
+    },
+    {
+      "id": "site-v1",
+      "name": "Site version 1 (launch)",
+      "description": "The stat site exactly as every engine's author first saw it: stable ids, one standings table, decimal odds. The clean baseline the survival curve starts from.",
+      "chaos": [],
+      "seed": 1118,
+      "session": "fresh",
+      "expected": "success",
+      "group": "survival"
+    },
+    {
+      "id": "site-v2",
+      "name": "Site version 2 (content refresh)",
+      "description": "A routine content pass: headings and button labels are reworded and the stats columns are reordered. No rebuild — but positional selectors now read the wrong column.",
+      "chaos": [
+        "copyDrift",
+        "columnShuffle"
+      ],
+      "seed": 1119,
+      "session": "fresh",
+      "expected": "success",
+      "group": "survival"
+    },
+    {
+      "id": "site-v3",
+      "name": "Site version 3 (redesign)",
+      "description": "A full front-end rebuild: hashed CSS classes, ids gone, copy reworded, and the standings move from a table to a card grid. Only structure-blind reading still gets through.",
+      "chaos": [
+        "copyDrift",
+        "classDrift",
+        "layoutVariant"
+      ],
+      "seed": 1120,
+      "session": "fresh",
+      "expected": "success",
+      "group": "survival"
+    },
+    {
+      "id": "compound-blocked-and-slow",
+      "name": "Blocked and slow",
+      "description": "A consent banner and a newsletter modal both block the page while the tables render late behind throttled responses — four obstacles stacked on one clean dataset.",
+      "chaos": [
+        "cookieBanner",
+        "modal",
+        "delayedRender",
+        "networkDelay"
+      ],
+      "seed": 1121,
+      "session": "fresh",
+      "expected": "success",
+      "group": "compound"
+    },
+    {
+      "id": "compound-session-churn",
+      "name": "Session churn",
+      "description": "The session drops between the stats and odds pages, the standings span three paginated views, and odds arrive as American moneyline: recover, page through, and normalise.",
+      "chaos": [
+        "staleSession",
+        "pagination",
+        "oddsFormatAmerican"
+      ],
+      "seed": 1122,
+      "session": "fresh",
+      "expected": "success",
+      "group": "compound"
+    },
+    {
+      "id": "compound-messy-data-day",
+      "name": "Messy data day",
+      "description": "A newsletter modal over a slow page hiding partial data — several cells render as em-dashes. Correct behaviour is to dismiss, wait, and degrade with explicit warnings, not fail.",
+      "chaos": [
+        "partialData",
+        "networkDelay",
+        "modal"
+      ],
+      "seed": 1123,
+      "session": "fresh",
+      "expected": "success-with-warnings",
+      "group": "compound"
+    },
+    {
+      "id": "compound-redesign-storm",
+      "name": "Redesign storm",
+      "description": "Everything a redesign throws at once: hashed classes with ids removed, reworded copy, and a card-grid layout. Only semantic reading gets through it unaided.",
+      "chaos": [
+        "classDrift",
+        "copyDrift",
+        "layoutVariant"
+      ],
+      "seed": 1124,
+      "session": "fresh",
+      "expected": "success",
+      "group": "compound"
+    }
+  ],
+  "trials": [
+    {
+      "scenarioId": "clean-extraction",
+      "engine": "hybrid",
+      "trial": 1,
+      "runId": "clean-extraction-hybrid-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 2190,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-20T20-08-52-496Z/trials/clean-extraction-hybrid-t1",
+      "tokens": {
+        "llmCalls": 0,
+        "inputTokens": 0,
+        "outputTokens": 0
+      }
+    },
+    {
+      "scenarioId": "session-reuse",
+      "engine": "hybrid",
+      "trial": 1,
+      "runId": "session-reuse-hybrid-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 1909,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-20T20-08-52-496Z/trials/session-reuse-hybrid-t1",
+      "tokens": {
+        "llmCalls": 0,
+        "inputTokens": 0,
+        "outputTokens": 0
+      }
+    },
+    {
+      "scenarioId": "expired-session",
+      "engine": "hybrid",
+      "trial": 1,
+      "runId": "expired-session-hybrid-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 2176,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-20T20-08-52-496Z/trials/expired-session-hybrid-t1",
+      "tokens": {
+        "llmCalls": 0,
+        "inputTokens": 0,
+        "outputTokens": 0
+      }
+    },
+    {
+      "scenarioId": "cookie-banner",
+      "engine": "hybrid",
+      "trial": 1,
+      "runId": "cookie-banner-hybrid-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 2213,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-20T20-08-52-496Z/trials/cookie-banner-hybrid-t1",
+      "tokens": {
+        "llmCalls": 0,
+        "inputTokens": 0,
+        "outputTokens": 0
+      }
+    },
+    {
+      "scenarioId": "modal-overlay",
+      "engine": "hybrid",
+      "trial": 1,
+      "runId": "modal-overlay-hybrid-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 2160,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-20T20-08-52-496Z/trials/modal-overlay-hybrid-t1",
+      "tokens": {
+        "llmCalls": 0,
+        "inputTokens": 0,
+        "outputTokens": 0
+      }
+    },
+    {
+      "scenarioId": "delayed-render",
+      "engine": "hybrid",
+      "trial": 1,
+      "runId": "delayed-render-hybrid-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 7440,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-20T20-08-52-496Z/trials/delayed-render-hybrid-t1",
+      "tokens": {
+        "llmCalls": 0,
+        "inputTokens": 0,
+        "outputTokens": 0
+      }
+    },
+    {
+      "scenarioId": "network-slowdown",
+      "engine": "hybrid",
+      "trial": 1,
+      "runId": "network-slowdown-hybrid-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 10396,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-20T20-08-52-496Z/trials/network-slowdown-hybrid-t1",
+      "tokens": {
+        "llmCalls": 0,
+        "inputTokens": 0,
+        "outputTokens": 0
+      }
+    },
+    {
+      "scenarioId": "class-drift",
+      "engine": "hybrid",
+      "trial": 1,
+      "runId": "class-drift-hybrid-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "recovered",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 5553,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-20T20-08-52-496Z/trials/class-drift-hybrid-t1",
+      "tokens": {
+        "llmCalls": 3,
+        "inputTokens": 4676,
+        "outputTokens": 202
+      },
+      "healedSteps": [
+        "login"
+      ]
+    },
+    {
+      "scenarioId": "column-shuffle",
+      "engine": "hybrid",
+      "trial": 1,
+      "runId": "column-shuffle-hybrid-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 2189,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-20T20-08-52-496Z/trials/column-shuffle-hybrid-t1",
+      "tokens": {
+        "llmCalls": 0,
+        "inputTokens": 0,
+        "outputTokens": 0
+      }
+    },
+    {
+      "scenarioId": "layout-variant",
+      "engine": "hybrid",
+      "trial": 1,
+      "runId": "layout-variant-hybrid-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "recovered",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 17116,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-20T20-08-52-496Z/trials/layout-variant-hybrid-t1",
+      "tokens": {
+        "llmCalls": 2,
+        "inputTokens": 12369,
+        "outputTokens": 2228
+      },
+      "healedSteps": [
+        "extract-stats",
+        "extract-odds"
+      ]
+    },
+    {
+      "scenarioId": "hidden-tab",
+      "engine": "hybrid",
+      "trial": 1,
+      "runId": "hidden-tab-hybrid-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 10610,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-20T20-08-52-496Z/trials/hidden-tab-hybrid-t1",
+      "tokens": {
+        "llmCalls": 0,
+        "inputTokens": 0,
+        "outputTokens": 0
+      }
+    },
+    {
+      "scenarioId": "pagination",
+      "engine": "hybrid",
+      "trial": 1,
+      "runId": "pagination-hybrid-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 3464,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-20T20-08-52-496Z/trials/pagination-hybrid-t1",
+      "tokens": {
+        "llmCalls": 0,
+        "inputTokens": 0,
+        "outputTokens": 0
+      }
+    },
+    {
+      "scenarioId": "partial-data",
+      "engine": "hybrid",
+      "trial": 1,
+      "runId": "partial-data-hybrid-t1",
+      "outcome": "pass",
+      "outcomeReason": "success-with-warnings: succeeded with 5 warning(s) (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 28,
+          "fieldMatches": 28,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 2147,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-20T20-08-52-496Z/trials/partial-data-hybrid-t1",
+      "tokens": {
+        "llmCalls": 0,
+        "inputTokens": 0,
+        "outputTokens": 0
+      }
+    },
+    {
+      "scenarioId": "copy-drift",
+      "engine": "hybrid",
+      "trial": 1,
+      "runId": "copy-drift-hybrid-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 2184,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-20T20-08-52-496Z/trials/copy-drift-hybrid-t1",
+      "tokens": {
+        "llmCalls": 0,
+        "inputTokens": 0,
+        "outputTokens": 0
+      }
+    },
+    {
+      "scenarioId": "odds-format-american",
+      "engine": "hybrid",
+      "trial": 1,
+      "runId": "odds-format-american-hybrid-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 2028,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-20T20-08-52-496Z/trials/odds-format-american-hybrid-t1",
+      "tokens": {
+        "llmCalls": 0,
+        "inputTokens": 0,
+        "outputTokens": 0
+      }
+    },
+    {
+      "scenarioId": "stale-session",
+      "engine": "hybrid",
+      "trial": 1,
+      "runId": "stale-session-hybrid-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 2447,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-20T20-08-52-496Z/trials/stale-session-hybrid-t1",
+      "tokens": {
+        "llmCalls": 0,
+        "inputTokens": 0,
+        "outputTokens": 0
+      }
+    },
+    {
+      "scenarioId": "schema-violation",
+      "engine": "hybrid",
+      "trial": 1,
+      "runId": "schema-violation-hybrid-t1",
+      "outcome": "pass",
+      "outcomeReason": "validation-failure: clean categorised validation failure as expected",
+      "outcomeClass": "safe-failure",
+      "pipelineSuccess": false,
+      "extractionSuccess": true,
+      "validationSuccess": false,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 11,
+          "fieldChecks": 43,
+          "fieldMatches": 43,
+          "rowCoverage": 0.9166666666666666,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 0.9166666666666666
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 27,
+          "fieldMatches": 27,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 0.9583333333333333
+      },
+      "durationMs": 2147,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "failureCategory": "validation",
+      "failureDetail": "Ironbridge FC: played Number must be greater than 0 | Farrow Wanderers: W+D+L (30+5+12) != played (22)",
+      "artifactsDir": "runs/bench-2026-07-20T20-08-52-496Z/trials/schema-violation-hybrid-t1",
+      "tokens": {
+        "llmCalls": 0,
+        "inputTokens": 0,
+        "outputTokens": 0
+      }
+    },
+    {
+      "scenarioId": "site-v1",
+      "engine": "hybrid",
+      "trial": 1,
+      "runId": "site-v1-hybrid-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 2231,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-20T20-08-52-496Z/trials/site-v1-hybrid-t1",
+      "tokens": {
+        "llmCalls": 0,
+        "inputTokens": 0,
+        "outputTokens": 0
+      }
+    },
+    {
+      "scenarioId": "site-v2",
+      "engine": "hybrid",
+      "trial": 1,
+      "runId": "site-v2-hybrid-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 2143,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-20T20-08-52-496Z/trials/site-v2-hybrid-t1",
+      "tokens": {
+        "llmCalls": 0,
+        "inputTokens": 0,
+        "outputTokens": 0
+      }
+    },
+    {
+      "scenarioId": "site-v3",
+      "engine": "hybrid",
+      "trial": 1,
+      "runId": "site-v3-hybrid-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "recovered",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 22281,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-20T20-08-52-496Z/trials/site-v3-hybrid-t1",
+      "tokens": {
+        "llmCalls": 5,
+        "inputTokens": 17044,
+        "outputTokens": 2445
+      },
+      "healedSteps": [
+        "login",
+        "extract-stats",
+        "extract-odds"
+      ]
+    },
+    {
+      "scenarioId": "compound-blocked-and-slow",
+      "engine": "hybrid",
+      "trial": 1,
+      "runId": "compound-blocked-and-slow-hybrid-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 18338,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-20T20-08-52-496Z/trials/compound-blocked-and-slow-hybrid-t1",
+      "tokens": {
+        "llmCalls": 0,
+        "inputTokens": 0,
+        "outputTokens": 0
+      }
+    },
+    {
+      "scenarioId": "compound-session-churn",
+      "engine": "hybrid",
+      "trial": 1,
+      "runId": "compound-session-churn-hybrid-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 3656,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-20T20-08-52-496Z/trials/compound-session-churn-hybrid-t1",
+      "tokens": {
+        "llmCalls": 0,
+        "inputTokens": 0,
+        "outputTokens": 0
+      }
+    },
+    {
+      "scenarioId": "compound-messy-data-day",
+      "engine": "hybrid",
+      "trial": 1,
+      "runId": "compound-messy-data-day-hybrid-t1",
+      "outcome": "pass",
+      "outcomeReason": "success-with-warnings: succeeded with 5 warning(s) (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 28,
+          "fieldMatches": 28,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 8573,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-20T20-08-52-496Z/trials/compound-messy-data-day-hybrid-t1",
+      "tokens": {
+        "llmCalls": 0,
+        "inputTokens": 0,
+        "outputTokens": 0
+      }
+    },
+    {
+      "scenarioId": "compound-redesign-storm",
+      "engine": "hybrid",
+      "trial": 1,
+      "runId": "compound-redesign-storm-hybrid-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "recovered",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 19911,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-20T20-08-52-496Z/trials/compound-redesign-storm-hybrid-t1",
+      "tokens": {
+        "llmCalls": 5,
+        "inputTokens": 17033,
+        "outputTokens": 2373
+      },
+      "healedSteps": [
+        "login",
+        "extract-stats",
+        "extract-odds"
+      ]
+    }
+  ],
+  "engines": [
+    {
+      "engine": "hybrid",
+      "trials": 24,
+      "taskSuccessRate": 1,
+      "extractionSuccessRate": 1,
+      "validationSuccessRate": 0.9583333333333334,
+      "meanAccuracy": 0.9982638888888888,
+      "meanDurationMs": 6479.25,
+      "totalRetries": 0,
+      "recovery": {
+        "firstAttemptFailures": 0,
+        "recovered": 0,
+        "recoveryRate": null
+      },
+      "retryRecoveries": 0,
+      "failuresByCategory": {
+        "validation": 1
+      },
+      "outcomeClasses": {
+        "pass": 19,
+        "recovered": 4,
+        "safe-failure": 1
+      },
+      "silentCorruptionRate": 0,
+      "tokens": {
+        "llmCalls": 15,
+        "inputTokens": 51122,
+        "outputTokens": 7248
+      },
+      "healedTrials": 4
+    }
+  ],
+  "comparison": [
+    {
+      "scenarioId": "clean-extraction",
+      "results": {
+        "hybrid": "pass"
+      }
+    },
+    {
+      "scenarioId": "session-reuse",
+      "results": {
+        "hybrid": "pass"
+      }
+    },
+    {
+      "scenarioId": "expired-session",
+      "results": {
+        "hybrid": "pass"
+      }
+    },
+    {
+      "scenarioId": "cookie-banner",
+      "results": {
+        "hybrid": "pass"
+      }
+    },
+    {
+      "scenarioId": "modal-overlay",
+      "results": {
+        "hybrid": "pass"
+      }
+    },
+    {
+      "scenarioId": "delayed-render",
+      "results": {
+        "hybrid": "pass"
+      }
+    },
+    {
+      "scenarioId": "network-slowdown",
+      "results": {
+        "hybrid": "pass"
+      }
+    },
+    {
+      "scenarioId": "class-drift",
+      "results": {
+        "hybrid": "pass"
+      }
+    },
+    {
+      "scenarioId": "column-shuffle",
+      "results": {
+        "hybrid": "pass"
+      }
+    },
+    {
+      "scenarioId": "layout-variant",
+      "results": {
+        "hybrid": "pass"
+      }
+    },
+    {
+      "scenarioId": "hidden-tab",
+      "results": {
+        "hybrid": "pass"
+      }
+    },
+    {
+      "scenarioId": "pagination",
+      "results": {
+        "hybrid": "pass"
+      }
+    },
+    {
+      "scenarioId": "partial-data",
+      "results": {
+        "hybrid": "pass"
+      }
+    },
+    {
+      "scenarioId": "copy-drift",
+      "results": {
+        "hybrid": "pass"
+      }
+    },
+    {
+      "scenarioId": "odds-format-american",
+      "results": {
+        "hybrid": "pass"
+      }
+    },
+    {
+      "scenarioId": "stale-session",
+      "results": {
+        "hybrid": "pass"
+      }
+    },
+    {
+      "scenarioId": "schema-violation",
+      "results": {
+        "hybrid": "pass"
+      }
+    },
+    {
+      "scenarioId": "site-v1",
+      "results": {
+        "hybrid": "pass"
+      }
+    },
+    {
+      "scenarioId": "site-v2",
+      "results": {
+        "hybrid": "pass"
+      }
+    },
+    {
+      "scenarioId": "site-v3",
+      "results": {
+        "hybrid": "pass"
+      }
+    },
+    {
+      "scenarioId": "compound-blocked-and-slow",
+      "results": {
+        "hybrid": "pass"
+      }
+    },
+    {
+      "scenarioId": "compound-session-churn",
+      "results": {
+        "hybrid": "pass"
+      }
+    },
+    {
+      "scenarioId": "compound-messy-data-day",
+      "results": {
+        "hybrid": "pass"
+      }
+    },
+    {
+      "scenarioId": "compound-redesign-storm",
+      "results": {
+        "hybrid": "pass"
+      }
+    }
+  ],
+  "environment": {
+    "node": "v20.14.0",
+    "stagehandVersion": "3.6.0",
+    "stagehandModel": "anthropic/claude-haiku-4-5",
+    "modelProvider": "anthropic",
+    "browserbase": false,
+    "gitCommit": "a7c9cf59e9b05f61da5a3a7317d697c61dd52464",
+    "gitDirty": false,
+    "disableRepair": false,
+    "seedCacheMode": "none",
+    "seedCacheHash": null,
+    "runPurpose": "cold",
+    "promptsHash": "5c07ce1fbc35431dce46022d8e4e23a52d5b649b7edd756abe19f1bf16345d99",
+    "lockfileHash": "b6f0dd3ad6190377983d2983cfae91216e98463d02b7b5a3948766263a2f0349"
+  }
+}

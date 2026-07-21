@@ -1,0 +1,220 @@
+{
+ "description": "Maps each EVIDENCE.md citation (document order) to its re-verification record in evidence-reverification-journal.jsonl. journalKey matches the `key` field of the journal's started/result pair; addenda list result-addendum records for the same URL (an addendum supersedes the sweep verdict where both exist). Citation ordinals follow **Source:** lines in docs/EVIDENCE.md.",
+ "generatedAt": "2026-07-20",
+ "citations": [
+  {
+   "ordinal": 1,
+   "title": "FAQs | styled-components",
+   "url": "https://styled-components.com/docs/faqs",
+   "journalKey": "v2:d9151539b7dc6ab4fae906d4c0aebe1830d45a7c87f6e559675c4d44da3f85ca",
+   "addenda": []
+  },
+  {
+   "ordinal": 2,
+   "title": "GitHub - webpack/css-loader: CSS Loader",
+   "url": "https://github.com/webpack/css-loader",
+   "journalKey": "v2:7b3bb56b013bff1a673caf5a99399d551473b0afc6c961927c2d45f11681774f",
+   "addenda": []
+  },
+  {
+   "ordinal": 3,
+   "title": "Web Scraping with Class Name Mangling",
+   "url": "https://datawookie.dev/blog/2024/01/scraping-with-class-name-mangling/",
+   "journalKey": "v2:db270e7aaa3e97c749b8415865e56bb24eb638624cf4d9dfacb60ecbff467f85",
+   "addenda": []
+  },
+  {
+   "ordinal": 4,
+   "title": "7 bite-sized tips for reliable web automation and scraping selectors",
+   "url": "https://blog.pixiebrix.com/blog/7-bite-sized-tips-for-reliable-web-automation-and-scraping-selectors",
+   "journalKey": "v2:330b2f95bebcfa8c477c38be1972ace5f449e2dda3a51626948480ae2ba5978f",
+   "addenda": []
+  },
+  {
+   "ordinal": 5,
+   "title": "Ultimate CSS Selector Cheatsheet for Web Scraping and HTML Parsing",
+   "url": "https://scrapfly.io/blog/posts/css-selector-cheatsheet",
+   "journalKey": "v2:6d249ccd560a29d599b6bcdb3a31e9ad051b43ea706ab43ff2a10629a2c76531",
+   "addenda": []
+  },
+  {
+   "ordinal": 6,
+   "title": "Creating a friction-free Experience when experimenting on SPA | VWO",
+   "url": "https://vwo.com/blog/how-vwo-makes-experimentation-on-spa-friction-free/",
+   "journalKey": "v2:e265e73947262fa0888f3070b24d033bdcd5ba370a19eaa9a53d36bb5e8dc388",
+   "addenda": []
+  },
+  {
+   "ordinal": 7,
+   "title": "Responsive Data Tables | CSS-Tricks",
+   "url": "https://css-tricks.com/responsive-data-tables/",
+   "journalKey": "v2:4420b3751d642b986015509f4d1636ab9c5f17d86961b6f128654ca1f41ed34a",
+   "addenda": []
+  },
+  {
+   "ordinal": 8,
+   "title": "Scraping Micro-Interactions - Tracking UX Experiments and A/B Variants | ScrapingAnt",
+   "url": "https://scrapingant.com/blog/scraping-micro-interactions-tracking-ux-experiments-and-a-b",
+   "journalKey": "v2:728e16ffa0a098e4e8911f206a746e063c9a9c7b5b88639fccdd9065425f8486",
+   "addenda": []
+  },
+  {
+   "ordinal": 9,
+   "title": "fix(statcast): recognize Savant's miss_distance column (#408) by cfarese \u00b7 Pull Request #412 \u00b7 BillPetti/baseballr \u00b7 GitHub",
+   "url": "https://github.com/BillPetti/baseballr/pull/412",
+   "journalKey": "v2:2fe72001f5c2d192d3c36b4cc18ce51db0647a8c0c24715ebceeaa4f21069c90",
+   "addenda": []
+  },
+  {
+   "ordinal": 10,
+   "title": "Bug]: BaseballSavant added 119th column (miss_distance) \u00b7 Issue #408 \u00b7 BillPetti/baseballr \u00b7 GitHub",
+   "url": "https://github.com/BillPetti/baseballr/issues/408",
+   "journalKey": null,
+   "addenda": [
+    {
+     "journalLine": 55,
+     "url": "https://github.com/BillPetti/baseballr/issues/408",
+     "addedAt": "2026-07-20"
+    }
+   ]
+  },
+  {
+   "ordinal": 11,
+   "title": "Locators | Playwright",
+   "url": "https://playwright.dev/docs/locators",
+   "journalKey": "v2:b07828988f39ef8c724583234299e0b46d73ea35b9d1237442c50ba5f96d38fd",
+   "addenda": []
+  },
+  {
+   "ordinal": 12,
+   "title": "How to Extract Table Data From a Website Without Breakage",
+   "url": "https://www.olostep.com/blog/extract-table-data-from-website",
+   "journalKey": "v2:d088d84cb4afdef8e88974deedaeb3fc30427758bba349e8f75baeddf811d292",
+   "addenda": []
+  },
+  {
+   "ordinal": 13,
+   "title": "How to Extract Table Data From a Website Without Breakage",
+   "url": "https://www.olostep.com/blog/extract-table-data-from-website",
+   "journalKey": "v2:1f6576edecbd9ca1ff4eca14daa409b64d3e35bd53816dd5b18a527d4c7a9b91",
+   "addenda": []
+  },
+  {
+   "ordinal": 14,
+   "title": "Web Scraping Challenges & Solutions",
+   "url": "https://brightdata.com/blog/web-data/web-scraping-challenges",
+   "journalKey": "v2:d8c2b6a1dde6c15de36e097c3d7d79ffb1997b3d625427a47c5ca3a0da3e008f",
+   "addenda": []
+  },
+  {
+   "ordinal": 15,
+   "title": "The unbreakable web: From fragile scripts to bulletproof Workflows",
+   "url": "https://www.browserbase.com/blog/temporal-browserbase",
+   "journalKey": "v2:40e1057dd5828829901c9d2188d0d435a004ed691e034ff8d0e6e8c2bf339f92",
+   "addenda": []
+  },
+  {
+   "ordinal": 16,
+   "title": "Patterns and Anti-Patterns in Web Scraping",
+   "url": "https://www.browserless.io/blog/patterns-and-anti-patterns-in-web-scraping",
+   "journalKey": "v2:c956d2d3977059dd513d9776bed5a3776e507af1342c86e938c612beedbbe4af",
+   "addenda": []
+  },
+  {
+   "ordinal": 17,
+   "title": "The best AI web scrapers in 2026? We put four to the test",
+   "url": "https://blog.apify.com/best-ai-web-scrapers/",
+   "journalKey": "v2:bf05b7356d7091c291afa4add270820ab9e2c81cee2a66370a26103b99963251",
+   "addenda": []
+  },
+  {
+   "ordinal": 18,
+   "title": "GitHub - chrisfeller/Web_Scraping_Basketball_Reference",
+   "url": "https://github.com/chrisfeller/Web_Scraping_Basketball_Reference",
+   "journalKey": "v2:1fbc6999e0090fbf5f5b15e298559f301e2b4500a301b8f6f7566f5c62943de3",
+   "addenda": []
+  },
+  {
+   "ordinal": 19,
+   "title": "odds-portal-scraper (full_scraper) README, gingeleski/odds-portal-scraper",
+   "url": "https://github.com/gingeleski/odds-portal-scraper/blob/master/full_scraper/README.md",
+   "journalKey": "v2:3b6ca4dc6b6ad5180b2200b9574505560176a1e7d7d95f2c3759346264ad0c19",
+   "addenda": []
+  },
+  {
+   "ordinal": 20,
+   "title": "Scraping Odds from Oddschecker using Python | by Riz Dusoye | Medium",
+   "url": "https://dusoye.medium.com/scraping-odds-from-oddschecker-using-python-702742dd8106",
+   "journalKey": "v2:b0f331e625861131dbcd865d4c531a26e7366459808798810fb2e7f858c53c4e",
+   "addenda": []
+  },
+  {
+   "ordinal": 21,
+   "title": "GitHub - dashee87/betScrapeR: R package to scrape live sports betting odds",
+   "url": "https://github.com/dashee87/betScrapeR",
+   "journalKey": "v2:0e9f8a016ed4f2b5d296649151d3419d6d7a524a5a8dbb30d3f3d786b41cbafd",
+   "addenda": []
+  },
+  {
+   "ordinal": 22,
+   "title": "Introducing Stagehand - Stagehand",
+   "url": "https://docs.stagehand.dev/v3/first-steps/introduction",
+   "journalKey": "v2:7126e38613a57bec51aa5ef773b635bfda1854dd7b18ec73b959db9aa5496e8f",
+   "addenda": [
+    {
+     "journalLine": 56,
+     "url": "https://docs.stagehand.dev/v3/first-steps/introduction",
+     "addedAt": "2026-07-20"
+    }
+   ]
+  },
+  {
+   "ordinal": 23,
+   "title": "Act - Stagehand Docs",
+   "url": "https://docs.stagehand.dev/v3/basics/act",
+   "journalKey": "v2:635c4f6d67c24781d45d8cfea2d73f76969cef6c48735ffd8360f6634d7a00a3",
+   "addenda": []
+  },
+  {
+   "ordinal": 24,
+   "title": "Observe - Stagehand Docs",
+   "url": "https://docs.stagehand.dev/v3/basics/observe",
+   "journalKey": "v2:42e49e2d7a011fbd07fc5227e2dcebe79805a95e8fa0d919bc4de1a944545cab",
+   "addenda": []
+  },
+  {
+   "ordinal": 25,
+   "title": "Caching Actions - Stagehand Docs",
+   "url": "https://docs.stagehand.dev/v3/best-practices/caching",
+   "journalKey": "v2:298b96934196f848ad52c792746363c2c76400a9df52c15b03f2209722a39d6c",
+   "addenda": []
+  },
+  {
+   "ordinal": 26,
+   "title": "Agent - Stagehand",
+   "url": "https://docs.stagehand.dev/v3/basics/agent",
+   "journalKey": "v2:eb3b381d54545abee9b9a0b97d74e4e807b227f1b72c277589acdca0c23634c4",
+   "addenda": [
+    {
+     "journalLine": 57,
+     "url": "https://docs.stagehand.dev/v3/basics/agent",
+     "addedAt": "2026-07-20"
+    }
+   ]
+  },
+  {
+   "ordinal": 27,
+   "title": "Contexts - Browserbase Documentation",
+   "url": "https://docs.browserbase.com/features/contexts",
+   "journalKey": "v2:7fa0297714ab041fa595a689d9e1b9b047c9a6207397186bf7ef1cd917b3b1d2",
+   "addenda": []
+  },
+  {
+   "ordinal": 28,
+   "title": "GitHub - browserbase/stagehand: The SDK For Browser Agents",
+   "url": "https://github.com/browserbase/stagehand",
+   "journalKey": "v2:5e5e508c359cff49ccaa7cd8a4fb3893e7c222cb0cab5ca987e1c464087fd1ab",
+   "addenda": []
+  }
+ ]
+}

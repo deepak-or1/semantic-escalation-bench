@@ -1,0 +1,82 @@
+[
+ {
+  "label": "D-cold-1",
+  "originalDir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T19-08-46-611Z",
+  "bundlePath": "runs/D-cold-1/results.json"
+ },
+ {
+  "label": "D-cold-2",
+  "originalDir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T19-19-24-734Z",
+  "bundlePath": "runs/D-cold-2/results.json"
+ },
+ {
+  "label": "D-cold-3",
+  "originalDir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T19-29-56-809Z",
+  "bundlePath": "runs/D-cold-3/results.json"
+ },
+ {
+  "label": "D-cold-4",
+  "originalDir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T19-40-24-220Z",
+  "bundlePath": "runs/D-cold-4/results.json"
+ },
+ {
+  "label": "D-cold-5",
+  "originalDir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T19-50-54-133Z",
+  "bundlePath": "runs/D-cold-5/results.json"
+ },
+ {
+  "label": "C-cold-1",
+  "originalDir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T20-01-04-151Z",
+  "bundlePath": "runs/C-cold-1/results.json"
+ },
+ {
+  "label": "C-cold-2",
+  "originalDir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T20-03-41-665Z",
+  "bundlePath": "runs/C-cold-2/results.json"
+ },
+ {
+  "label": "C-cold-3",
+  "originalDir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T20-06-18-943Z",
+  "bundlePath": "runs/C-cold-3/results.json"
+ },
+ {
+  "label": "C-cold-4",
+  "originalDir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T20-08-52-496Z",
+  "bundlePath": "runs/C-cold-4/results.json"
+ },
+ {
+  "label": "C-cold-5",
+  "originalDir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T20-11-29-594Z",
+  "bundlePath": "runs/C-cold-5/results.json"
+ },
+ {
+  "label": "C-persist-1",
+  "originalDir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T20-14-09-239Z",
+  "bundlePath": "runs/C-persist-1/results.json"
+ },
+ {
+  "label": "C-persist-2",
+  "originalDir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T20-16-34-681Z",
+  "bundlePath": "runs/C-persist-2/results.json"
+ },
+ {
+  "label": "C-persist-3",
+  "originalDir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T20-19-01-358Z",
+  "bundlePath": "runs/C-persist-3/results.json"
+ },
+ {
+  "label": "C-persist-4",
+  "originalDir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T20-21-30-286Z",
+  "bundlePath": "runs/C-persist-4/results.json"
+ },
+ {
+  "label": "C-persist-5",
+  "originalDir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T20-23-55-579Z",
+  "bundlePath": "runs/C-persist-5/results.json"
+ },
+ {
+  "label": "C-warm-1",
+  "originalDir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T20-26-18-698Z",
+  "bundlePath": "runs/C-warm-1/results.json"
+ }
+]

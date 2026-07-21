@@ -1,0 +1,5974 @@
+{
+  "createdAt": "2026-07-20T20:28:41.832Z",
+  "sources": [
+    "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T19-08-46-611Z",
+    "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T19-19-24-734Z",
+    "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T19-29-56-809Z",
+    "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T19-40-24-220Z",
+    "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T19-50-54-133Z",
+    "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T20-01-04-151Z",
+    "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T20-03-41-665Z",
+    "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T20-06-18-943Z",
+    "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T20-08-52-496Z",
+    "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T20-11-29-594Z",
+    "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T20-14-09-239Z",
+    "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T20-16-34-681Z",
+    "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T20-19-01-358Z",
+    "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T20-21-30-286Z",
+    "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T20-23-55-579Z",
+    "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-20T20-26-18-698Z"
+  ],
+  "runs": 16,
+  "smoke": false,
+  "cells": [
+    {
+      "scenarioId": "clean-extraction",
+      "engine": "stagehand",
+      "configuration": "D-full-semantic",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 22378,
+        "min": 22025,
+        "max": 23365
+      },
+      "llmCalls": {
+        "sum": 25,
+        "n": 5,
+        "median": 5,
+        "min": 5,
+        "max": 5
+      },
+      "inputTokens": {
+        "sum": 82385,
+        "n": 5,
+        "median": 16477,
+        "min": 16477,
+        "max": 16477
+      },
+      "outputTokens": {
+        "sum": 12228,
+        "n": 5,
+        "median": 2455,
+        "min": 2380,
+        "max": 2508
+      },
+      "costUsd": {
+        "sum": 0.143525,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0.028752,
+        "min": 0.028377,
+        "max": 0.029017
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "clean-extraction",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-cold",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 2180,
+        "min": 2051,
+        "max": 2191
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "clean-extraction",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-persistence",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 2243,
+        "min": 2087,
+        "max": 2302
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "clean-extraction",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-warm",
+      "trials": 1,
+      "outcomes": {
+        "pass": 1,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 1
+      },
+      "accuracy": {
+        "n": 1,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 1,
+        "median": 2165,
+        "min": 2165,
+        "max": 2165
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 1,
+        "total": 1,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "session-reuse",
+      "engine": "stagehand",
+      "configuration": "D-full-semantic",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 16924,
+        "min": 16236,
+        "max": 18842
+      },
+      "llmCalls": {
+        "sum": 10,
+        "n": 5,
+        "median": 2,
+        "min": 2,
+        "max": 2
+      },
+      "inputTokens": {
+        "sum": 50075,
+        "n": 5,
+        "median": 10015,
+        "min": 10015,
+        "max": 10015
+      },
+      "outputTokens": {
+        "sum": 10941,
+        "n": 5,
+        "median": 2172,
+        "min": 2167,
+        "max": 2225
+      },
+      "costUsd": {
+        "sum": 0.10477999999999998,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0.020875,
+        "min": 0.02085,
+        "max": 0.02114
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "session-reuse",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-cold",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 1909,
+        "min": 1904,
+        "max": 1933
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "session-reuse",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-persistence",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 1923,
+        "min": 1909,
+        "max": 1977
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "session-reuse",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-warm",
+      "trials": 1,
+      "outcomes": {
+        "pass": 1,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 1
+      },
+      "accuracy": {
+        "n": 1,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 1,
+        "median": 1941,
+        "min": 1941,
+        "max": 1941
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 1,
+        "total": 1,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "expired-session",
+      "engine": "stagehand",
+      "configuration": "D-full-semantic",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 21374,
+        "min": 20652,
+        "max": 23241
+      },
+      "llmCalls": {
+        "sum": 25,
+        "n": 5,
+        "median": 5,
+        "min": 5,
+        "max": 5
+      },
+      "inputTokens": {
+        "sum": 82396,
+        "n": 5,
+        "median": 16479,
+        "min": 16479,
+        "max": 16480
+      },
+      "outputTokens": {
+        "sum": 12066,
+        "n": 5,
+        "median": 2414,
+        "min": 2380,
+        "max": 2437
+      },
+      "costUsd": {
+        "sum": 0.142726,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0.028549,
+        "min": 0.028379,
+        "max": 0.028664
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "expired-session",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-cold",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 2175,
+        "min": 2009,
+        "max": 2177
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "expired-session",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-persistence",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 2195,
+        "min": 2024,
+        "max": 2238
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "expired-session",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-warm",
+      "trials": 1,
+      "outcomes": {
+        "pass": 1,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 1
+      },
+      "accuracy": {
+        "n": 1,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 1,
+        "median": 2178,
+        "min": 2178,
+        "max": 2178
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 1,
+        "total": 1,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "cookie-banner",
+      "engine": "stagehand",
+      "configuration": "D-full-semantic",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 26826,
+        "min": 22964,
+        "max": 33911
+      },
+      "llmCalls": {
+        "sum": 30,
+        "n": 5,
+        "median": 6,
+        "min": 6,
+        "max": 6
+      },
+      "inputTokens": {
+        "sum": 92659,
+        "n": 5,
+        "median": 18532,
+        "min": 18531,
+        "max": 18532
+      },
+      "outputTokens": {
+        "sum": 12568,
+        "n": 5,
+        "median": 2497,
+        "min": 2475,
+        "max": 2586
+      },
+      "costUsd": {
+        "sum": 0.155499,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0.031017,
+        "min": 0.030907,
+        "max": 0.031462
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "cookie-banner",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-cold",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 2245,
+        "min": 2213,
+        "max": 2268
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "cookie-banner",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-persistence",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 2227,
+        "min": 2158,
+        "max": 2322
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "cookie-banner",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-warm",
+      "trials": 1,
+      "outcomes": {
+        "pass": 1,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 1
+      },
+      "accuracy": {
+        "n": 1,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 1,
+        "median": 2194,
+        "min": 2194,
+        "max": 2194
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 1,
+        "total": 1,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "modal-overlay",
+      "engine": "stagehand",
+      "configuration": "D-full-semantic",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 25665,
+        "min": 23991,
+        "max": 29573
+      },
+      "llmCalls": {
+        "sum": 30,
+        "n": 5,
+        "median": 6,
+        "min": 6,
+        "max": 6
+      },
+      "inputTokens": {
+        "sum": 105660,
+        "n": 5,
+        "median": 21132,
+        "min": 21132,
+        "max": 21132
+      },
+      "outputTokens": {
+        "sum": 12709,
+        "n": 5,
+        "median": 2537,
+        "min": 2536,
+        "max": 2551
+      },
+      "costUsd": {
+        "sum": 0.169205,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0.033817,
+        "min": 0.033812,
+        "max": 0.033887
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "modal-overlay",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-cold",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 2160,
+        "min": 2015,
+        "max": 2226
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "modal-overlay",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-persistence",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 2223,
+        "min": 2210,
+        "max": 2258
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "modal-overlay",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-warm",
+      "trials": 1,
+      "outcomes": {
+        "pass": 1,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 1
+      },
+      "accuracy": {
+        "n": 1,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 1,
+        "median": 2182,
+        "min": 2182,
+        "max": 2182
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 1,
+        "total": 1,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "delayed-render",
+      "engine": "stagehand",
+      "configuration": "D-full-semantic",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 26582,
+        "min": 26177,
+        "max": 30301
+      },
+      "llmCalls": {
+        "sum": 25,
+        "n": 5,
+        "median": 5,
+        "min": 5,
+        "max": 5
+      },
+      "inputTokens": {
+        "sum": 82380,
+        "n": 5,
+        "median": 16476,
+        "min": 16476,
+        "max": 16476
+      },
+      "outputTokens": {
+        "sum": 12071,
+        "n": 5,
+        "median": 2389,
+        "min": 2380,
+        "max": 2491
+      },
+      "costUsd": {
+        "sum": 0.142735,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0.028421,
+        "min": 0.028376,
+        "max": 0.028931
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "delayed-render",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-cold",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 7460,
+        "min": 7436,
+        "max": 7479
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "delayed-render",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-persistence",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 7479,
+        "min": 7458,
+        "max": 7503
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "delayed-render",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-warm",
+      "trials": 1,
+      "outcomes": {
+        "pass": 1,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 1
+      },
+      "accuracy": {
+        "n": 1,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 1,
+        "median": 7483,
+        "min": 7483,
+        "max": 7483
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 1,
+        "total": 1,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "network-slowdown",
+      "engine": "stagehand",
+      "configuration": "D-full-semantic",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 29693,
+        "min": 28987,
+        "max": 30670
+      },
+      "llmCalls": {
+        "sum": 25,
+        "n": 5,
+        "median": 5,
+        "min": 5,
+        "max": 5
+      },
+      "inputTokens": {
+        "sum": 82400,
+        "n": 5,
+        "median": 16480,
+        "min": 16480,
+        "max": 16480
+      },
+      "outputTokens": {
+        "sum": 12179,
+        "n": 5,
+        "median": 2413,
+        "min": 2395,
+        "max": 2483
+      },
+      "costUsd": {
+        "sum": 0.143295,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0.028545,
+        "min": 0.028455,
+        "max": 0.028895
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "network-slowdown",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-cold",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 10396,
+        "min": 10344,
+        "max": 10463
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "network-slowdown",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-persistence",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 10430,
+        "min": 10344,
+        "max": 10466
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "network-slowdown",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-warm",
+      "trials": 1,
+      "outcomes": {
+        "pass": 1,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 1
+      },
+      "accuracy": {
+        "n": 1,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 1,
+        "median": 10421,
+        "min": 10421,
+        "max": 10421
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 1,
+        "total": 1,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "class-drift",
+      "engine": "stagehand",
+      "configuration": "D-full-semantic",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 22548,
+        "min": 22372,
+        "max": 25643
+      },
+      "llmCalls": {
+        "sum": 25,
+        "n": 5,
+        "median": 5,
+        "min": 5,
+        "max": 5
+      },
+      "inputTokens": {
+        "sum": 82410,
+        "n": 5,
+        "median": 16482,
+        "min": 16482,
+        "max": 16482
+      },
+      "outputTokens": {
+        "sum": 12101,
+        "n": 5,
+        "median": 2407,
+        "min": 2388,
+        "max": 2475
+      },
+      "costUsd": {
+        "sum": 0.14291500000000001,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0.028517,
+        "min": 0.028422,
+        "max": 0.028857
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "class-drift",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-cold",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "recovered": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 6168,
+        "min": 5553,
+        "max": 6924
+      },
+      "llmCalls": {
+        "sum": 15,
+        "n": 5,
+        "median": 3,
+        "min": 3,
+        "max": 3
+      },
+      "inputTokens": {
+        "sum": 23380,
+        "n": 5,
+        "median": 4676,
+        "min": 4676,
+        "max": 4676
+      },
+      "outputTokens": {
+        "sum": 1028,
+        "n": 5,
+        "median": 202,
+        "min": 202,
+        "max": 218
+      },
+      "costUsd": {
+        "sum": 0.02852,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0.005686,
+        "min": 0.005686,
+        "max": 0.005766
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 1,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "class-drift",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-persistence",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 2178,
+        "min": 2041,
+        "max": 2211
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "class-drift",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-warm",
+      "trials": 1,
+      "outcomes": {
+        "pass": 1,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 1
+      },
+      "accuracy": {
+        "n": 1,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 1,
+        "median": 2150,
+        "min": 2150,
+        "max": 2150
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 1,
+        "total": 1,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "column-shuffle",
+      "engine": "stagehand",
+      "configuration": "D-full-semantic",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 22716,
+        "min": 21176,
+        "max": 30002
+      },
+      "llmCalls": {
+        "sum": 25,
+        "n": 5,
+        "median": 5,
+        "min": 5,
+        "max": 5
+      },
+      "inputTokens": {
+        "sum": 82395,
+        "n": 5,
+        "median": 16479,
+        "min": 16479,
+        "max": 16479
+      },
+      "outputTokens": {
+        "sum": 12143,
+        "n": 5,
+        "median": 2429,
+        "min": 2406,
+        "max": 2456
+      },
+      "costUsd": {
+        "sum": 0.14311,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0.028624,
+        "min": 0.028509,
+        "max": 0.028759
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "column-shuffle",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-cold",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 2159,
+        "min": 1996,
+        "max": 2244
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "column-shuffle",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-persistence",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 2162,
+        "min": 2027,
+        "max": 2246
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "column-shuffle",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-warm",
+      "trials": 1,
+      "outcomes": {
+        "pass": 1,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 1
+      },
+      "accuracy": {
+        "n": 1,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 1,
+        "median": 2162,
+        "min": 2162,
+        "max": 2162
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 1,
+        "total": 1,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "layout-variant",
+      "engine": "stagehand",
+      "configuration": "D-full-semantic",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 21571,
+        "min": 21135,
+        "max": 28105
+      },
+      "llmCalls": {
+        "sum": 25,
+        "n": 5,
+        "median": 5,
+        "min": 5,
+        "max": 5
+      },
+      "inputTokens": {
+        "sum": 94170,
+        "n": 5,
+        "median": 18834,
+        "min": 18834,
+        "max": 18834
+      },
+      "outputTokens": {
+        "sum": 12135,
+        "n": 5,
+        "median": 2404,
+        "min": 2386,
+        "max": 2512
+      },
+      "costUsd": {
+        "sum": 0.15484499999999998,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0.030854,
+        "min": 0.030764,
+        "max": 0.031394
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "layout-variant",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-cold",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "recovered": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 16737,
+        "min": 15976,
+        "max": 17168
+      },
+      "llmCalls": {
+        "sum": 10,
+        "n": 5,
+        "median": 2,
+        "min": 2,
+        "max": 2
+      },
+      "inputTokens": {
+        "sum": 61845,
+        "n": 5,
+        "median": 12369,
+        "min": 12369,
+        "max": 12369
+      },
+      "outputTokens": {
+        "sum": 10891,
+        "n": 5,
+        "median": 2176,
+        "min": 2132,
+        "max": 2228
+      },
+      "costUsd": {
+        "sum": 0.11629999999999999,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0.023249,
+        "min": 0.023029,
+        "max": 0.023509
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 1,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "layout-variant",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-persistence",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "recovered": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 17037,
+        "min": 16901,
+        "max": 17362
+      },
+      "llmCalls": {
+        "sum": 10,
+        "n": 5,
+        "median": 2,
+        "min": 2,
+        "max": 2
+      },
+      "inputTokens": {
+        "sum": 61845,
+        "n": 5,
+        "median": 12369,
+        "min": 12369,
+        "max": 12369
+      },
+      "outputTokens": {
+        "sum": 10949,
+        "n": 5,
+        "median": 2175,
+        "min": 2158,
+        "max": 2254
+      },
+      "costUsd": {
+        "sum": 0.11659,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0.023244,
+        "min": 0.023159,
+        "max": 0.023639
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 1,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "layout-variant",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-warm",
+      "trials": 1,
+      "outcomes": {
+        "pass": 1,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "recovered": 1
+      },
+      "accuracy": {
+        "n": 1,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 1,
+        "median": 16578,
+        "min": 16578,
+        "max": 16578
+      },
+      "llmCalls": {
+        "sum": 2,
+        "n": 1,
+        "median": 2,
+        "min": 2,
+        "max": 2
+      },
+      "inputTokens": {
+        "sum": 12369,
+        "n": 1,
+        "median": 12369,
+        "min": 12369,
+        "max": 12369
+      },
+      "outputTokens": {
+        "sum": 2132,
+        "n": 1,
+        "median": 2132,
+        "min": 2132,
+        "max": 2132
+      },
+      "costUsd": {
+        "sum": 0.023029,
+        "priced": 1,
+        "total": 1,
+        "n": 1,
+        "median": 0.023029,
+        "min": 0.023029,
+        "max": 0.023029
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 1,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "hidden-tab",
+      "engine": "stagehand",
+      "configuration": "D-full-semantic",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 31338,
+        "min": 29895,
+        "max": 32023
+      },
+      "llmCalls": {
+        "sum": 35,
+        "n": 5,
+        "median": 7,
+        "min": 7,
+        "max": 7
+      },
+      "inputTokens": {
+        "sum": 90950,
+        "n": 5,
+        "median": 18190,
+        "min": 18190,
+        "max": 18190
+      },
+      "outputTokens": {
+        "sum": 12276,
+        "n": 5,
+        "median": 2503,
+        "min": 2223,
+        "max": 2549
+      },
+      "costUsd": {
+        "sum": 0.15233,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0.030705,
+        "min": 0.029305,
+        "max": 0.030935
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "hidden-tab",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-cold",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 10605,
+        "min": 10469,
+        "max": 10737
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "hidden-tab",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-persistence",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 10645,
+        "min": 10519,
+        "max": 10682
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "hidden-tab",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-warm",
+      "trials": 1,
+      "outcomes": {
+        "pass": 1,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 1
+      },
+      "accuracy": {
+        "n": 1,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 1,
+        "median": 10593,
+        "min": 10593,
+        "max": 10593
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 1,
+        "total": 1,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "pagination",
+      "engine": "stagehand",
+      "configuration": "D-full-semantic",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 31928,
+        "min": 30746,
+        "max": 36584
+      },
+      "llmCalls": {
+        "sum": 45,
+        "n": 5,
+        "median": 9,
+        "min": 9,
+        "max": 9
+      },
+      "inputTokens": {
+        "sum": 141670,
+        "n": 5,
+        "median": 28334,
+        "min": 28334,
+        "max": 28334
+      },
+      "outputTokens": {
+        "sum": 14405,
+        "n": 5,
+        "median": 2874,
+        "min": 2861,
+        "max": 2911
+      },
+      "costUsd": {
+        "sum": 0.21369500000000002,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0.042704,
+        "min": 0.042639,
+        "max": 0.042889
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "pagination",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-cold",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 3396,
+        "min": 3247,
+        "max": 3496
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "pagination",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-persistence",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 3399,
+        "min": 3293,
+        "max": 3484
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "pagination",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-warm",
+      "trials": 1,
+      "outcomes": {
+        "pass": 1,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 1
+      },
+      "accuracy": {
+        "n": 1,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 1,
+        "median": 3370,
+        "min": 3370,
+        "max": 3370
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 1,
+        "total": 1,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "partial-data",
+      "engine": "stagehand",
+      "configuration": "D-full-semantic",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 23458,
+        "min": 20898,
+        "max": 29206
+      },
+      "llmCalls": {
+        "sum": 25,
+        "n": 5,
+        "median": 5,
+        "min": 5,
+        "max": 5
+      },
+      "inputTokens": {
+        "sum": 82330,
+        "n": 5,
+        "median": 16466,
+        "min": 16466,
+        "max": 16466
+      },
+      "outputTokens": {
+        "sum": 12264,
+        "n": 5,
+        "median": 2460,
+        "min": 2418,
+        "max": 2468
+      },
+      "costUsd": {
+        "sum": 0.14365,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0.028766,
+        "min": 0.028556,
+        "max": 0.028806
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "partial-data",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-cold",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 2165,
+        "min": 2143,
+        "max": 2178
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "partial-data",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-persistence",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 2159,
+        "min": 2111,
+        "max": 2188
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "partial-data",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-warm",
+      "trials": 1,
+      "outcomes": {
+        "pass": 1,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 1
+      },
+      "accuracy": {
+        "n": 1,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 1,
+        "median": 2010,
+        "min": 2010,
+        "max": 2010
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 1,
+        "total": 1,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "copy-drift",
+      "engine": "stagehand",
+      "configuration": "D-full-semantic",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 21835,
+        "min": 20156,
+        "max": 22439
+      },
+      "llmCalls": {
+        "sum": 25,
+        "n": 5,
+        "median": 5,
+        "min": 5,
+        "max": 5
+      },
+      "inputTokens": {
+        "sum": 82300,
+        "n": 5,
+        "median": 16460,
+        "min": 16460,
+        "max": 16460
+      },
+      "outputTokens": {
+        "sum": 12113,
+        "n": 5,
+        "median": 2502,
+        "min": 2115,
+        "max": 2533
+      },
+      "costUsd": {
+        "sum": 0.142865,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0.02897,
+        "min": 0.027035,
+        "max": 0.029125
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "copy-drift",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-cold",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 2151,
+        "min": 1995,
+        "max": 2207
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "copy-drift",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-persistence",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 2180,
+        "min": 2014,
+        "max": 2219
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "copy-drift",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-warm",
+      "trials": 1,
+      "outcomes": {
+        "pass": 1,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 1
+      },
+      "accuracy": {
+        "n": 1,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 1,
+        "median": 2048,
+        "min": 2048,
+        "max": 2048
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 1,
+        "total": 1,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "odds-format-american",
+      "engine": "stagehand",
+      "configuration": "D-full-semantic",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 22299,
+        "min": 20942,
+        "max": 23564
+      },
+      "llmCalls": {
+        "sum": 25,
+        "n": 5,
+        "median": 5,
+        "min": 5,
+        "max": 5
+      },
+      "inputTokens": {
+        "sum": 81900,
+        "n": 5,
+        "median": 16380,
+        "min": 16380,
+        "max": 16380
+      },
+      "outputTokens": {
+        "sum": 11973,
+        "n": 5,
+        "median": 2375,
+        "min": 2365,
+        "max": 2444
+      },
+      "costUsd": {
+        "sum": 0.141765,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0.028255,
+        "min": 0.028205,
+        "max": 0.0286
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "odds-format-american",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-cold",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 2045,
+        "min": 1981,
+        "max": 2238
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "odds-format-american",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-persistence",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 2163,
+        "min": 2089,
+        "max": 2232
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "odds-format-american",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-warm",
+      "trials": 1,
+      "outcomes": {
+        "pass": 1,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 1
+      },
+      "accuracy": {
+        "n": 1,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 1,
+        "median": 2146,
+        "min": 2146,
+        "max": 2146
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 1,
+        "total": 1,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "stale-session",
+      "engine": "stagehand",
+      "configuration": "D-full-semantic",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 28015,
+        "min": 26342,
+        "max": 34426
+      },
+      "llmCalls": {
+        "sum": 40,
+        "n": 5,
+        "median": 8,
+        "min": 8,
+        "max": 8
+      },
+      "inputTokens": {
+        "sum": 114718,
+        "n": 5,
+        "median": 22944,
+        "min": 22943,
+        "max": 22944
+      },
+      "outputTokens": {
+        "sum": 13580,
+        "n": 5,
+        "median": 2721,
+        "min": 2679,
+        "max": 2751
+      },
+      "costUsd": {
+        "sum": 0.18261800000000003,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0.036549,
+        "min": 0.036339,
+        "max": 0.036698
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "stale-session",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-cold",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 2434,
+        "min": 2282,
+        "max": 2550
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "stale-session",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-persistence",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 2446,
+        "min": 2330,
+        "max": 2580
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "stale-session",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-warm",
+      "trials": 1,
+      "outcomes": {
+        "pass": 1,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 1
+      },
+      "accuracy": {
+        "n": 1,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 1,
+        "median": 2250,
+        "min": 2250,
+        "max": 2250
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 1,
+        "total": 1,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "schema-violation",
+      "engine": "stagehand",
+      "configuration": "D-full-semantic",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "safe-failure": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 0.9583333333333333,
+        "min": 0.9583333333333333,
+        "max": 0.9583333333333333
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 22494,
+        "min": 20640,
+        "max": 23784
+      },
+      "llmCalls": {
+        "sum": 25,
+        "n": 5,
+        "median": 5,
+        "min": 5,
+        "max": 5
+      },
+      "inputTokens": {
+        "sum": 82350,
+        "n": 5,
+        "median": 16470,
+        "min": 16470,
+        "max": 16470
+      },
+      "outputTokens": {
+        "sum": 12271,
+        "n": 5,
+        "median": 2455,
+        "min": 2423,
+        "max": 2506
+      },
+      "costUsd": {
+        "sum": 0.143705,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0.028745,
+        "min": 0.028585,
+        "max": 0.029
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "schema-violation",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-cold",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "safe-failure": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 0.9583333333333333,
+        "min": 0.9583333333333333,
+        "max": 0.9583333333333333
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 2152,
+        "min": 2147,
+        "max": 2227
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "schema-violation",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-persistence",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "safe-failure": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 0.9583333333333333,
+        "min": 0.9583333333333333,
+        "max": 0.9583333333333333
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 2162,
+        "min": 2014,
+        "max": 2263
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "schema-violation",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-warm",
+      "trials": 1,
+      "outcomes": {
+        "pass": 1,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "safe-failure": 1
+      },
+      "accuracy": {
+        "n": 1,
+        "median": 0.9583333333333333,
+        "min": 0.9583333333333333,
+        "max": 0.9583333333333333
+      },
+      "durationMs": {
+        "n": 1,
+        "median": 2144,
+        "min": 2144,
+        "max": 2144
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 1,
+        "total": 1,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "site-v1",
+      "engine": "stagehand",
+      "configuration": "D-full-semantic",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 22463,
+        "min": 21819,
+        "max": 25453
+      },
+      "llmCalls": {
+        "sum": 25,
+        "n": 5,
+        "median": 5,
+        "min": 5,
+        "max": 5
+      },
+      "inputTokens": {
+        "sum": 82383,
+        "n": 5,
+        "median": 16477,
+        "min": 16476,
+        "max": 16477
+      },
+      "outputTokens": {
+        "sum": 12133,
+        "n": 5,
+        "median": 2417,
+        "min": 2414,
+        "max": 2447
+      },
+      "costUsd": {
+        "sum": 0.143048,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0.028562,
+        "min": 0.028546,
+        "max": 0.028712
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "site-v1",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-cold",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 2206,
+        "min": 2155,
+        "max": 2298
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "site-v1",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-persistence",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 2149,
+        "min": 2131,
+        "max": 2225
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "site-v1",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-warm",
+      "trials": 1,
+      "outcomes": {
+        "pass": 1,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 1
+      },
+      "accuracy": {
+        "n": 1,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 1,
+        "median": 2129,
+        "min": 2129,
+        "max": 2129
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 1,
+        "total": 1,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "site-v2",
+      "engine": "stagehand",
+      "configuration": "D-full-semantic",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 23754,
+        "min": 19217,
+        "max": 24158
+      },
+      "llmCalls": {
+        "sum": 25,
+        "n": 5,
+        "median": 5,
+        "min": 5,
+        "max": 5
+      },
+      "inputTokens": {
+        "sum": 82320,
+        "n": 5,
+        "median": 16464,
+        "min": 16464,
+        "max": 16464
+      },
+      "outputTokens": {
+        "sum": 11797,
+        "n": 5,
+        "median": 2406,
+        "min": 2140,
+        "max": 2437
+      },
+      "costUsd": {
+        "sum": 0.141305,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0.028494,
+        "min": 0.027164,
+        "max": 0.028649
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "site-v2",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-cold",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 2145,
+        "min": 2143,
+        "max": 2245
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "site-v2",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-persistence",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 2028,
+        "min": 1983,
+        "max": 2234
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "site-v2",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-warm",
+      "trials": 1,
+      "outcomes": {
+        "pass": 1,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 1
+      },
+      "accuracy": {
+        "n": 1,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 1,
+        "median": 2198,
+        "min": 2198,
+        "max": 2198
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 1,
+        "total": 1,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "site-v3",
+      "engine": "stagehand",
+      "configuration": "D-full-semantic",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 22532,
+        "min": 21804,
+        "max": 26524
+      },
+      "llmCalls": {
+        "sum": 25,
+        "n": 5,
+        "median": 5,
+        "min": 5,
+        "max": 5
+      },
+      "inputTokens": {
+        "sum": 94171,
+        "n": 5,
+        "median": 18834,
+        "min": 18833,
+        "max": 18835
+      },
+      "outputTokens": {
+        "sum": 12216,
+        "n": 5,
+        "median": 2459,
+        "min": 2393,
+        "max": 2475
+      },
+      "costUsd": {
+        "sum": 0.155251,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0.03113,
+        "min": 0.030799,
+        "max": 0.03121
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "site-v3",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-cold",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "recovered": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 21753,
+        "min": 20285,
+        "max": 22487
+      },
+      "llmCalls": {
+        "sum": 25,
+        "n": 5,
+        "median": 5,
+        "min": 5,
+        "max": 5
+      },
+      "inputTokens": {
+        "sum": 85224,
+        "n": 5,
+        "median": 17045,
+        "min": 17044,
+        "max": 17046
+      },
+      "outputTokens": {
+        "sum": 12006,
+        "n": 5,
+        "median": 2407,
+        "min": 2353,
+        "max": 2445
+      },
+      "costUsd": {
+        "sum": 0.145254,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0.029079,
+        "min": 0.02881,
+        "max": 0.029269
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 1,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "site-v3",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-persistence",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "recovered": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 16516,
+        "min": 15580,
+        "max": 18911
+      },
+      "llmCalls": {
+        "sum": 10,
+        "n": 5,
+        "median": 2,
+        "min": 2,
+        "max": 2
+      },
+      "inputTokens": {
+        "sum": 61859,
+        "n": 5,
+        "median": 12372,
+        "min": 12371,
+        "max": 12372
+      },
+      "outputTokens": {
+        "sum": 10864,
+        "n": 5,
+        "median": 2160,
+        "min": 2132,
+        "max": 2258
+      },
+      "costUsd": {
+        "sum": 0.116179,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0.023172,
+        "min": 0.023032,
+        "max": 0.023662
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 1,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "site-v3",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-warm",
+      "trials": 1,
+      "outcomes": {
+        "pass": 1,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "recovered": 1
+      },
+      "accuracy": {
+        "n": 1,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 1,
+        "median": 16630,
+        "min": 16630,
+        "max": 16630
+      },
+      "llmCalls": {
+        "sum": 2,
+        "n": 1,
+        "median": 2,
+        "min": 2,
+        "max": 2
+      },
+      "inputTokens": {
+        "sum": 12373,
+        "n": 1,
+        "median": 12373,
+        "min": 12373,
+        "max": 12373
+      },
+      "outputTokens": {
+        "sum": 2163,
+        "n": 1,
+        "median": 2163,
+        "min": 2163,
+        "max": 2163
+      },
+      "costUsd": {
+        "sum": 0.023188,
+        "priced": 1,
+        "total": 1,
+        "n": 1,
+        "median": 0.023188,
+        "min": 0.023188,
+        "max": 0.023188
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 1,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "compound-blocked-and-slow",
+      "engine": "stagehand",
+      "configuration": "D-full-semantic",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 39884,
+        "min": 37417,
+        "max": 43318
+      },
+      "llmCalls": {
+        "sum": 35,
+        "n": 5,
+        "median": 7,
+        "min": 7,
+        "max": 7
+      },
+      "inputTokens": {
+        "sum": 103550,
+        "n": 5,
+        "median": 20710,
+        "min": 20710,
+        "max": 20710
+      },
+      "outputTokens": {
+        "sum": 12891,
+        "n": 5,
+        "median": 2578,
+        "min": 2545,
+        "max": 2611
+      },
+      "costUsd": {
+        "sum": 0.16800500000000002,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0.0336,
+        "min": 0.033435,
+        "max": 0.033765
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "compound-blocked-and-slow",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-cold",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 18391,
+        "min": 18338,
+        "max": 18450
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "compound-blocked-and-slow",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-persistence",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 18431,
+        "min": 18351,
+        "max": 18448
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "compound-blocked-and-slow",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-warm",
+      "trials": 1,
+      "outcomes": {
+        "pass": 1,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 1
+      },
+      "accuracy": {
+        "n": 1,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 1,
+        "median": 18399,
+        "min": 18399,
+        "max": 18399
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 1,
+        "total": 1,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "compound-session-churn",
+      "engine": "stagehand",
+      "configuration": "D-full-semantic",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 37071,
+        "min": 34581,
+        "max": 38581
+      },
+      "llmCalls": {
+        "sum": 60,
+        "n": 5,
+        "median": 12,
+        "min": 12,
+        "max": 12
+      },
+      "inputTokens": {
+        "sum": 173640,
+        "n": 5,
+        "median": 34728,
+        "min": 34727,
+        "max": 34729
+      },
+      "outputTokens": {
+        "sum": 15374,
+        "n": 5,
+        "median": 3072,
+        "min": 3047,
+        "max": 3104
+      },
+      "costUsd": {
+        "sum": 0.25051,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0.050087,
+        "min": 0.049964,
+        "max": 0.050248
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "compound-session-churn",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-cold",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 3656,
+        "min": 3533,
+        "max": 3834
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "compound-session-churn",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-persistence",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 3569,
+        "min": 3507,
+        "max": 3838
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "compound-session-churn",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-warm",
+      "trials": 1,
+      "outcomes": {
+        "pass": 1,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 1
+      },
+      "accuracy": {
+        "n": 1,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 1,
+        "median": 3682,
+        "min": 3682,
+        "max": 3682
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 1,
+        "total": 1,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "compound-messy-data-day",
+      "engine": "stagehand",
+      "configuration": "D-full-semantic",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 30402,
+        "min": 29696,
+        "max": 31254
+      },
+      "llmCalls": {
+        "sum": 30,
+        "n": 5,
+        "median": 6,
+        "min": 6,
+        "max": 6
+      },
+      "inputTokens": {
+        "sum": 105530,
+        "n": 5,
+        "median": 21106,
+        "min": 21106,
+        "max": 21106
+      },
+      "outputTokens": {
+        "sum": 12707,
+        "n": 5,
+        "median": 2550,
+        "min": 2493,
+        "max": 2581
+      },
+      "costUsd": {
+        "sum": 0.169065,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0.033856,
+        "min": 0.033571,
+        "max": 0.034011
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "compound-messy-data-day",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-cold",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 8577,
+        "min": 8519,
+        "max": 8634
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "compound-messy-data-day",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-persistence",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 8575,
+        "min": 8521,
+        "max": 8639
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "compound-messy-data-day",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-warm",
+      "trials": 1,
+      "outcomes": {
+        "pass": 1,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 1
+      },
+      "accuracy": {
+        "n": 1,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 1,
+        "median": 8554,
+        "min": 8554,
+        "max": 8554
+      },
+      "llmCalls": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "inputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "outputTokens": {
+        "sum": 0,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "costUsd": {
+        "sum": 0,
+        "priced": 1,
+        "total": 1,
+        "n": 1,
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "compound-redesign-storm",
+      "engine": "stagehand",
+      "configuration": "D-full-semantic",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "pass": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 23331,
+        "min": 21051,
+        "max": 24536
+      },
+      "llmCalls": {
+        "sum": 25,
+        "n": 5,
+        "median": 5,
+        "min": 5,
+        "max": 5
+      },
+      "inputTokens": {
+        "sum": 94111,
+        "n": 5,
+        "median": 18822,
+        "min": 18822,
+        "max": 18823
+      },
+      "outputTokens": {
+        "sum": 12226,
+        "n": 5,
+        "median": 2430,
+        "min": 2417,
+        "max": 2495
+      },
+      "costUsd": {
+        "sum": 0.155241,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0.030972,
+        "min": 0.030907,
+        "max": 0.031298
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 0,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "compound-redesign-storm",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-cold",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "recovered": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 20144,
+        "min": 19817,
+        "max": 21310
+      },
+      "llmCalls": {
+        "sum": 25,
+        "n": 5,
+        "median": 5,
+        "min": 5,
+        "max": 5
+      },
+      "inputTokens": {
+        "sum": 85165,
+        "n": 5,
+        "median": 17033,
+        "min": 17033,
+        "max": 17033
+      },
+      "outputTokens": {
+        "sum": 11929,
+        "n": 5,
+        "median": 2389,
+        "min": 2357,
+        "max": 2408
+      },
+      "costUsd": {
+        "sum": 0.14481,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0.028978,
+        "min": 0.028818,
+        "max": 0.029073
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 1,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "compound-redesign-storm",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-persistence",
+      "trials": 5,
+      "outcomes": {
+        "pass": 5,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "recovered": 5
+      },
+      "accuracy": {
+        "n": 5,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 5,
+        "median": 16485,
+        "min": 16161,
+        "max": 17015
+      },
+      "llmCalls": {
+        "sum": 10,
+        "n": 5,
+        "median": 2,
+        "min": 2,
+        "max": 2
+      },
+      "inputTokens": {
+        "sum": 61831,
+        "n": 5,
+        "median": 12366,
+        "min": 12366,
+        "max": 12367
+      },
+      "outputTokens": {
+        "sum": 10896,
+        "n": 5,
+        "median": 2167,
+        "min": 2133,
+        "max": 2256
+      },
+      "costUsd": {
+        "sum": 0.116311,
+        "priced": 5,
+        "total": 5,
+        "n": 5,
+        "median": 0.023201,
+        "min": 0.023031,
+        "max": 0.023647
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 1,
+      "retryRecoveries": 0
+    },
+    {
+      "scenarioId": "compound-redesign-storm",
+      "engine": "hybrid",
+      "configuration": "C-hybrid-repair-warm",
+      "trials": 1,
+      "outcomes": {
+        "pass": 1,
+        "fail": 0
+      },
+      "outcomeClasses": {
+        "recovered": 1
+      },
+      "accuracy": {
+        "n": 1,
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "durationMs": {
+        "n": 1,
+        "median": 16186,
+        "min": 16186,
+        "max": 16186
+      },
+      "llmCalls": {
+        "sum": 2,
+        "n": 1,
+        "median": 2,
+        "min": 2,
+        "max": 2
+      },
+      "inputTokens": {
+        "sum": 12366,
+        "n": 1,
+        "median": 12366,
+        "min": 12366,
+        "max": 12366
+      },
+      "outputTokens": {
+        "sum": 2164,
+        "n": 1,
+        "median": 2164,
+        "min": 2164,
+        "max": 2164
+      },
+      "costUsd": {
+        "sum": 0.023186,
+        "priced": 1,
+        "total": 1,
+        "n": 1,
+        "median": 0.023186,
+        "min": 0.023186,
+        "max": 0.023186
+      },
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "healRate": 1,
+      "retryRecoveries": 0
+    }
+  ],
+  "configTotals": [
+    {
+      "configuration": "D-full-semantic",
+      "engine": "stagehand",
+      "trials": 120,
+      "judgedPasses": 120,
+      "judgedFailures": 0,
+      "silentCorruption": 0,
+      "accepted": 115,
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "llmCalls": 690,
+      "inputTokens": 2248853,
+      "outputTokens": 299367,
+      "cost": {
+        "sum": 3.7456880000000004,
+        "priced": 120,
+        "total": 120
+      },
+      "costPerSuccess": 0.03121406666666667
+    },
+    {
+      "configuration": "C-hybrid-repair-cold",
+      "engine": "hybrid",
+      "trials": 120,
+      "judgedPasses": 120,
+      "judgedFailures": 0,
+      "silentCorruption": 0,
+      "accepted": 115,
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "llmCalls": 75,
+      "inputTokens": 255614,
+      "outputTokens": 35854,
+      "cost": {
+        "sum": 0.43488399999999994,
+        "priced": 120,
+        "total": 120
+      },
+      "costPerSuccess": 0.0036240333333333328
+    },
+    {
+      "configuration": "C-hybrid-repair-persistence",
+      "engine": "hybrid",
+      "trials": 120,
+      "judgedPasses": 120,
+      "judgedFailures": 0,
+      "silentCorruption": 0,
+      "accepted": 115,
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "llmCalls": 30,
+      "inputTokens": 185535,
+      "outputTokens": 32709,
+      "cost": {
+        "sum": 0.34908,
+        "priced": 120,
+        "total": 120
+      },
+      "costPerSuccess": 0.002909
+    },
+    {
+      "configuration": "C-hybrid-repair-warm",
+      "engine": "hybrid",
+      "trials": 24,
+      "judgedPasses": 24,
+      "judgedFailures": 0,
+      "silentCorruption": 0,
+      "accepted": 23,
+      "deterministicFallbacks": {
+        "trials": 0,
+        "firings": 0
+      },
+      "llmCalls": 6,
+      "inputTokens": 37108,
+      "outputTokens": 6459,
+      "cost": {
+        "sum": 0.06940299999999999,
+        "priced": 24,
+        "total": 24
+      },
+      "costPerSuccess": 0.002891791666666666
+    }
+  ],
+  "warnings": [
+    "Runs span multiple seedCacheHash values: null, 5ca26c8470a8baf606eb13403929c1ebb4eb4d5b26c77316cecfe17305656558, 17637be0ff53c83e10f9e2e46436198fd5690fab36024914e7c9007e0233588c, 78043d650aa7cc05b122d7bff4a63abfe7625263e122a65f2468cda1a9125298, 01bd6eba35c4a061fd2488480d79888840d454c5e93596d97d31a42f725a5bcf, 35b5dea7531054acd13a3668e426ff145a3f3d3cd5ba9bbe16f87c36cfdfbe2e."
+  ]
+}
