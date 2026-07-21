@@ -1,16 +1,25 @@
 # Phase 2A protocol — the policy frontier
 
-**Status: DRAFT (revision 5, after three external design-review rounds
-plus stage-1 implementation feedback) — not yet frozen.** Revision 5
-refines §2 and §3 from implementing them: reveal-table candidates exclude
-navigation anchors, card-block identity may come from a heading, the
-per-candidate reveal poll is capped, layout-suppresses-pagination is
-documented with its config rejection, and the canary's downstream-failure
-wording matches the observed mechanism (judged failure on accepted
-incomplete output) — all before any tag exists. This document specifies Phase 2A before any of it is implemented.
-It becomes binding at the stage-1 tag (`phase2a-policy-freeze-v1`) and is
-completed by the stage-2 tag (`phase2a-suite-freeze-v1`); no keyed trial may
-run before the stage-2 tag exists. Phase 1 ([PHASE1_RESULTS.md](PHASE1_RESULTS.md),
+**Status: DRAFT (revision 6, after the external executable audit of
+`phase2a-policy-freeze-v1`) — not yet frozen.** Revision 6 repairs the
+three blockers that audit found in the freeze-v1 tag: (1) the generic
+verifier now enforces a caller-declared expect-grid — all required
+policies present, exact per-cell trial counts drawn from distinct sweeps,
+duplicate-run rejection — and grades against the supplied suite's oracle,
+never the run's own recorded copy (§5 item 5, §8); (2) the §7 budget rule
+is implemented, not merely promised — a pre-trial hook in the runner plus
+a resumable campaign driver with persisted spend state and the
+machine-enforced ABBA schedule (§5 item 9, §7); (3) F1 levels 1–3 now
+drift a nested seeded fraction of id tokens as well as class tokens — the
+earlier definition renamed only class tokens, which no frozen policy
+reads, leaving the id-addressed policies unperturbed until level 4 (§3).
+(Revision 5 had refined §2/§3 from stage-1 implementation feedback:
+nav-anchor exclusion, card identity-from-heading, capped reveal poll,
+layout-suppresses-pagination, canary judged-failure wording.)
+`phase2a-policy-freeze-v1` is preserved as history and superseded. This
+document becomes binding at the stage-1 tag (`phase2a-policy-freeze-v2`)
+and is completed by the stage-2 tag (`phase2a-suite-freeze-v1`); no keyed
+trial may run before the stage-2 tag exists. Phase 1 ([PHASE1_RESULTS.md](PHASE1_RESULTS.md),
 protocol [PROTOCOL.md](PROTOCOL.md), frozen at `protocol-freeze-v4`) is
 complete and untouched — Phase 2A never modifies Phase-1 evidence, its
 scenario catalog (seeds 1101–1124, closed), or its interpretation.
@@ -37,7 +46,8 @@ unobserved generalization).
    deterministic-repair policy B2), all prompts/instructions, validator,
    judge, budgets, the *perturbation machinery* (parameterized axes), the
    generic suite loader/verifier, and the diff gate.
-   Tag: `phase2a-policy-freeze-v1`.
+   Tag: `phase2a-policy-freeze-v2` (`…-v1` is preserved history: audited,
+   found blocking, superseded).
 2. **External audit** of the stage-1 freeze (sol).
 3. **Reveal:** sol authors the held-out scenario package — a machine-readable
    JSON of concrete axis values (vocabularies, permutations, copy strings,
@@ -230,7 +240,7 @@ first observed failure level, per policy, per axis.
 
 | Axis | Param | Levels |
 | --- | --- | --- |
-| **F1 class drift** | `classDriftLevel` | 0 off · 1 = 25% of class tokens renamed (seeded per-token choice), ids kept · 2 = 50%, ids kept · 3 = 100%, ids kept · 4 = 100% + all ids removed (≡ Phase-1 `classDrift`) |
+| **F1 class drift** | `classDriftLevel` | 0 off · 1 = 25% of class tokens AND an independently seeded 25% of id tokens renamed · 2 = 50%/50% · 3 = 100%/100% (every id present but renamed) · 4 = 100% of classes renamed + ALL ids removed (≡ Phase-1 `classDrift`, byte-identical). Both renamed sets are nested across levels 1–3 (per-token monotone thresholds, distinct salts for pick and rename); level 4's removal of every id is the deliberate superset break, not a rename. Renamed tokens keep the base as a prefix (`standings-x3f2a…`) — disclosed because a prefix-matching selector heuristic could exploit it; none of the five frozen policies uses one. Decoy ids (F2) are emitted as literals and never drift, at every level. *Revision-6 correction (external audit of freeze-v1): the earlier definition renamed only class tokens at levels 1–3, which no frozen policy reads — the axis was inert below level 4 for the id-addressed policies (A's selectors, B/B2/C's cached actions).* |
 | **F2 decoy rebinding** *(new; trigger-blind)* | `decoyLevel` | **Fixed scaffold at every level (including 0):** every F2 scenario carries chaos `[pagination, hiddenTab]`, so `next-page` and `reveal-table` exist at all levels — the lab renders those controls only under their flags, so without the scaffold, levels 1–2 would rebind controls that do not exist. Fixed control order **[next-page, reveal-table, login-submit]** (names = the engine step names B2's §2 rungs repair); level k rebinds the first k. Rebinding a control: the canonical id attaches to a same-tag, **inert** decoy element (no handler; clicking it is a no-op), while the functional control renders with seed-drifted class-only markup, no canonical id. The decoy's visible text and its placement relative to the functional control are **held-out parameters** (`decoyCopy`: map control → decoy text; `decoyPlacement`: `before` \| `after` the functional control in document order) — sol, not the policy author, chooses the cues semantic addressing sees, and holds them constant across the nested levels of the series. Selector-faithful policies (A, B, B2, C) act on the decoy and *observe success at the act layer*; whether and where each policy fails downstream is the measurement. |
 | **F3 pagination stress** | `pageSize` | 5 · 3 · 2. **`pageSize` activates pagination** (it is the parameterized form of the `pagination` flag, subject to the flag-XOR-param rule): `pageSize: 5` ≡ the Phase-1 `pagination` flag; lower values raise the click-and-merge demand. |
 
@@ -354,14 +364,38 @@ never predictions or judged outcomes.
    of the catalog's canonical JSON serialization, computed by the same
    code path.
 5. **Generic suite verifier** (replaces per-engine `verify.ts` editing —
-   acceptance logic is frozen at stage 1): the verifier recomputes the
-   judge from raw trial data plus the scenario oracle and asserts that
-   the recorded verdict/reason are identical. **A judged policy failure
-   is admissible evidence and never fails the verifier.** The verifier
-   gates only completeness, provenance, schema validity, and grading
-   consistency. (All 2A scenarios are `expected: success`; policy
-   failures against them are the result being measured.) The prediction
-   table is scored report-only (§4a). No per-scenario code, ever.
+   acceptance logic is frozen at stage 1): the caller DECLARES the
+   expected grid (`--expect-policies`, a subset of A,B,B2,C,D, and
+   `--expect-trials`; both required — §8 pins the exact invocation per
+   checkpoint) and the verifier refuses to certify anything that does
+   not realise it exactly: each expected policy maps by string equality
+   to its single admissible configuration label (cold-only, so C admits
+   only `C-hybrid-repair-cold`; `hybrid-keyless` is the image of no
+   policy); every suite scenario × policy cell must hold exactly the
+   expected trial count, drawn from that many DISTINCT runs (one sweep
+   each — N trials inside one run are not N sweeps); no configuration
+   outside the expected set may appear; duplicate run inputs (shared
+   benchId, or identical trial content — a relabeled copy of one run is
+   not a distinct sweep) are rejected. Scope, stated honestly: the
+   verifier checks structure and internal consistency of self-reported
+   evidence files; it detects copy-based forgery but cannot
+   cryptographically prove two files came from separate executions —
+   fabricated fresh content is countered by publishing the raw run
+   artifacts, not by this tool. Grading recomputes
+   the judge from raw trial data against the SUPPLIED SUITE's oracle —
+   never the run's own recorded scenarios, which are cross-checked
+   against the suite; any divergence is a violation. **A judged policy
+   failure is admissible evidence and never fails the verifier.** The
+   verifier gates only completeness, provenance, schema validity, and
+   grading consistency. (All 2A scenarios are `expected: success`;
+   policy failures against them are the result being measured.) The
+   prediction table is scored report-only (§4a). No per-scenario code,
+   ever. *Revision-6 hardening (external audit of freeze-v1): the
+   earlier verifier gated only observed configurations at any uniform N
+   and graded against the run's own recorded oracle; the audit
+   demonstrated it certifying a one-run, one-policy, N=1 synthetic
+   campaign with a contradicting run-local oracle. That exploit is now
+   an adversarial regression test.*
 6. **Provenance**: `results.json` environment gains `protocolId`
    (`"phase2a-v1"`), `repairMode`, and `suiteHash`; the campaign
    aggregator refuses to aggregate runs with mixed `protocolId` or
@@ -372,10 +406,33 @@ never predictions or judged outcomes.
    act-layer success, downstream failure, `llmCalls === 0`, empty
    `healedSteps`, and no provider/auth error. Never evidence; part of the
    frozen suite.
+9. **Budget rule + campaign driver** (§7; added in revision 6 after the
+   freeze-v1 audit found the budget promised but unimplemented):
+   `runBenchmark` gains pre/post-trial hooks; a stopped run stamps
+   `results.stopped { reason, completedTrials, plannedTrials }` and
+   still writes every artifact — an incomplete campaign is preserved
+   evidence. `pnpm campaign:2a` executes the frozen §7 schedule from a
+   persisted, resumable state file (atomic writes, spend updated after
+   every trial), prices every trial with the pinned price table,
+   enforces the $39.90 pre-trial threshold as a frozen in-code constant
+   (deliberately not a flag), machine-enforces §8 key discipline (the
+   keyless phase refuses to run while any key is present; the keyed
+   phase refuses without one) and the §7 crash-rerun-once rule, and
+   exits with a distinct code on a budget stop. Campaign state is
+   per-phase (`runs/phase2a/campaign-state.<phase>.json` by default;
+   the keyless and keyed phases never share a state file). Before any
+   keyed run, the driver additionally asserts the configured model is
+   in the pinned price table — no keyed trial may execute on an
+   unpriceable model; the per-trial unpriceable check remains as
+   defense-in-depth (a budget cannot be enforced over spend that cannot
+   be priced). For operator
+   reproduction, `pnpm bench --scenario-suite <file> --only <ids>` runs
+   a subset of a held-out suite with provenance stamps unchanged — a
+   filtered run can never satisfy campaign completeness.
 
 ## 6. Diff gate
 
-`scripts/diff-gate-2a.sh` diffs `phase2a-policy-freeze-v1` against a
+`scripts/diff-gate-2a.sh` diffs `phase2a-policy-freeze-v2` against a
 given ref and exits nonzero on any change outside this allowlist:
 
 - `data/phase2a/scenario-suite.json` — sol's exact bytes; the commit
@@ -395,7 +452,7 @@ present and empty from stage 1), and the gate verifies that every byte of
 **Executable stage-2 sequence (fixed; prevents gate/report circularity):**
 
 1. Commit sol's JSON and the §10 appendix — the *suite-candidate* commit.
-2. Run the gate against `phase2a-policy-freeze-v1..HEAD`; write
+2. Run the gate against `phase2a-policy-freeze-v2..HEAD`; write
    `evidence/phase2a/diff-gate.txt`.
 3. Commit the report.
 4. Rerun the gate. Because the gate **excludes its own allowlisted report
@@ -425,7 +482,8 @@ present and empty from stage 1), and the gate verifies that every byte of
   results, however surprising, cannot modify the keyed grid.
 - **Budget:** operational stop threshold **$39.90** of model-inference
   spend, checked **pre-trial**: before each keyed trial the runner prices
-  all recorded tokens so far and starts the trial only if spend ≤ $39.90.
+  all recorded tokens so far and starts the trial only if cumulative
+  spend is strictly below $39.90.
   The engine has no enforced per-trial token ceiling, so the final
   completed trial may overshoot $40 by its own cost — disclosed here
   rather than claimed away. Projection: 32 scenarios × 5 sweeps × 2
@@ -438,13 +496,30 @@ present and empty from stage 1), and the gate verifies that every byte of
   may exceed it. **The threshold is the stop rule**: if it halts the
   campaign, the campaign is reported **incomplete**, and an incomplete
   grid supports no frontier claims. Declared now; not adaptive stopping.
+  *Implemented in revision 6 (§5 item 9): the runner's pre-trial hook
+  halts the run, stamps `results.stopped`, and still writes every
+  artifact; the campaign driver persists cumulative priced spend across
+  runs (state file, atomic writes, updated after every trial) and
+  re-checks the frozen threshold before every trial; the ABBA schedule
+  and the crash-rerun-once rule are machine-enforced by the same driver.
+  One disclosed accounting boundary: a trial whose engine throws records
+  no token usage and prices at $0, so provider spend inside a crashed
+  call is not counted by the operational threshold — this is a stop rule
+  over recorded tokens, not a billing reconciliation.*
 
 ## 8. Gates before any keyed trial
 
 1. Full test suite green at the stage-2 tag; `gitDirty: false`.
 2. Diff gate passes; sol's package hash matches.
 3. **Keyless full grid** of A, B, B2 (N=5) on the held-out suite —
-   complete before any key exists. Also validates every fixture renders
+   complete before any key exists (machine-enforced: the driver's
+   keyless phase refuses to run while any key is present). Run via
+   `pnpm campaign:2a --suite data/phase2a/scenario-suite.json --phase
+   keyless --state runs/phase2a/campaign-state.keyless.json` (the
+   per-phase default; keyless and keyed never share a state file);
+   verified with `pnpm verify:suite <sweep dirs> --suite
+   data/phase2a/scenario-suite.json --expect-policies A,B,B2
+   --expect-trials 5`. Also validates every fixture renders
    and grades, and checks the F2 mechanism instrumentation (§3 — never
    outcomes). Keyless outcomes
    are recorded and cannot alter the keyed grid.
@@ -463,7 +538,15 @@ present and empty from stage 1), and the gate verifies that every byte of
    audit, new smoke.
 6. Campaign start. Model, pinned prices (2026-07-14), and
    model-inference-cost-only accounting identical to Phase 1
-   (`anthropic/claude-haiku-4-5`).
+   (`anthropic/claude-haiku-4-5`). The keyed grid runs via
+   `pnpm campaign:2a --suite data/phase2a/scenario-suite.json --phase
+   keyed --state runs/phase2a/campaign-state.keyed.json` (per-phase
+   default; the driver refuses a state file from another phase and
+   refuses any keyed run whose model is not in the pinned price
+   table); final campaign acceptance is verified with
+   `pnpm verify:suite <all sweep dirs> --suite
+   data/phase2a/scenario-suite.json --expect-policies A,B,B2,C,D
+   --expect-trials 5` (the §5 item-5 grid contract).
 
 ## 9. Metrics and interpretation rules (fixed in advance)
 
@@ -502,7 +585,7 @@ trial: the revealed scenario table, sol's prediction table and package
 SHA-256, and the frozen scenario count. The diff-gate report is not part
 of the appendix — its single home is `evidence/phase2a/diff-gate.txt`,
 §6. The gate verifies every byte of this file outside the marked region
-is unchanged from `phase2a-policy-freeze-v1`.)
+is unchanged from `phase2a-policy-freeze-v2`.)
 
 <!-- PHASE2A-APPENDIX-START -->
 <!-- PHASE2A-APPENDIX-END -->

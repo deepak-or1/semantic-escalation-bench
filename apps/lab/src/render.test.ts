@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { getCopy } from "./copy";
 import { createSkin } from "./markup";
 import { decoyStateFrom, resolveClassDriftLevel } from "./params";
-import { renderLoginPage, renderOddsPage, renderStatsPage } from "./render";
+import { renderConsentPage, renderLoginPage, renderOddsPage, renderStatsPage } from "./render";
 import { LabState } from "./state";
 
 /**
@@ -212,5 +212,156 @@ describe("delayRangeMs (§3 Timing)", () => {
     // Same seeded draw as Phase-1 — only the bounds change. Recompute it exactly.
     const expected = rngInt(createRng(hashSeed(`delay:${SEED}`)), 100, 200);
     expect(stamped).toBe(expected);
+  });
+});
+
+// ── id drift (§3 F1, id half) — the non-inertness fix ─────────
+//
+// Levels 1–3 must actually perturb id-keyed selectors, not just classes: an
+// `#standings`-style policy has to start missing at level 1 and miss everything by
+// level 3, while the F2 decoy machinery keeps emitting canonical ids LITERALLY.
+
+/** Every canonical id base the lab emits across all views (full inventory). */
+const ID_INVENTORY = [
+  "login-form", "username", "password", "login-submit", "consent-form",
+  "accept-cookies", "standings", "table-data", "prev-page", "page-indicator",
+  "skeleton", "table-template", "tab-overview", "panel-overview", "panel-table",
+  "odds-table", "newsletter-modal", "modal-close", "next-page", "tab-table"
+];
+
+function skinAt(seed: number, level: number) {
+  return createSkin(seed, level);
+}
+function copyAt(seed: number) {
+  return getCopy(seed, false);
+}
+/**
+ * Concatenate every page/view that surfaces an id, at a given class-drift level and
+ * decoy level, so a single string exercises the full id inventory. `classDriftLevel`
+ * is threaded through the skin exactly as app.ts resolves it.
+ */
+function combinedRender(seed: number, level: number, decoyLevel = 0): string {
+  const skin = skinAt(seed, level);
+  const copy = copyAt(seed);
+  const decoy = decoyStateFrom({ decoyLevel } as ChaosParams);
+  const mkState = (chaos: ChaosFlag[]) =>
+    new LabState(seed, chaos, { classDriftLevel: level, decoyLevel } as ChaosParams);
+  return [
+    renderLoginPage({ skin, copy, next: "/stats", decoy }),
+    renderConsentPage({ skin, copy, next: "/stats" }),
+    renderStatsPage({ state: mkState(["pagination", "hiddenTab", "modal"]), skin, copy }),
+    renderStatsPage({ state: mkState(["delayedRender", "modal"]), skin, copy }),
+    renderOddsPage({ state: mkState(["modal"]), skin, copy })
+  ].join("\n");
+}
+
+describe("id drift level 0 — byte-identity (§3 F1)", () => {
+  it("emits every canonical id verbatim (no rename) across all views at level 0", () => {
+    const html = combinedRender(SEED, 0);
+    for (const base of ID_INVENTORY) {
+      expect(html).toContain(` id="${base}"`);
+    }
+    // No drifted id token exists at level 0.
+    expect(html).not.toMatch(/ id="[a-z-]+-x[0-9a-z]{1,6}"/);
+  });
+});
+
+describe("id drift non-inertness (§3 F1) — id-keyed selectors break as the level rises", () => {
+  it("level 1 breaks a `#standings` selector for a seed that drifts it (audit regression)", () => {
+    // Deterministically pick the first seed whose `standings` id drifts at level 1.
+    let probe = -1;
+    for (let seed = 1; seed <= 500; seed++) {
+      if (skinAt(seed, 1).idName("standings") !== "standings") {
+        probe = seed;
+        break;
+      }
+    }
+    expect(probe).toBeGreaterThan(0);
+
+    const drifted = skinAt(probe, 1).idName("standings");
+    expect(drifted).not.toBe("standings");
+
+    // A plain stats page (default table view) at level 1 for that seed: the canonical
+    // `#standings` hook is GONE, replaced by the drifted token — so a policy keyed on
+    // `id="standings"` fails at level 1.
+    const state = new LabState(probe, [], { classDriftLevel: 1 } as ChaosParams);
+    const html = renderStatsPage({ state, skin: skinAt(probe, 1), copy: copyAt(probe) });
+    expect(html).not.toContain(` id="standings"`);
+    expect(html).toContain(` id="${drifted}"`);
+  });
+
+  it("level 3 renames EVERY id hook (no canonical id survives) at an arbitrary seed", () => {
+    const html = combinedRender(SEED, 3); // decoyLevel 0 → every id routes through the skin
+    for (const base of ID_INVENTORY) {
+      // The bare canonical id must not appear anywhere…
+      expect(html).not.toContain(` id="${base}"`);
+      // …and its drifted form must be present instead.
+      const drifted = skinAt(SEED, 3).idName(base);
+      expect(drifted).not.toBe(base);
+      expect(html).toContain(` id="${drifted}"`);
+    }
+  });
+});
+
+describe("id drift reference consistency (§3 F1)", () => {
+  it("at level 2 every intra-document id reference resolves to a present id", () => {
+    const html = combinedRender(SEED, 2);
+    const present = new Set([...html.matchAll(/ id="([^"]*)"/g)].map((m) => m[1]));
+    // Collect every kind of intra-document id reference the markup could contain.
+    const refs = [
+      ...[...html.matchAll(/\bfor="([^"]*)"/g)].map((m) => m[1]),
+      ...[...html.matchAll(/aria-labelledby="([^"]*)"/g)].map((m) => m[1]),
+      ...[...html.matchAll(/aria-controls="([^"]*)"/g)].map((m) => m[1]),
+      ...[...html.matchAll(/href="#([^"]+)"/g)].map((m) => m[1]),
+      ...[...html.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)].map((m) => m[1]),
+      ...[...html.matchAll(/querySelector\(['"]#([^'"]+)['"]\)/g)].map((m) => m[1])
+    ];
+    // Every reference (if any exists) must resolve to an id present in the document.
+    for (const ref of refs) expect(present.has(ref)).toBe(true);
+    // The lab locates elements by class (skin.jsSel), so there are no id references —
+    // this test locks that invariant: a future dangling id reference would fail here.
+    expect(refs.length).toBe(0);
+  });
+});
+
+// ── decoy ids stay literal under id drift (§3 F2 × F1) ────────
+
+describe("decoy ids survive id drift (trigger-blind invariant)", () => {
+  it("at classDriftLevel 3 + decoyLevel 1 the decoy keeps id=\"next-page\" verbatim while every other id is renamed", () => {
+    // Full decoy scaffold (pagination for next-page, hiddenTab for reveal-table) so
+    // the decoy actually renders; classDriftLevel 3 drifts all non-decoy ids.
+    const state = new LabState(SEED, ["pagination", "hiddenTab", "modal"], {
+      classDriftLevel: 3,
+      decoyLevel: 1
+    } as ChaosParams);
+    const html = renderStatsPage({ state, skin: skinAt(SEED, 3), copy: copyAt(SEED) });
+
+    // The rebound control's canonical id is emitted LITERALLY on exactly one element
+    // (the inert decoy) — untouched by id drift.
+    expect(html).toContain(`<button type="button" id="next-page"`);
+    expect(count(html, /id="next-page"/g)).toBe(1);
+
+    // Every OTHER id on the page is drifted (no canonical id survives on a real hook).
+    for (const base of ID_INVENTORY) {
+      if (base === "next-page") continue;
+      expect(html).not.toContain(` id="${base}"`);
+    }
+    // And the functional next-page control carries no id — only its drifted class
+    // hook (its styling classes drift too at level 3, so match just the hook token).
+    const decoySfx = hashSeed(`decoy:${SEED}`).toString(36).slice(0, 6);
+    expect(html).toContain(`class="next-page-d${decoySfx} `);
+  });
+
+  it("at classDriftLevel 4 + decoyLevel 1 the decoy's literal id is the ONLY id on the page", () => {
+    // Level 4 strips every skin-routed id; the decoy's canonical id is emitted as
+    // a raw literal outside the skin, so it must be the page's sole id attribute.
+    const state = new LabState(SEED, ["pagination", "hiddenTab", "modal"], {
+      classDriftLevel: 4,
+      decoyLevel: 1
+    } as ChaosParams);
+    const html = renderStatsPage({ state, skin: skinAt(SEED, 4), copy: copyAt(SEED) });
+
+    expect(html).toContain(`<button type="button" id="next-page"`);
+    expect(count(html, / id="/g)).toBe(1);
   });
 });

@@ -226,6 +226,22 @@ export const BenchmarkResultsSchema = z.object({
   trials: z.array(TrialResultSchema),
   engines: z.array(EngineSummarySchema),
   comparison: z.array(ScenarioComparisonSchema),
+  /**
+   * Present only when a `beforeTrial` hook halted the run early (PROTOCOL_2A §7:
+   * the pre-trial budget stop). An incomplete campaign is PRESERVED evidence — the
+   * runner still writes every artifact — so this records why it stopped and how
+   * far it got. `completedTrials` is how many trials actually ran; `plannedTrials`
+   * is how many the full scenario × engine × trial grid would have produced.
+   * Absent on any run that ran to completion (keeps every prior results.json
+   * parsing).
+   */
+  stopped: z
+    .object({
+      reason: z.string(),
+      completedTrials: z.number().int().nonnegative(),
+      plannedTrials: z.number().int().nonnegative()
+    })
+    .optional(),
   environment: z.object({
     node: z.string(),
     stagehandVersion: z.string().optional(),

@@ -6,6 +6,7 @@
  *   pnpm bench -- --trials 3                      # 3 trials per scenario/engine
  *   pnpm bench -- --scenarios clean-extraction,class-drift --headed
  *   pnpm bench -- --scenario-suite data/phase2a/scenario-suite.json  # held-out suite (§5 item 4)
+ *   pnpm bench -- --scenario-suite <suite.json> --only f2-l1-a,f2-l1-b  # reproduce single cells
  *   pnpm bench -- --engines hybrid --no-repair            # policy B (== --repair-mode off)
  *   pnpm bench -- --engines hybrid --repair-mode deterministic  # policy B2 (deterministic ladder)
  *   pnpm bench -- --engines hybrid --repair-mode llm      # policy C (default; key-gated LLM repair)
@@ -15,6 +16,13 @@
  * --purpose <smoke|cold|persistence|warm> records why the run exists so evidence
  * separation is machine-enforced. It defaults to "cold" for an unseeded run and
  * is REQUIRED when a seed cache is present (persistence vs. warm must be explicit).
+ *
+ * --only <ids> (comma-separated) is valid ONLY with --scenario-suite: it filters
+ * the loaded held-out suite down to the named scenarios for single-cell
+ * reproduction, WITHOUT changing the stamped suite provenance (protocolId +
+ * suiteHash still identify the whole suite). A filtered run can never satisfy
+ * campaign completeness — the generic verifier (scripts/verify-suite.ts) enforces
+ * the full grid — so --only is a debugging/repro aid, never a campaign sweep.
  *
  * The default engine set is all three engines: "stagehand,baseline,hybrid".
  * Stagehand is auto-skipped (reported, never run) when no model key is present;
@@ -27,11 +35,11 @@
  * a caller-owned lab instead; then exclusivity is the caller's responsibility.
  */
 import "dotenv/config";
-import { spawn, spawnSync, type ChildProcess } from "node:child_process";
+import { spawnSync, type ChildProcess } from "node:child_process";
 import { readFile } from "node:fs/promises";
-import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { killAndVerify, pickFreePort, spawnPrivateLab } from "./labControl";
 import {
   ENGINES,
   LabClient,
@@ -82,8 +90,6 @@ export interface CliArgs {
   suiteHash?: string;
 }
 
-const REPO_ROOT = path.resolve(fileURLToPath(import.meta.url), "../..");
-
 function bail(message: string): never {
   console.error(message);
   process.exit(1);
@@ -95,6 +101,7 @@ export function parseArgs(argv: string[]): CliArgs {
   let scenarios: ScenarioSpec[] = SCENARIOS;
   let scenariosFlagSeen = false;
   let scenarioSuiteFile: string | undefined;
+  let onlyIds: string[] | undefined;
   let headless = true;
   let labUrl: string | undefined;
   let noRepair = false;
@@ -133,6 +140,10 @@ export function parseArgs(argv: string[]): CliArgs {
     } else if (arg === "--scenario-suite") {
       scenarioSuiteFile = argv[++i];
       if (!scenarioSuiteFile) bail("--scenario-suite needs a path to a scenario-suite JSON");
+    } else if (arg === "--only") {
+      const ids = (argv[++i] ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+      if (ids.length === 0) bail("--only must list at least one scenario id");
+      onlyIds = ids;
     } else if (arg === "--headed") {
       headless = false;
     } else if (arg === "--no-repair") {
@@ -187,6 +198,32 @@ export function parseArgs(argv: string[]): CliArgs {
     }
   }
 
+  // --only <ids> selects single cells from a loaded suite for reproduction. It is
+  // valid ONLY with --scenario-suite (the ids name held-out scenarios), and it
+  // leaves protocolId/suiteHash UNCHANGED — the stamp still identifies the whole
+  // suite, so a filtered run is transparently incomplete against the frozen grid.
+  if (onlyIds !== undefined) {
+    if (!scenarioSuiteFile) {
+      bail(
+        "--only is valid only together with --scenario-suite: it selects ids from a " +
+          "held-out suite. A filtered run can never satisfy campaign completeness — " +
+          "the verifier enforces the full grid."
+      );
+    }
+    const bySuiteId = new Map(scenarios.map((s) => [s.id, s]));
+    const filtered: ScenarioSpec[] = [];
+    for (const id of onlyIds) {
+      const found = bySuiteId.get(id);
+      if (!found) {
+        bail(
+          `--only: unknown scenario id "${id}" for this suite. Valid ids: ${[...bySuiteId.keys()].join(", ")}`
+        );
+      }
+      filtered.push(found);
+    }
+    scenarios = filtered;
+  }
+
   // --no-repair is the frozen alias of --repair-mode off; passing BOTH is an error
   // (a scenario must state its repair dispatch exactly once). Resolve to the
   // canonical RepairMode: --no-repair → "off", else --repair-mode, else "llm".
@@ -235,52 +272,6 @@ export function parseArgs(argv: string[]): CliArgs {
     ...(protocolId !== undefined ? { protocolId } : {}),
     ...(suiteHash !== undefined ? { suiteHash } : {})
   };
-}
-
-/** Ask the OS for a free ephemeral port on the loopback interface. */
-function pickFreePort(): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const srv = net.createServer();
-    srv.on("error", reject);
-    srv.listen(0, "127.0.0.1", () => {
-      const addr = srv.address();
-      if (addr && typeof addr === "object") {
-        const { port } = addr;
-        srv.close(() => resolve(port));
-      } else {
-        srv.close(() => reject(new Error("could not determine a free ephemeral port")));
-      }
-    });
-  });
-}
-
-/**
- * Spawn a PRIVATE lab child bound to `port` (Wave E 8a + 8k). Portable spawn:
- * runs the repo's OWN tsx through the current Node instead of a machine-specific
- * global pnpm path. `node_modules/.bin/tsx` is pnpm's shim whose target is
- * `tsx/dist/cli.mjs`; invoking that target via `process.execPath` means the
- * child depends on nothing on PATH. (Windows caveat: the .bin entry there is
- * `tsx.CMD`, but running `cli.mjs` through `process.execPath` works the same.)
- */
-function spawnPrivateLab(port: number): ChildProcess {
-  const tsxCli = path.resolve(REPO_ROOT, "node_modules/tsx/dist/cli.mjs");
-  return spawn(process.execPath, [tsxCli, "apps/lab/src/server.ts"], {
-    cwd: REPO_ROOT,
-    stdio: "ignore",
-    env: { ...process.env, LAB_PORT: String(port) }
-  });
-}
-
-/** Kill a child and confirm it actually exited (Wave E 8a: verify death). */
-async function killAndVerify(child: ChildProcess): Promise<void> {
-  if (child.exitCode !== null || child.signalCode !== null) return;
-  const exited = new Promise<void>((resolve) => child.once("exit", () => resolve()));
-  child.kill("SIGTERM");
-  await Promise.race([exited, new Promise<void>((r) => setTimeout(r, 3000))]);
-  if (child.exitCode === null && child.signalCode === null) {
-    child.kill("SIGKILL");
-    await Promise.race([exited, new Promise<void>((r) => setTimeout(r, 2000))]);
-  }
 }
 
 // NOTE (Wave E 8a): a previous wave added a "pre-flight" that refused to bench

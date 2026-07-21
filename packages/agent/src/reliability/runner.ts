@@ -95,6 +95,26 @@ export interface BenchmarkRunConfig {
   protocolId?: string;
   suiteHash?: string;
   onProgress?: (line: string) => void;
+  /**
+   * Optional per-trial hooks (PROTOCOL_2A §7, the campaign driver). `beforeTrial`
+   * runs at the TOP of every trial iteration (before `lab.configure`); returning
+   * `{ stop: reason }` halts ALL remaining trials and stamps `results.stopped` —
+   * the incomplete run is still fully persisted (results.json/.md, failures.jsonl,
+   * runs/latest mirror) because a stopped campaign is preserved evidence, never
+   * discarded. `afterTrial` runs immediately after each trial is recorded (the
+   * driver prices the trial's tokens there and enforces the budget). Both are
+   * awaited; a run with no hooks behaves exactly as before.
+   */
+  hooks?: {
+    beforeTrial?: (ctx: {
+      scenarioId: string;
+      engine: EngineName;
+      trial: number;
+      completed: number;
+      total: number;
+    }) => Promise<{ stop: string } | undefined>;
+    afterTrial?: (record: TrialResult) => Promise<void>;
+  };
 }
 
 /**
@@ -295,8 +315,11 @@ export async function runBenchmark(
   const total =
     config.scenarios.length * runnableEngines.length * config.trialsPerScenario;
   let k = 0;
+  // Set when a beforeTrial hook halts the run early (PROTOCOL_2A §7). Recorded on
+  // results.stopped; every artifact is still written (preserved evidence).
+  let stopped: BenchmarkResults["stopped"] | undefined;
 
-  for (const scenario of config.scenarios) {
+  scenarioLoop: for (const scenario of config.scenarios) {
     // Per-scenario warm-cache resolution (8h): a manifest seeds each scenario
     // from its own healed cache (absent scenarios fall back to the bootstrap);
     // otherwise the single --seed-cache file (if any) seeds every scenario.
@@ -306,6 +329,31 @@ export async function runBenchmark(
     for (const engine of runnableEngines) {
       const impl = ENGINE_IMPLS[engine];
       for (let trial = 1; trial <= config.trialsPerScenario; trial++) {
+        // (0) Pre-trial hook (PROTOCOL_2A §7): checked at the TOP of every trial
+        // iteration, before the lab is touched. A `{ stop }` return halts ALL
+        // remaining trials; results built so far become PRESERVED incomplete
+        // evidence (still fully written below) stamped with results.stopped.
+        if (config.hooks?.beforeTrial) {
+          const decision = await config.hooks.beforeTrial({
+            scenarioId: scenario.id,
+            engine,
+            trial,
+            completed: trials.length,
+            total
+          });
+          if (decision) {
+            stopped = {
+              reason: decision.stop,
+              completedTrials: trials.length,
+              plannedTrials: total
+            };
+            config.onProgress?.(
+              `STOP after ${trials.length}/${total} trial(s): ${decision.stop} — ` +
+                `preserving the incomplete campaign as evidence`
+            );
+            break scenarioLoop;
+          }
+        }
         // (1) Reconfigure the lab per trial — this also resets sessions, which
         // session prep below relies on. Suite scenarios carry §3 perturbation
         // params (decoy/pageSize/vocab/…); pass them so a suite run actually
@@ -400,6 +448,10 @@ export async function runBenchmark(
         }
 
         trials.push(record);
+        // (7) Post-trial hook (PROTOCOL_2A §7): the driver prices this trial's
+        // tokens here and enforces the budget. Awaited before the next iteration
+        // so the pre-trial check on the following trial sees the updated spend.
+        if (config.hooks?.afterTrial) await config.hooks.afterTrial(record);
         config.onProgress?.(
           `[${k}/${total}] ${scenario.id} ${engine} -> ${
             record.outcome === "pass" ? "PASS" : "FAIL"
@@ -446,6 +498,9 @@ export async function runBenchmark(
     trials,
     engines,
     comparison,
+    // Present only on an early budget stop (PROTOCOL_2A §7). The artifacts below
+    // are written regardless — an incomplete campaign is preserved evidence.
+    ...(stopped ? { stopped } : {}),
     environment: {
       node: process.version,
       ...(stagehandPkg.version ? { stagehandVersion: stagehandPkg.version } : {}),

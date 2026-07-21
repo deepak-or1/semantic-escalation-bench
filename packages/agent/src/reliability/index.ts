@@ -24,6 +24,31 @@ export {
 } from "./campaign";
 export { PINNED_PRICES, PRICES_PINNED_AT, trialCostUsd } from "./prices";
 export {
+  CAMPAIGN_BUDGET_THRESHOLD_USD,
+  CampaignStateSchema,
+  CampaignEntryStateSchema,
+  UnpriceableTrialError,
+  buildSchedule,
+  policyRunConfig,
+  initCampaignState,
+  nextEntry,
+  trialCost,
+  shouldStop,
+  makeBudgetHooks,
+  runCampaign,
+  assertStateMatches,
+  type CampaignPhase,
+  type CampaignPolicy,
+  type Sweep,
+  type CampaignEntry,
+  type PolicyRunConfig,
+  type CampaignState,
+  type CampaignEntryState,
+  type EntryRunContext,
+  type CampaignDeps,
+  type CampaignOutcome
+} from "./campaignDriver";
+export {
   buildHealsManifest,
   loadAndVerifySeedCacheManifest,
   type SeedCacheManifestFile

@@ -98,3 +98,65 @@ describe("run-benchmark parseArgs — --scenario-suite (PROTOCOL_2A §5 item 4)"
     expect(err.mock.calls.flat().join(" ")).toContain("mutually exclusive");
   });
 });
+
+describe("run-benchmark parseArgs — --only (single-cell reproduction, PROTOCOL_2A §7)", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  const dir = mkdtempSync(path.join(tmpdir(), "ssda-cli-only-"));
+  /** A two-F2-scenario suite so filtering to one visibly drops the other. */
+  function writeSuite2(): { file: string; suiteHash: string } {
+    const mkScenario = (id: string, seed: number) => ({
+      id,
+      name: id,
+      description: "decoy rebinding level 1",
+      chaos: ["pagination", "hiddenTab"],
+      params: { decoyLevel: 1, decoyPlacement: "after" },
+      seed,
+      session: "fresh",
+      expected: "success",
+      stratum: "F2",
+      stratumId: "level-1",
+      predictions: { A: "observed-failure", B: "observed-failure", B2: "observed-failure", C: "observed-failure", D: "all-pass" }
+    });
+    const suite = { protocolId: "phase2a-v1", scenarios: [mkScenario("f2-a", 2210), mkScenario("f2-b", 2211)] };
+    const file = path.join(dir, "suite2.json");
+    const bytes = Buffer.from(JSON.stringify(suite, null, 2), "utf8");
+    writeFileSync(file, bytes);
+    return { file, suiteHash: createHash("sha256").update(bytes).digest("hex") };
+  }
+
+  it("valid filter: keeps only the named ids and leaves suite provenance UNCHANGED", () => {
+    const { file, suiteHash } = writeSuite2();
+    // The unfiltered suite carries both scenarios and the file-bytes hash.
+    const full = parseArgs(["--scenario-suite", file]);
+    expect(full.scenarios.map((s) => s.id)).toEqual(["f2-a", "f2-b"]);
+
+    const filtered = parseArgs(["--scenario-suite", file, "--only", "f2-b"]);
+    expect(filtered.scenarios.map((s) => s.id)).toEqual(["f2-b"]);
+    // Provenance stamps are of the WHOLE suite, unchanged by filtering.
+    expect(filtered.protocolId).toBe("phase2a-v1");
+    expect(filtered.suiteHash).toBe(suiteHash);
+    expect(filtered.suiteHash).toBe(full.suiteHash);
+  });
+
+  it("rejects an unknown --only id, listing the valid ids", () => {
+    const { file } = writeSuite2();
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(process, "exit").mockImplementation(((code?: number): never => {
+      throw new Error(`exit ${code}`);
+    }) as never);
+    expect(() => parseArgs(["--scenario-suite", file, "--only", "nope"])).toThrow(/exit/);
+    const msg = err.mock.calls.flat().join(" ");
+    expect(msg).toContain('unknown scenario id "nope"');
+    expect(msg).toContain("f2-a, f2-b");
+  });
+
+  it("rejects --only without --scenario-suite", () => {
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(process, "exit").mockImplementation(((code?: number): never => {
+      throw new Error(`exit ${code}`);
+    }) as never);
+    expect(() => parseArgs(["--only", "f2-a"])).toThrow(/exit/);
+    expect(err.mock.calls.flat().join(" ")).toContain("valid only together with --scenario-suite");
+  });
+});
