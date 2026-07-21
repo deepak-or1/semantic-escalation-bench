@@ -1,14 +1,11 @@
 node_modules/
 runs/*
 !runs/.gitkeep
-# the committed evidence: small textual results of the latest benchmark run
-# (report.html and per-trial artifacts/screenshots stay untracked — regenerate
-# with `pnpm bench && pnpm report`)
-!runs/latest/
-runs/latest/*
-!runs/latest/results.json
-!runs/latest/results.md
-!runs/latest/failures.jsonl
+# runs/ is a live mirror the runner rewrites every run — nothing under it is
+# tracked. The Phase-1 keyless results formerly committed at runs/latest/ are
+# byte-preserved at evidence/phase1/keyless-tier/ (see its README): tracking
+# the mirror made campaign runs 2..n record gitDirty=true, failing the frozen
+# Phase-2A provenance check.
 .env
 .env.local
 *.log

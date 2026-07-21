@@ -174,7 +174,7 @@ The scenario catalog lives in `packages/shared/src/scenarios.ts` — **24 scenar
 
 **Where results land:** each run writes to `runs/<benchId>/` and is mirrored to `runs/latest/` — `results.json`, `results.md`, `failures.jsonl`, and (after `pnpm report`) `report.html`. Per-trial artifacts (events log, raw extraction, normalized dataset, screenshots) live under `runs/<benchId>/trials/<scenario>-<engine>-t<n>/`.
 
-**Keyless-tier numbers** (from `runs/latest/results.md`, 1 trial/scenario, local headless Chromium, no model key, Node 20, Stagehand 3.6.0 — the $0 tier of the ladder; the keyed campaign results live in [docs/PHASE1_RESULTS.md](docs/PHASE1_RESULTS.md)):
+**Keyless-tier numbers** (from [evidence/phase1/keyless-tier/results.md](evidence/phase1/keyless-tier/results.md), 1 trial/scenario, local headless Chromium, no model key, Node 20, Stagehand 3.6.0 — the $0 tier of the ladder; the keyed campaign results live in [docs/PHASE1_RESULTS.md](docs/PHASE1_RESULTS.md)):
 
 | Engine | Judged pass | Task success | Extraction | Validation | Mean accuracy | Mean duration | Retries | Recovery | LLM calls |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -188,7 +188,7 @@ The **hybrid's deterministic tier passed 20/24 without invoking semantic repair*
 
 **Survival curve (keyless tier):** the baseline survives through **v1**; the hybrid's deterministic tier through **v2**. In the keyed campaign, both the repair-enabled hybrid and full Stagehand passed all three site versions — on this frozen suite, no keyed policy has a survival edge over another; the keyless tiers are where the curve separates ([docs/PHASE1_RESULTS.md](docs/PHASE1_RESULTS.md)).
 
-The Stagehand row is `skipped` in this keyless table because the harness **never fabricates trial data** when no model provider key is present (`packages/agent/src/reliability/runner.ts`). Stagehand's measured numbers come from the keyed campaign — 120/120 judged-correct across five sweeps at $0.0312 of model inference per success — recorded in [docs/PHASE1_RESULTS.md](docs/PHASE1_RESULTS.md) with per-trial artifacts in [evidence/phase1/](evidence/phase1/README.md). With a key the hybrid also gains its repair path (`llmCalls > 0` only on the trials that actually repair — 15 calls across a 24-scenario cold sweep in the campaign). Numbers in this README are copied from `runs/latest` and the audited campaign evidence, never invented.
+The Stagehand row is `skipped` in this keyless table because the harness **never fabricates trial data** when no model provider key is present (`packages/agent/src/reliability/runner.ts`). Stagehand's measured numbers come from the keyed campaign — 120/120 judged-correct across five sweeps at $0.0312 of model inference per success — recorded in [docs/PHASE1_RESULTS.md](docs/PHASE1_RESULTS.md) with per-trial artifacts in [evidence/phase1/](evidence/phase1/README.md). With a key the hybrid also gains its repair path (`llmCalls > 0` only on the trials that actually repair — 15 calls across a 24-scenario cold sweep in the campaign). Numbers in this README are copied from [evidence/phase1/keyless-tier/](evidence/phase1/keyless-tier/) and the audited campaign evidence, never invented.
 
 **Outcome taxonomy** — behaviour classification, orthogonal to pass/fail. A `schema-violation` refusal is judged PASS yet classed a *safe-failure*; **silent-corruption** (success claimed on wrong or unverifiable data) is the headline safety metric:
 
