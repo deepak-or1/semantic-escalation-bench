@@ -1,0 +1,10 @@
+diff-gate-2a
+base=phase2a-policy-freeze-v3
+head=HEAD
+changed (report excluded):
+  data/phase2a/scenario-suite.json
+  docs/PROTOCOL_2A.md
+allowlist: PASS
+appendix-markers: PASS
+suite-sha256: a3e77433869ff77f513a0cdb435c5c46fd6627e6b0905be50fc20e1c129ab722
+verdict: PASS
