@@ -3,6 +3,7 @@ export * from "./rng";
 export * from "./odds";
 export * from "./chaos";
 export * from "./scenarios";
+export * from "./suite";
 export * from "./quality";
 export * from "./storage";
 export * from "./logger";

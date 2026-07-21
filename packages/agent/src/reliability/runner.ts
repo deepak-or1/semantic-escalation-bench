@@ -5,6 +5,7 @@ import path from "node:path";
 import {
   BenchmarkResultsSchema,
   LabClient,
+  computeBuiltinCatalogHash,
   createRunLogger,
   labCredentials,
   mirrorToLatest,
@@ -14,6 +15,7 @@ import {
   type BenchmarkResults,
   type EngineName,
   type PipelineResult,
+  type RepairMode,
   type RunPurpose,
   type ScenarioSpec,
   type TrialResult
@@ -55,6 +57,13 @@ export interface BenchmarkRunConfig {
    */
   disableRepair?: boolean;
   /**
+   * The hybrid engine's repair dispatch (PROTOCOL_2A §1). When unset it is derived
+   * from `disableRepair` (`off` when true, else `llm`) so legacy callers are
+   * unchanged. The runner records the RESOLVED mode as `environment.repairMode`
+   * and passes it to the hybrid engine. Baseline/stagehand ignore it.
+   */
+  repairMode?: RepairMode;
+  /**
    * Warm-cache seeding (--seed-cache): a healed-cache.json artifact the hybrid
    * loads as each trial's initial selector cache instead of the bootstrap.
    * Baseline/stagehand ignore it. Mutually exclusive with seedCacheManifest.
@@ -76,7 +85,33 @@ export interface BenchmarkRunConfig {
    * economics sweep. Validated against the seeding mode by validateRunPurpose.
    */
   runPurpose?: RunPurpose;
+  /**
+   * Held-out scenario-suite provenance (PROTOCOL_2A §5 items 4/6). When the CLI
+   * runs a `--scenario-suite`, it passes the suite's `protocolId` and the SHA-256
+   * of the suite file's raw bytes. Both UNSET means a built-in-catalog run, which
+   * stamps protocolId "phase1-catalog" and the catalog's canonical-serialization
+   * hash (see resolveSuiteProvenance). Recorded on EVERY run's environment.
+   */
+  protocolId?: string;
+  suiteHash?: string;
   onProgress?: (line: string) => void;
+}
+
+/**
+ * Resolve the protocol/suite provenance a run stamps (PROTOCOL_2A §5 items 4/6).
+ * A `--scenario-suite` run supplies both fields (the suite's protocolId + its
+ * file-bytes hash); a built-in Phase-1 catalog run supplies neither and stamps
+ * protocolId "phase1-catalog" with the catalog's canonical-serialization hash
+ * (the same code path suite verification uses). Both are stamped on every run.
+ */
+export function resolveSuiteProvenance(config: {
+  protocolId?: string;
+  suiteHash?: string;
+}): { protocolId: string; suiteHash: string } {
+  return {
+    protocolId: config.protocolId ?? "phase1-catalog",
+    suiteHash: config.suiteHash ?? computeBuiltinCatalogHash()
+  };
 }
 
 /**
@@ -155,14 +190,27 @@ interface Provenance {
   gitCommit: string | null;
   gitDirty: boolean | null;
   disableRepair: boolean;
+  repairMode: RepairMode;
   seedCacheMode: "none" | "file" | "manifest";
   seedCacheHash: string | null;
   promptsHash: string;
   lockfileHash: string;
 }
 
+/**
+ * Resolve the hybrid repair dispatch for a run (PROTOCOL_2A §1). An explicit
+ * `repairMode` wins; otherwise `disableRepair` maps to "off" and its absence to
+ * "llm", so legacy callers keep their exact behaviour.
+ */
+function resolveRepairMode(config: BenchmarkRunConfig): RepairMode {
+  return config.repairMode ?? (config.disableRepair === true ? "off" : "llm");
+}
+
 /** Gather the reproducibility provenance recorded in results.environment (8j). */
-async function collectProvenance(config: BenchmarkRunConfig): Promise<Provenance> {
+async function collectProvenance(
+  config: BenchmarkRunConfig,
+  repairMode: RepairMode
+): Promise<Provenance> {
   // Canonical sorted registry of ALL fixed instruction strings (Wave F F1).
   const promptsHash = sha256(
     JSON.stringify(
@@ -201,7 +249,10 @@ async function collectProvenance(config: BenchmarkRunConfig): Promise<Provenance
   return {
     gitCommit: readGitCommit(),
     gitDirty: readGitDirty(),
-    disableRepair: config.disableRepair === true,
+    // "off" is the frozen alias of --no-repair: record disableRepair from the
+    // resolved mode so the aggregator's B-structural label is unchanged.
+    disableRepair: repairMode === "off",
+    repairMode,
     seedCacheMode,
     seedCacheHash,
     promptsHash,
@@ -221,6 +272,12 @@ export async function runBenchmark(
       ? "file"
       : "none";
   validateRunPurpose(runPurpose, seedCacheMode);
+
+  // Resolve the hybrid repair dispatch once: recorded as environment.repairMode
+  // and passed to the hybrid engine ("off" also sets disableRepair for the
+  // aggregator's B-structural label).
+  const repairMode = resolveRepairMode(config);
+  const disableRepairResolved = repairMode === "off";
 
   const lab = new LabClient(config.labUrl);
   const envConfig = loadAgentEnvConfig();
@@ -250,8 +307,15 @@ export async function runBenchmark(
       const impl = ENGINE_IMPLS[engine];
       for (let trial = 1; trial <= config.trialsPerScenario; trial++) {
         // (1) Reconfigure the lab per trial — this also resets sessions, which
-        // session prep below relies on.
-        await lab.configure({ seed: scenario.seed, chaos: scenario.chaos });
+        // session prep below relies on. Suite scenarios carry §3 perturbation
+        // params (decoy/pageSize/vocab/…); pass them so a suite run actually
+        // renders its perturbations. Built-in catalog scenarios have no params,
+        // so this is a no-op for them.
+        await lab.configure({
+          seed: scenario.seed,
+          chaos: scenario.chaos,
+          ...(scenario.params ? { params: scenario.params } : {})
+        });
         // (2) Ground truth for accuracy scoring.
         const { truth, overrides } = await lab.groundTruth();
 
@@ -300,7 +364,8 @@ export async function runBenchmark(
             navTimeoutMs: DEFAULT_PIPELINE_TIMEOUTS.navTimeoutMs,
             stepTimeoutMs: DEFAULT_PIPELINE_TIMEOUTS.stepTimeoutMs,
             env: "local",
-            ...(config.disableRepair ? { disableRepair: true } : {}),
+            repairMode,
+            ...(disableRepairResolved ? { disableRepair: true } : {}),
             ...(scenarioSeedCache ? { seedCacheFile: scenarioSeedCache } : {})
           });
           record = buildTrialResult(scenario, engine, trial, runId, runDir, result, {
@@ -366,7 +431,11 @@ export async function runBenchmark(
     path.resolve(process.cwd(), STAGEHAND_PKG_JSON),
     {}
   );
-  const provenance = await collectProvenance(config);
+  const provenance = await collectProvenance(config, repairMode);
+  // Protocol/suite provenance stamped on EVERY run (PROTOCOL_2A §5 items 4/6):
+  // suite runs carry the suite's protocolId + file hash; built-in-catalog runs
+  // carry "phase1-catalog" + the catalog's canonical-serialization hash.
+  const { protocolId, suiteHash } = resolveSuiteProvenance(config);
 
   const results = BenchmarkResultsSchema.parse({
     benchId: config.benchId,
@@ -386,6 +455,8 @@ export async function runBenchmark(
       modelProvider: envConfig.modelProvider ?? null,
       browserbase: envConfig.browserbase.ready,
       runPurpose,
+      protocolId,
+      suiteHash,
       ...provenance
     }
   });
@@ -433,7 +504,9 @@ function buildTrialResult(
   trial: number,
   runId: string,
   runDir: string,
-  result: PipelineResult,
+  // The hybrid engine carries B2's deterministicRepairSteps out-of-schema on the
+  // transient PipelineResult (its schema home is TrialRecord); read it here.
+  result: PipelineResult & { deterministicRepairSteps?: string[] },
   gt: GroundTruth
 ): TrialResult {
   let accuracy: TrialResult["accuracy"] = null;
@@ -479,6 +552,9 @@ function buildTrialResult(
     tokens: result.tokens ?? null,
     ...(result.healedSteps && result.healedSteps.length > 0
       ? { healedSteps: result.healedSteps }
+      : {}),
+    ...(result.deterministicRepairSteps && result.deterministicRepairSteps.length > 0
+      ? { deterministicRepairSteps: result.deterministicRepairSteps }
       : {}),
     ...(result.deterministicFallbacks && result.deterministicFallbacks.length > 0
       ? { deterministicFallbacks: result.deterministicFallbacks }

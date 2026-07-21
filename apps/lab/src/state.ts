@@ -2,6 +2,7 @@ import {
   computeDisplayOverrides,
   generateGroundTruth,
   type ChaosFlag,
+  type ChaosParams,
   type DisplayOverride,
   type GroundTruth,
   type LabState as LabStateJson
@@ -20,6 +21,11 @@ export interface Session {
 export class LabState {
   seed: number;
   chaos: Set<ChaosFlag>;
+  /**
+   * Phase-2A perturbation parameters (PROTOCOL_2A §3). Presentation-only, parsed
+   * and §3-validated at POST /__lab/config; never affects truth/overrides.
+   */
+  params: ChaosParams;
   truth: GroundTruth;
   overrides: DisplayOverride[];
   readonly sessions = new Map<string, Session>();
@@ -27,17 +33,19 @@ export class LabState {
   readonly startedAt = new Date().toISOString();
   requestCount = 0;
 
-  constructor(seed: number, chaos: readonly ChaosFlag[] = []) {
+  constructor(seed: number, chaos: readonly ChaosFlag[] = [], params: ChaosParams = {}) {
     this.seed = seed;
     this.chaos = new Set(chaos);
+    this.params = params;
     this.truth = generateGroundTruth(seed);
     this.overrides = computeDisplayOverrides(this.truth, chaos, seed);
   }
 
-  /** Apply a new seed/chaos config: regenerate data and wipe session state. */
-  reconfigure(seed: number, chaos: readonly ChaosFlag[]): void {
+  /** Apply a new seed/chaos/params config: regenerate data and wipe session state. */
+  reconfigure(seed: number, chaos: readonly ChaosFlag[], params: ChaosParams = {}): void {
     this.seed = seed;
     this.chaos = new Set(chaos);
+    this.params = params;
     this.truth = generateGroundTruth(seed);
     this.overrides = computeDisplayOverrides(this.truth, chaos, seed);
     this.sessions.clear();

@@ -1,6 +1,9 @@
 import { hashSeed } from "@ssda/shared";
 import { at } from "./markup";
 
+/** Per-key UI-copy override (PROTOCOL_2A §3, Stratum K `uiCopy`). */
+export type UiCopyOverrides = Partial<Record<keyof typeof COPY_TABLE, string>>;
+
 /**
  * copyDrift chaos rotates headings, labels and button text between three
  * synonym variants (index 0 is the default). Column headers never drift.
@@ -19,17 +22,26 @@ const COPY_TABLE = {
 
 export type Copy = { [K in keyof typeof COPY_TABLE]: string };
 
-export function getCopy(seed: number, driftOn: boolean): Copy {
+/**
+ * Resolve the visible copy. `overrides` (Stratum K `uiCopy`) wins per key; absent
+ * keys fall back to the copyDrift variant (or the default at variant 0). The §3
+ * flag-XOR-param rule already forbids copyDrift + uiCopy together, so in practice
+ * a run is either drifting OR overriding, never both — but the fallback is written
+ * so any present override always takes precedence over whatever variant is active.
+ */
+export function getCopy(seed: number, driftOn: boolean, overrides?: UiCopyOverrides): Copy {
   const variant = driftOn ? hashSeed(`copy:${seed}`) % 3 : 0;
+  const pick = (key: keyof typeof COPY_TABLE): string =>
+    overrides?.[key] ?? at(COPY_TABLE[key], variant);
   return {
-    siteName: at(COPY_TABLE.siteName, variant),
-    statsHeading: at(COPY_TABLE.statsHeading, variant),
-    oddsHeading: at(COPY_TABLE.oddsHeading, variant),
-    loginHeading: at(COPY_TABLE.loginHeading, variant),
-    loginButton: at(COPY_TABLE.loginButton, variant),
-    fullTableTab: at(COPY_TABLE.fullTableTab, variant),
-    nextButton: at(COPY_TABLE.nextButton, variant),
-    prevButton: at(COPY_TABLE.prevButton, variant),
-    acceptCookies: at(COPY_TABLE.acceptCookies, variant)
+    siteName: pick("siteName"),
+    statsHeading: pick("statsHeading"),
+    oddsHeading: pick("oddsHeading"),
+    loginHeading: pick("loginHeading"),
+    loginButton: pick("loginButton"),
+    fullTableTab: pick("fullTableTab"),
+    nextButton: pick("nextButton"),
+    prevButton: pick("prevButton"),
+    acceptCookies: pick("acceptCookies")
   };
 }

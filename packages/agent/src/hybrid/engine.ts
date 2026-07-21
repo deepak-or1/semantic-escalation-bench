@@ -6,6 +6,7 @@ import {
   type ExtractedStatsRow,
   type FailureCategory,
   type PipelineResult,
+  type RepairMode,
   type StepResult,
   type TokensUsage
 } from "@ssda/shared";
@@ -24,6 +25,12 @@ import {
   type Engine,
   type PipelineOptions
 } from "../core";
+import { DISMISS_TEXT_PATTERN } from "../core/dismissPattern";
+import {
+  deterministicExtract,
+  relocateControl,
+  revealTableDeterministic
+} from "./deterministicRepair";
 import {
   CONSENT_ACCEPT_INSTRUCTION,
   HYBRID_REPAIR_DISMISS_MODAL_INSTRUCTION,
@@ -82,6 +89,14 @@ const EXTRACT_REPAIR_NO_KEY =
 /** Explicitly frozen (--no-repair) extract failure detail. */
 const EXTRACT_REPAIR_DISABLED =
   "no header-mappable table found; semantic extraction disabled (--no-repair)";
+// B2 deterministic-repair failure details (PROTOCOL_2A §2, verbatim), used as the
+// message DETAIL with the same category conventions as B.
+/** Deterministic act-step failure: the ladder found no candidate. */
+const ACT_REPAIR_DETERMINISTIC_NONE =
+  "cached selector failed; deterministic repair found no candidate (repair-mode=deterministic)";
+/** Deterministic extract-step failure: the card reader found no mappable structure. */
+const EXTRACT_REPAIR_DETERMINISTIC_NONE =
+  "no header-mappable table found; deterministic card reader found no mappable structure (repair-mode=deterministic)";
 
 const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -192,11 +207,16 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
   // unlocks the repair path; without one the deterministic tier still runs.
   const config = loadAgentEnvConfig();
   const hasKey = Boolean(config.stagehandModel);
-  // --no-repair freezes the deterministic tier: repair is closed even with a
-  // key. `canRepair` gates every observe/extract call; `repairDisabled` selects
-  // the honest detail string (frozen vs. keyless), disabled taking precedence.
-  const repairDisabled = options.disableRepair === true;
-  const canRepair = hasKey && !repairDisabled;
+  // Repair dispatch (PROTOCOL_2A §1). Unset repairMode derives from disableRepair
+  // so existing callers keep their exact behaviour: "off" == --no-repair, else
+  // "llm". `canRepair` gates every observe/extract call and is TRUE only in llm
+  // mode (deterministic mode reaches no model call BY CONSTRUCTION, so llmCalls
+  // stays 0). `repairDisabled` (off) selects the frozen-vs-keyless detail string,
+  // reproducing the current --no-repair behaviour exactly.
+  const repairMode: RepairMode = options.repairMode ?? (options.disableRepair === true ? "off" : "llm");
+  const deterministic = repairMode === "deterministic";
+  const repairDisabled = repairMode === "off";
+  const canRepair = hasKey && repairMode === "llm";
   const stagehandOptions = buildHybridStagehandOptions(options, config);
 
   const wantStats = options.pages.includes("stats");
@@ -213,6 +233,9 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
     : bootstrapActions();
   const cache = new SelectorCache(bootstrap);
   const healedSteps = new Set<string>();
+  // B2 records successful deterministic repairs here (PROTOCOL_2A §2), trial-scoped
+  // across attempts exactly like healedSteps. B2 NEVER writes healedSteps.
+  const deterministicRepairSteps = new Set<string>();
 
   const attemptFn: AttemptFn = async (attempt): Promise<AttemptOutcome> => {
     const steps: StepResult[] = [];
@@ -283,11 +306,13 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
           steps,
           screenshots,
           await currentTokens(),
-          // Carry the trial-level heal snapshot so a trial that heals then fails
-          // entirely still records the heal (hybrid never uses deterministicFallbacks).
+          // Carry the trial-level heal + deterministic-repair snapshots so a trial
+          // that repaired then failed entirely still records it (hybrid never uses
+          // deterministicFallbacks). deterministicRepairSteps follows `options`.
           [...healedSteps],
           undefined,
-          { cause: error }
+          { cause: error },
+          [...deterministicRepairSteps]
         );
       }
     };
@@ -320,6 +345,44 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
     }): Promise<void> => {
       const cached = cache.action(params.key);
       if (await tryAct(cached, params.actOptions)) return;
+
+      if (deterministic) {
+        // B2 (§2): re-locate the control deterministically (NO model call), heal
+        // the in-memory cache, and replay through the SAME credential-safe Stagehand
+        // path. reveal-table is diverted to its own ladder before this point.
+        const relocated = await relocateControl(page!, params.key, DISMISS_TEXT_PATTERN);
+        if (!relocated) {
+          throw new PipelineStepError(
+            `${params.step} (${cached.selector}): ${ACT_REPAIR_DETERMINISTIC_NONE}`,
+            params.category,
+            params.step
+          );
+        }
+        const healed: Action =
+          params.repairKind === "fill"
+            ? {
+                selector: relocated,
+                method: "fill",
+                arguments: [params.placeholder ?? ""],
+                description: cached.description
+              }
+            : {
+                selector: relocated,
+                method: "click",
+                arguments: [],
+                description: cached.description
+              };
+        if (!(await tryAct(healed, params.actOptions))) {
+          throw new PipelineStepError(
+            `${params.step}: repaired selector still failed to act`,
+            params.category,
+            params.step
+          );
+        }
+        cache.heal(params.step, params.key, healed);
+        deterministicRepairSteps.add(params.step);
+        return;
+      }
 
       if (!canRepair) {
         const detail = repairDisabled ? ACT_REPAIR_DISABLED : ACT_REPAIR_NO_KEY;
@@ -367,6 +430,16 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
     const extractRepair = async (
       step: "extract-stats" | "extract-odds"
     ): Promise<{ statsRows?: ExtractedStatsRow[]; oddsRows?: ExtractedOddsRow[] }> => {
+      if (deterministic) {
+        // B2 (§2): deterministic card reader — NO model call. Maps the card grid
+        // through the SAME frozen synonym dictionaries the table path uses.
+        const rows = await deterministicExtract(page!, step);
+        if (!rows) {
+          throw new PipelineStepError(EXTRACT_REPAIR_DETERMINISTIC_NONE, "extraction", step);
+        }
+        deterministicRepairSteps.add(step);
+        return rows;
+      }
       if (!canRepair) {
         const detail = repairDisabled ? EXTRACT_REPAIR_DISABLED : EXTRACT_REPAIR_NO_KEY;
         throw new PipelineStepError(detail, "extraction", step);
@@ -521,14 +594,38 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
           if (!ready) {
             // Content is not yet readable and did not delay-render in: try the
             // cached tab that reveals the standings (repair-gated like any act).
-            await cachedActOrRepair({
-              step: "reveal-table",
-              key: "reveal-table",
-              category: "not_found",
-              repairInstruction: REVEAL_STANDINGS_INSTRUCTION,
-              repairKind: "click",
-              actOptions: { timeout: options.stepTimeoutMs }
-            });
+            if (deterministic) {
+              // B2 (§2) reveal-table rung: try the cached tab, then click ladder
+              // candidates (<=5) running the content-ready poll after each. A
+              // success heals the in-memory cache with the candidate's selector.
+              const cached = cache.action("reveal-table");
+              if (!(await tryAct(cached, { timeout: options.stepTimeoutMs }))) {
+                const healedSel = await revealTableDeterministic(page!, CONTENT_POLL_MS);
+                if (!healedSel) {
+                  throw new PipelineStepError(
+                    `reveal-table (${cached.selector}): ${ACT_REPAIR_DETERMINISTIC_NONE}`,
+                    "not_found",
+                    "reveal-table"
+                  );
+                }
+                cache.heal("reveal-table", "reveal-table", {
+                  selector: healedSel,
+                  method: "click",
+                  arguments: [],
+                  description: cached.description
+                });
+                deterministicRepairSteps.add("reveal-table");
+              }
+            } else {
+              await cachedActOrRepair({
+                step: "reveal-table",
+                key: "reveal-table",
+                category: "not_found",
+                repairInstruction: REVEAL_STANDINGS_INSTRUCTION,
+                repairKind: "click",
+                actOptions: { timeout: options.stepTimeoutMs }
+              });
+            }
             await page!.waitForTimeout(400);
             ready = await waitForContent(page!, CONTENT_POLL_MS, "stats");
           }
@@ -631,7 +728,10 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
         ...(oddsRaw ? { oddsRaw } : {}),
         screenshots,
         tokens: await currentTokens(),
-        ...(healedSteps.size > 0 ? { healedSteps: [...healedSteps] } : {})
+        ...(healedSteps.size > 0 ? { healedSteps: [...healedSteps] } : {}),
+        ...(deterministicRepairSteps.size > 0
+          ? { deterministicRepairSteps: [...deterministicRepairSteps] }
+          : {})
       };
     } finally {
       try {
@@ -643,8 +743,12 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
   };
 
   const result = await runPipeline("hybrid", options, attemptFn);
-  // Persist the healed selector cache (placeholders intact) when anything healed.
-  await cache.persist(options.runDir);
+  // Persist the healed selector cache (placeholders intact) when anything healed —
+  // BUT never in deterministic mode: B2 heals only its in-memory cache for
+  // within-trial replay and must never write a healed-cache.json artifact
+  // (PROTOCOL_2A §2; a deterministic-heal artifact would overload the Phase-1
+  // meaning of healed-cache.json).
+  if (!deterministic) await cache.persist(options.runDir);
   return result;
 }
 

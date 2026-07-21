@@ -13,6 +13,15 @@ import { AttemptFailure, type AttemptOutcome, type PipelineOptions } from "./typ
 
 export type AttemptFn = (attempt: number) => Promise<AttemptOutcome>;
 
+/**
+ * The engine→runner courier shape. `deterministicRepairSteps` (PROTOCOL_2A §2)
+ * rides on the returned PipelineResult exactly as `healedSteps`/
+ * `deterministicFallbacks` do, but its schema home is `TrialRecord` (the runner
+ * reads it off here and copies it there); the transient PipelineResult carries it
+ * out-of-schema — never serialised, never parsed before the runner reads it.
+ */
+type PipelineResultOut = PipelineResult & { deterministicRepairSteps?: string[] };
+
 function stepDuration(steps: StepResult[], name: string): number {
   return steps.find((s) => s.name === name)?.durationMs ?? 0;
 }
@@ -81,6 +90,7 @@ export async function runPipeline(
         screenshots: string[];
         tokens: AttemptOutcome["tokens"];
         healedSteps?: string[];
+        deterministicRepairSteps?: string[];
         deterministicFallbacks?: string[];
       }
     | undefined;
@@ -105,10 +115,12 @@ export async function runPipeline(
               steps: error.steps,
               screenshots: error.screenshots,
               tokens: error.tokens,
-              // Trial-scoped heal / deterministic-fallback snapshots the engine
-              // carried on the failure, so a trial that fires a guard or heals a
-              // step and then fails entirely still records it (below).
+              // Trial-scoped heal / deterministic-repair / deterministic-fallback
+              // snapshots the engine carried on the failure, so a trial that fires
+              // a guard, heals, or deterministically repairs a step and then fails
+              // entirely still records it (below).
               healedSteps: error.healedSteps,
+              deterministicRepairSteps: error.deterministicRepairSteps,
               deterministicFallbacks: error.deterministicFallbacks
             }
           : (() => {
@@ -120,6 +132,7 @@ export async function runPipeline(
                 screenshots: [] as string[],
                 tokens: null,
                 healedSteps: undefined as string[] | undefined,
+                deterministicRepairSteps: undefined as string[] | undefined,
                 deterministicFallbacks: undefined as string[] | undefined
               };
             })();
@@ -146,7 +159,7 @@ export async function runPipeline(
       tokens: null
     };
     await options.logger.flush();
-    return {
+    const failed: PipelineResultOut = {
       engine,
       runId: options.runId,
       ...(options.scenarioId ? { scenarioId: options.scenarioId } : {}),
@@ -170,15 +183,19 @@ export async function runPipeline(
       },
       // Total inference across all attempts (estimatedCostUsd stays null).
       tokens: tokenAcc.total(),
-      // A wholly-failed trial still discloses any heals / deterministic-fallback
-      // firings accumulated across all attempts (nonempty only).
+      // A wholly-failed trial still discloses any heals / deterministic-repair /
+      // deterministic-fallback firings accumulated across all attempts (nonempty only).
       ...(failure.healedSteps && failure.healedSteps.length > 0
         ? { healedSteps: failure.healedSteps }
+        : {}),
+      ...(failure.deterministicRepairSteps && failure.deterministicRepairSteps.length > 0
+        ? { deterministicRepairSteps: failure.deterministicRepairSteps }
         : {}),
       ...(failure.deterministicFallbacks && failure.deterministicFallbacks.length > 0
         ? { deterministicFallbacks: failure.deterministicFallbacks }
         : {})
     };
+    return failed;
   }
 
   // ── Shared post-processing ────────────────────────────────────────────
@@ -245,7 +262,7 @@ export async function runPipeline(
   });
   await options.logger.flush();
 
-  return {
+  const result: PipelineResultOut = {
     engine,
     runId: options.runId,
     ...(options.scenarioId ? { scenarioId: options.scenarioId } : {}),
@@ -280,6 +297,11 @@ export async function runPipeline(
     ...(outcome.healedSteps && outcome.healedSteps.length > 0
       ? { healedSteps: outcome.healedSteps }
       : {}),
+    // Carry the B2 deterministic-repair step names accumulated across ALL attempts
+    // (hybrid deterministic mode only) — trial-scoped, mirroring healedSteps.
+    ...(outcome.deterministicRepairSteps && outcome.deterministicRepairSteps.length > 0
+      ? { deterministicRepairSteps: outcome.deterministicRepairSteps }
+      : {}),
     // Carry the deterministic-fallback firings accumulated across ALL attempts
     // (stagehand only) — likewise trial-scoped, so earlier attempts' firings are
     // included.
@@ -287,4 +309,5 @@ export async function runPipeline(
       ? { deterministicFallbacks: outcome.deterministicFallbacks }
       : {})
   };
+  return result;
 }

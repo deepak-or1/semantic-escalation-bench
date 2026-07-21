@@ -5,7 +5,10 @@
  *   pnpm bench -- --engines baseline             # baseline only
  *   pnpm bench -- --trials 3                      # 3 trials per scenario/engine
  *   pnpm bench -- --scenarios clean-extraction,class-drift --headed
- *   pnpm bench -- --engines hybrid --no-repair    # frozen structural-deterministic
+ *   pnpm bench -- --scenario-suite data/phase2a/scenario-suite.json  # held-out suite (§5 item 4)
+ *   pnpm bench -- --engines hybrid --no-repair            # policy B (== --repair-mode off)
+ *   pnpm bench -- --engines hybrid --repair-mode deterministic  # policy B2 (deterministic ladder)
+ *   pnpm bench -- --engines hybrid --repair-mode llm      # policy C (default; key-gated LLM repair)
  *   pnpm bench -- --seed-cache-manifest heals.json --purpose persistence
  *   pnpm bench -- --purpose smoke                 # smoke run (never evidence)
  *
@@ -34,24 +37,31 @@ import {
   LabClient,
   SCENARIOS,
   createRunDir,
+  loadScenarioSuite,
   scenarioById,
+  suiteScenarioToSpec,
   type EngineName,
+  type RepairMode,
   type RunPurpose,
   type ScenarioSpec
 } from "@ssda/shared";
 import { loadAndVerifySeedCacheManifest, runBenchmark, validateRunPurpose } from "@ssda/agent";
 
 const RUN_PURPOSES = ["smoke", "cold", "persistence", "warm"] as const;
+const REPAIR_MODES = ["off", "deterministic", "llm"] as const;
 
-interface CliArgs {
+export interface CliArgs {
   engines: EngineName[];
   trials: number;
   scenarios: ScenarioSpec[];
   headless: boolean;
   /** Caller-owned lab URL (--lab-url); when unset, a private lab is spawned. */
   labUrl?: string;
-  /** Freeze the hybrid engine's repair path (--no-repair). */
-  noRepair: boolean;
+  /**
+   * The hybrid engine's resolved repair dispatch (--repair-mode, default "llm").
+   * --no-repair is the frozen alias of --repair-mode off; passing both is an error.
+   */
+  repairMode: RepairMode;
   /** Warm-start the hybrid cache from a healed-cache.json artifact (--seed-cache). */
   seedCacheFile?: string;
   /** Per-scenario warm-cache manifest (--seed-cache-manifest). */
@@ -62,6 +72,14 @@ interface CliArgs {
    * can never blend persistence with the warm sweep.
    */
   purpose: RunPurpose;
+  /**
+   * Held-out scenario-suite provenance (--scenario-suite, PROTOCOL_2A §5 items
+   * 4/6). Set only when a suite file is loaded: the suite's protocolId and the
+   * SHA-256 of its raw bytes, both stamped on the run's environment. Absent for a
+   * built-in Phase-1 catalog run (the runner then stamps "phase1-catalog").
+   */
+  protocolId?: string;
+  suiteHash?: string;
 }
 
 const REPO_ROOT = path.resolve(fileURLToPath(import.meta.url), "../..");
@@ -71,13 +89,17 @@ function bail(message: string): never {
   process.exit(1);
 }
 
-function parseArgs(argv: string[]): CliArgs {
+export function parseArgs(argv: string[]): CliArgs {
   let engines: EngineName[] = ["stagehand", "baseline", "hybrid"];
   let trials = 1;
   let scenarios: ScenarioSpec[] = SCENARIOS;
+  let scenariosFlagSeen = false;
+  let scenarioSuiteFile: string | undefined;
   let headless = true;
   let labUrl: string | undefined;
   let noRepair = false;
+  let repairMode: RepairMode | undefined;
+  let repairModeSeen = false;
   let seedCacheFile: string | undefined;
   let seedCacheManifestFile: string | undefined;
   let purpose: RunPurpose | undefined;
@@ -102,15 +124,26 @@ function parseArgs(argv: string[]): CliArgs {
     } else if (arg === "--scenarios") {
       const ids = (argv[++i] ?? "").split(",").filter(Boolean);
       if (ids.length === 0) bail("--scenarios must list at least one scenario id");
+      scenariosFlagSeen = true;
       scenarios = ids.map((id) => {
         const found = scenarioById(id);
         if (!found) bail(`Unknown scenario "${id}". See packages/shared/src/scenarios.ts`);
         return found;
       });
+    } else if (arg === "--scenario-suite") {
+      scenarioSuiteFile = argv[++i];
+      if (!scenarioSuiteFile) bail("--scenario-suite needs a path to a scenario-suite JSON");
     } else if (arg === "--headed") {
       headless = false;
     } else if (arg === "--no-repair") {
       noRepair = true;
+    } else if (arg === "--repair-mode") {
+      const raw = argv[++i];
+      if (!raw || !(REPAIR_MODES as readonly string[]).includes(raw)) {
+        bail(`--repair-mode must be one of: ${REPAIR_MODES.join(", ")}`);
+      }
+      repairMode = raw as RepairMode;
+      repairModeSeen = true;
     } else if (arg === "--seed-cache") {
       seedCacheFile = argv[++i];
       if (!seedCacheFile) bail("--seed-cache needs a path to a healed-cache.json artifact");
@@ -133,6 +166,37 @@ function parseArgs(argv: string[]): CliArgs {
   if (seedCacheFile && seedCacheManifestFile) {
     bail("--seed-cache and --seed-cache-manifest are mutually exclusive");
   }
+
+  // --scenario-suite loads a validated, hash-verified held-out suite and runs it
+  // INSTEAD of the built-in catalog (PROTOCOL_2A §5 item 4). It is mutually
+  // exclusive with --scenarios (which selects built-in catalog ids), and it
+  // supplies the protocolId + file-bytes suiteHash the runner stamps.
+  let protocolId: string | undefined;
+  let suiteHash: string | undefined;
+  if (scenarioSuiteFile) {
+    if (scenariosFlagSeen) {
+      bail("--scenario-suite and --scenarios are mutually exclusive");
+    }
+    try {
+      const suite = loadScenarioSuite(path.resolve(scenarioSuiteFile));
+      scenarios = suite.scenarios.map(suiteScenarioToSpec);
+      protocolId = suite.protocolId;
+      suiteHash = suite.suiteHash;
+    } catch (error) {
+      bail(error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  // --no-repair is the frozen alias of --repair-mode off; passing BOTH is an error
+  // (a scenario must state its repair dispatch exactly once). Resolve to the
+  // canonical RepairMode: --no-repair → "off", else --repair-mode, else "llm".
+  if (noRepair && repairModeSeen) {
+    bail(
+      "--no-repair and --repair-mode are mutually exclusive: --no-repair is the " +
+        "frozen alias of --repair-mode off."
+    );
+  }
+  const resolvedRepairMode: RepairMode = noRepair ? "off" : repairMode ?? "llm";
 
   // Resolve the run purpose and fail fast on an illegal purpose × seeding combo,
   // BEFORE any lab is spawned. A seeded run must state its purpose explicitly so
@@ -164,10 +228,12 @@ function parseArgs(argv: string[]): CliArgs {
     scenarios,
     headless,
     ...(labUrl ? { labUrl } : {}),
-    noRepair,
+    repairMode: resolvedRepairMode,
     ...(seedCacheFile ? { seedCacheFile } : {}),
     ...(seedCacheManifestFile ? { seedCacheManifestFile } : {}),
-    purpose
+    purpose,
+    ...(protocolId !== undefined ? { protocolId } : {}),
+    ...(suiteHash !== undefined ? { suiteHash } : {})
   };
 }
 
@@ -294,7 +360,9 @@ async function main(): Promise<void> {
       benchDir: dir,
       benchId: runId,
       runPurpose: args.purpose,
-      ...(args.noRepair ? { disableRepair: true } : {}),
+      repairMode: args.repairMode,
+      ...(args.protocolId !== undefined ? { protocolId: args.protocolId } : {}),
+      ...(args.suiteHash !== undefined ? { suiteHash: args.suiteHash } : {}),
       ...(args.seedCacheFile ? { seedCacheFile: args.seedCacheFile } : {}),
       ...(seedCacheManifest ? { seedCacheManifest } : {}),
       onProgress: (line) => console.log(line)
@@ -321,7 +389,14 @@ async function main(): Promise<void> {
   process.exit(exitCode);
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : error);
-  process.exit(1);
-});
+// Only auto-run when this file is the process entrypoint (e.g. `tsx
+// scripts/run-benchmark.ts`), so tests can import `parseArgs` without spawning a
+// lab and running a benchmark.
+const isEntrypoint =
+  !!process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (isEntrypoint) {
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.message : error);
+    process.exit(1);
+  });
+}

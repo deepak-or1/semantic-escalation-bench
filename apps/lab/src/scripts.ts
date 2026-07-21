@@ -50,18 +50,24 @@ export function delayedScript(skin: Skin): string {
   })();</script>`;
 }
 
-/** Client-side pagination driven by an embedded JSON payload of all rows. */
-export function paginationScript(skin: Skin): string {
+/**
+ * Client-side pagination driven by an embedded JSON payload of all rows. The page
+ * size is read from the island's `data-page-size` (per-request, PROTOCOL_2A §3 F3),
+ * and the Next control is located via `nextSel` — the functional control's drifted
+ * class when a decoy has rebound `next-page` (§3 F2), otherwise its canonical class.
+ */
+export function paginationScript(skin: Skin, nextSel: string = skin.jsSel("next-page")): string {
   const cellAttr = skin.classAttr("cell");
   return `<script>(function(){
     var el = document.querySelector('${skin.jsSel("table-data")}');
     var body = document.querySelector('${skin.jsSel("tbody-rows")}');
     var ind = document.querySelector('${skin.jsSel("page-indicator")}');
     var prev = document.querySelector('${skin.jsSel("prev-page")}');
-    var next = document.querySelector('${skin.jsSel("next-page")}');
+    var next = document.querySelector('${nextSel}');
     if (!el || !body) return;
     var data = JSON.parse(el.textContent || "[]");
-    var size = 5, page = 0, pages = Math.max(1, Math.ceil(data.length / size));
+    var size = parseInt(el.getAttribute("data-page-size"), 10) || 5;
+    var page = 0, pages = Math.max(1, Math.ceil(data.length / size));
     function render() {
       var rows = data.slice(page * size, (page + 1) * size);
       body.innerHTML = rows.map(function(r){
@@ -77,12 +83,16 @@ export function paginationScript(skin: Skin): string {
   })();</script>`;
 }
 
-/** Two-tab layout where the real table hides behind a non-default tab. */
-export function hiddenTabScript(skin: Skin): string {
+/**
+ * Two-tab layout where the real table hides behind a non-default tab. The reveal
+ * tab is located via `tabTableSel` — the functional control's drifted class when a
+ * decoy has rebound `reveal-table` (§3 F2), otherwise its canonical class.
+ */
+export function hiddenTabScript(skin: Skin, tabTableSel: string = skin.jsSel("tab-table")): string {
   const active = skin.cls("tab-active");
   return `<script>(function(){
     var tabOverview = document.querySelector('${skin.jsSel("tab-overview")}');
-    var tabTable = document.querySelector('${skin.jsSel("tab-table")}');
+    var tabTable = document.querySelector('${tabTableSel}');
     var panelOverview = document.querySelector('${skin.jsSel("panel-overview")}');
     var panelTable = document.querySelector('${skin.jsSel("panel-table")}');
     if (!tabOverview || !tabTable || !panelOverview || !panelTable) return;

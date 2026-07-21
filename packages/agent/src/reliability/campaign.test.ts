@@ -1,4 +1,12 @@
-import type { BenchmarkResults, ScenarioSpec, TrialResult } from "@ssda/shared";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import {
+  BenchmarkResultsSchema,
+  type BenchmarkResults,
+  type ScenarioSpec,
+  type TrialResult
+} from "@ssda/shared";
 import { describe, expect, it } from "vitest";
 import { aggregateCampaign, configurationLabel, renderCampaignMarkdown } from "./campaign";
 import { validateRunPurpose } from "./runner";
@@ -287,6 +295,24 @@ describe("configurationLabel", () => {
       "C-hybrid-repair-cold"
     );
   });
+  it("hybrid + repairMode deterministic → B2-deterministic-repair (checked before B/C)", () => {
+    // Keyed and keyless B2 both label the same; the repairMode check runs first so
+    // it never collapses into B-structural or C-hybrid-repair-cold.
+    expect(
+      configurationLabel("hybrid", env({ repairMode: "deterministic", modelProvider: "anthropic" }))
+    ).toBe("B2-deterministic-repair");
+    expect(configurationLabel("hybrid", env({ repairMode: "deterministic" }))).toBe(
+      "B2-deterministic-repair"
+    );
+  });
+  it("hybrid + repairMode llm/off keeps the Phase-1 labels (deterministic check does not trigger)", () => {
+    expect(
+      configurationLabel("hybrid", env({ repairMode: "llm", modelProvider: "anthropic", seedCacheMode: "none" }))
+    ).toBe("C-hybrid-repair-cold");
+    expect(configurationLabel("hybrid", env({ repairMode: "off", disableRepair: true }))).toBe(
+      "B-structural"
+    );
+  });
   it("hybrid + keyed + seeded (no purpose) → C-hybrid-repair-seeded (defensive fallback)", () => {
     expect(
       configurationLabel("hybrid", env({ modelProvider: "anthropic", seedCacheMode: "file" }))
@@ -526,5 +552,78 @@ describe("validateRunPurpose", () => {
     expect(() => validateRunPurpose("smoke", "none")).not.toThrow();
     expect(() => validateRunPurpose("smoke", "file")).toThrow(/smoke.*file/s);
     expect(() => validateRunPurpose("smoke", "manifest")).toThrow(/smoke.*manifest/s);
+  });
+});
+
+describe("protocolId / suiteHash gate (PROTOCOL_2A §5 item 6)", () => {
+  const stamped = (over: Partial<Environment>) =>
+    env({ protocolId: "phase2a-v1", suiteHash: "suite-a", ...over });
+
+  it("refuses to aggregate runs with mixed protocolId, naming the runs", () => {
+    const runs = [
+      run(["clean-extraction"], [trial({})], stamped({ protocolId: "phase2a-v1" })),
+      run(["clean-extraction"], [trial({})], stamped({ protocolId: "phase2b-v1" }))
+    ];
+    expect(() => aggregateCampaign(runs, { sources: ["run-a", "run-b"] })).toThrow(
+      /protocolId.*phase2a-v1.*run-a.*phase2b-v1.*run-b|phase2b-v1/
+    );
+    // The gate is a hard error even under allowMixed (never overridable).
+    expect(() =>
+      aggregateCampaign(runs, { sources: ["run-a", "run-b"] }, { allowMixed: true })
+    ).toThrow(/protocolId/);
+  });
+
+  it("refuses to aggregate runs with mixed suiteHash, naming the runs", () => {
+    const runs = [
+      run(["clean-extraction"], [trial({})], stamped({ suiteHash: "suite-a" })),
+      run(["clean-extraction"], [trial({})], stamped({ suiteHash: "suite-b" }))
+    ];
+    expect(() => aggregateCampaign(runs, { sources: ["run-a", "run-b"] })).toThrow(/suiteHash/);
+  });
+
+  it("aggregates runs that share the same protocolId and suiteHash", () => {
+    const runs = [
+      run(["clean-extraction"], [trial({})], stamped({})),
+      run(["clean-extraction"], [trial({})], stamped({}))
+    ];
+    expect(() => aggregateCampaign(runs)).not.toThrow();
+    expect(aggregateCampaign(runs).runs).toBe(2);
+  });
+
+  it("treats runs missing BOTH fields as one legacy group and still aggregates", () => {
+    // env() carries neither protocolId nor suiteHash — the pre-stage-1 shape.
+    const runs = [
+      run(["clean-extraction"], [trial({})], env()),
+      run(["clean-extraction"], [trial({})], env())
+    ];
+    const report = aggregateCampaign(runs);
+    expect(report.runs).toBe(2);
+  });
+});
+
+describe("Phase-1 results.json backward compatibility (regression)", () => {
+  // repo root, from packages/agent/src/reliability/
+  const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
+  const load = (rel: string): BenchmarkResults =>
+    BenchmarkResultsSchema.parse(JSON.parse(readFileSync(path.join(ROOT, rel), "utf8")));
+
+  it("aggregates two real Phase-1 runs to the labels committed in the report", () => {
+    // These files predate repairMode/protocolId/suiteHash; parsing them proves the
+    // new optional fields keep committed evidence valid, and the aggregator must
+    // still produce their existing configuration labels.
+    const cCold = load("evidence/phase1/runs/C-cold-1/results.json");
+    const dCold = load("evidence/phase1/runs/D-cold-1/results.json");
+    expect(cCold.environment.repairMode).toBeUndefined();
+
+    const report = aggregateCampaign([cCold, dCold]);
+    const labels = new Set(report.configTotals.map((t) => t.configuration));
+    expect(labels).toEqual(new Set(["C-hybrid-repair-cold", "D-full-semantic"]));
+
+    // The committed campaign report carries these exact labels.
+    const committed = JSON.parse(
+      readFileSync(path.join(ROOT, "evidence/phase1/report/campaign-report.json"), "utf8")
+    ) as { configTotals: { configuration: string }[] };
+    const committedLabels = new Set(committed.configTotals.map((t) => t.configuration));
+    for (const label of labels) expect(committedLabels.has(label)).toBe(true);
   });
 });

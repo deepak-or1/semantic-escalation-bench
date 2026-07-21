@@ -12,6 +12,17 @@ import {
 import type { Copy } from "./copy";
 import { at, esc, type Skin } from "./markup";
 import {
+  decoyStateFrom,
+  headerVocab,
+  renderControl,
+  resolveDelayRange,
+  resolveLayout,
+  resolvePagination,
+  wrapInDivs,
+  type DecoyState,
+  type HeaderVocab
+} from "./params";
+import {
   delayedScript,
   hiddenTabScript,
   modalScript,
@@ -21,7 +32,6 @@ import type { LabState } from "./state";
 import { renderStyle } from "./styles";
 
 const EM_DASH = "—";
-const PAGE_SIZE = 5;
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 const MONTHS = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -77,9 +87,22 @@ export function renderLoginPage(opts: {
   copy: Copy;
   next: string;
   error?: string;
+  decoy?: DecoyState;
 }): string {
   const { skin, copy, next, error } = opts;
+  const decoy = opts.decoy ?? { level: 0, copy: {}, placement: "after" };
   const errorHtml = error ? `<div${skin.classAttr("error")}>${esc(error)}</div>` : "";
+  // login-submit is decoy control 3 (§3 F2). The functional submit keeps type=submit
+  // (real behaviour); the decoy is type=button (can never submit) — no JS needed.
+  const submit = renderControl({
+    control: "login-submit",
+    seed: skin.seed,
+    skin,
+    decoy,
+    type: "submit",
+    bases: ["login-submit", "btn", "btn-primary"],
+    text: copy.loginButton
+  });
   const main =
     `<div${skin.classAttr("login-card")}><section${skin.classAttr("panel")}>` +
     `<h1>${esc(copy.loginHeading)}</h1>` +
@@ -91,8 +114,7 @@ export function renderLoginPage(opts: {
     `<input${skin.idAttr("username")} name="username" autocomplete="username" placeholder="analyst"></label>` +
     `<label${skin.classAttr("field")}><span>Password</span>` +
     `<input${skin.idAttr("password")} name="password" type="password" autocomplete="current-password"></label>` +
-    `<button type="submit"${skin.idAttr("login-submit")}${skin.classAttr("login-submit", "btn", "btn-primary")}>` +
-    `${esc(copy.loginButton)}</button>` +
+    submit.html +
     `</form></section></div>`;
   return renderLayout({ skin, copy, authed: false, mainHtml: main });
 }
@@ -166,6 +188,8 @@ function statCell(
 }
 
 function orderedColumns(state: LabState): ColKey[] {
+  // Explicit permutation (§3 Stratum K) wins; validated exact at config time.
+  if (state.params.columnOrder !== undefined) return state.params.columnOrder as ColKey[];
   if (!state.hasChaos("columnShuffle")) return STAT_COLUMNS;
   return rngShuffle(createRng(hashSeed(`cols:${state.seed}`)), STAT_COLUMNS);
 }
@@ -179,9 +203,11 @@ function buildRows(state: LabState, skin: Skin, columns: ColKey[]): string[][] {
   ]);
 }
 
-function headerRow(columns: ColKey[]): string {
-  const cols = columns.map((c) => `<th>${c}</th>`).join("");
-  return `<tr><th>#</th><th>Team</th>${cols}</tr>`;
+function headerRow(columns: ColKey[], hv: HeaderVocab): string {
+  // headerVocab (§3 Stratum K) renames HEADER labels only; column keys double as
+  // their canonical header text. Truth (team names, cell values) is never touched.
+  const cols = columns.map((c) => `<th>${esc(hv(c, c))}</th>`).join("");
+  return `<tr><th>#</th><th>${esc(hv("team", "Team"))}</th>${cols}</tr>`;
 }
 
 function renderRow(cells: string[], skin: Skin): string {
@@ -189,12 +215,18 @@ function renderRow(cells: string[], skin: Skin): string {
   return `<tr>${tds}</tr>`;
 }
 
-function tableEl(skin: Skin, columns: ColKey[], rowsHtml: string, pageSize?: number): string {
+function tableEl(
+  skin: Skin,
+  columns: ColKey[],
+  rowsHtml: string,
+  hv: HeaderVocab,
+  pageSize?: number
+): string {
   const sizeAttr = pageSize !== undefined ? ` data-page-size="${pageSize}"` : "";
   return (
     `<div${skin.classAttr("table-wrap")}>` +
     `<table${skin.idAttr("standings")}${skin.classAttr("stats-table")}${sizeAttr}>` +
-    `<thead>${headerRow(columns)}</thead>` +
+    `<thead>${headerRow(columns, hv)}</thead>` +
     `<tbody${skin.classAttr("tbody-rows")}>${rowsHtml}</tbody>` +
     `</table></div>`
   );
@@ -204,7 +236,8 @@ function teamCard(
   team: TeamSeasonStats,
   rank: number,
   overrides: readonly DisplayOverride[],
-  skin: Skin
+  skin: Skin,
+  hv: HeaderVocab
 ): string {
   const pairs = (
     [
@@ -217,7 +250,10 @@ function teamCard(
       ["Pts", "points"]
     ] as const
   )
-    .map(([label, field]) => `<dt>${label}</dt><dd>${esc(displayedStatsCell(team, field, overrides))}</dd>`)
+    .map(
+      ([label, field]) =>
+        `<dt>${esc(hv(label, label))}</dt><dd>${esc(displayedStatsCell(team, field, overrides))}</dd>`
+    )
     .join("");
   return (
     `<article${skin.classAttr("team-card")}>` +
@@ -235,52 +271,86 @@ interface View {
 
 /** Pick the stats presentation. Precedence: layout > pagination > delayed > default. */
 function statsView(state: LabState, skin: Skin, copy: Copy, columns: ColKey[], rows: string[][]): View {
-  if (state.hasChaos("layoutVariant")) {
-    const cards = state.truth.teams.map((t, i) => teamCard(t, i + 1, state.overrides, skin)).join("");
+  const hv = headerVocab(state.params);
+  const decoy = decoyStateFrom(state.params);
+  const layout = resolveLayout(state.hasChaos("layoutVariant"), state.params);
+
+  if (layout === "cards") {
+    const cards = state.truth.teams.map((t, i) => teamCard(t, i + 1, state.overrides, skin, hv)).join("");
     return { html: `<section${skin.classAttr("team-grid")}>${cards}</section>`, scripts: [] };
   }
 
-  if (state.hasChaos("pagination")) {
-    const shown = rows.slice(0, PAGE_SIZE).map((r) => renderRow(r, skin)).join("");
-    const pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  if (layout === "wrapped") {
+    // Still a real <table>, just nested in 2–3 non-semantic seed-drifted divs.
+    const allRows = rows.map((r) => renderRow(r, skin)).join("");
+    const table = tableEl(skin, columns, allRows, hv);
+    return { html: `<div${skin.classAttr("panel")}>${wrapInDivs(state.seed, table)}</div>`, scripts: [] };
+  }
+
+  const paging = resolvePagination(state.hasChaos("pagination"), state.params);
+  if (paging.active) {
+    const shown = rows.slice(0, paging.size).map((r) => renderRow(r, skin)).join("");
+    const pages = Math.max(1, Math.ceil(rows.length / paging.size));
     const json = JSON.stringify(rows).replace(/</g, "\\u003c");
     const dataScript =
-      `<script type="application/json"${skin.idAttr("table-data")}${skin.classAttr("table-data")}>${json}</script>`;
+      `<script type="application/json"${skin.idAttr("table-data")}${skin.classAttr("table-data")} data-page-size="${paging.size}">${json}</script>`;
+    const next = renderControl({
+      control: "next-page",
+      seed: state.seed,
+      skin,
+      decoy,
+      type: "button",
+      bases: ["next-page", "btn"],
+      text: copy.nextButton
+    });
     const pager =
       `<div${skin.classAttr("pager")}>` +
       `<button type="button"${skin.idAttr("prev-page")}${skin.classAttr("prev-page", "btn")}>${esc(copy.prevButton)}</button>` +
       `<span${skin.idAttr("page-indicator")}${skin.classAttr("page-indicator")}>Page 1 of ${pages}</span>` +
-      `<button type="button"${skin.idAttr("next-page")}${skin.classAttr("next-page", "btn")}>${esc(copy.nextButton)}</button>` +
+      next.html +
       `</div>`;
-    const html = `<div${skin.classAttr("panel")}>${tableEl(skin, columns, shown, PAGE_SIZE)}${pager}</div>${dataScript}`;
-    return { html, scripts: [paginationScript(skin)] };
+    const html = `<div${skin.classAttr("panel")}>${tableEl(skin, columns, shown, hv, paging.size)}${pager}</div>${dataScript}`;
+    return { html, scripts: [paginationScript(skin, next.sel)] };
   }
 
   if (state.hasChaos("delayedRender")) {
-    const delayMs = rngInt(createRng(hashSeed(`delay:${state.seed}`)), 1500, 4000);
+    const [dmin, dmax] = resolveDelayRange(state.params);
+    const delayMs = rngInt(createRng(hashSeed(`delay:${state.seed}`)), dmin, dmax);
     const allRows = rows.map((r) => renderRow(r, skin)).join("");
     const shimmer = Array.from({ length: 6 }, () => `<div${skin.classAttr("shimmer-row")}></div>`).join("");
     const skeleton =
       `<div${skin.idAttr("skeleton")}${skin.classAttr("skeleton")} data-delay-ms="${delayMs}">${shimmer}</div>`;
     const template =
-      `<template${skin.idAttr("table-template")}${skin.classAttr("table-template")}>${tableEl(skin, columns, allRows)}</template>`;
+      `<template${skin.idAttr("table-template")}${skin.classAttr("table-template")}>${tableEl(skin, columns, allRows, hv)}</template>`;
     return { html: `<div${skin.classAttr("panel")}>${skeleton}${template}</div>`, scripts: [delayedScript(skin)] };
   }
 
   const allRows = rows.map((r) => renderRow(r, skin)).join("");
-  return { html: `<div${skin.classAttr("panel")}>${tableEl(skin, columns, allRows)}</div>`, scripts: [] };
+  return { html: `<div${skin.classAttr("panel")}>${tableEl(skin, columns, allRows, hv)}</div>`, scripts: [] };
 }
 
 /** Wrap a chosen stats view so the real table hides behind a non-default tab. */
 function wrapHiddenTab(inner: View, state: LabState, skin: Skin, copy: Copy): View {
+  const decoy = decoyStateFrom(state.params);
   const top3 = state.truth.teams
     .slice(0, 3)
     .map((t, i) => `<li><span>${i + 1}. ${esc(t.name)}</span><span>${t.points} pts</span></li>`)
     .join("");
+  // The reveal tab is decoy control 2 (§3 F2): its canonical id "tab-table" moves
+  // to an inert decoy, and the real tab keeps its click handler via a drifted class.
+  const reveal = renderControl({
+    control: "reveal-table",
+    seed: state.seed,
+    skin,
+    decoy,
+    type: "button",
+    bases: ["tab-table", "tab-button"],
+    text: copy.fullTableTab
+  });
   const tabs =
     `<div${skin.classAttr("tabs")}>` +
     `<button type="button"${skin.idAttr("tab-overview")}${skin.classAttr("tab-overview", "tab-button", "tab-active")}>Overview</button>` +
-    `<button type="button"${skin.idAttr("tab-table")}${skin.classAttr("tab-table", "tab-button")}>${esc(copy.fullTableTab)}</button>` +
+    reveal.html +
     `</div>`;
   const overview =
     `<section${skin.idAttr("panel-overview")}${skin.classAttr("panel-overview", "panel")}>` +
@@ -288,7 +358,7 @@ function wrapHiddenTab(inner: View, state: LabState, skin: Skin, copy: Copy): Vi
     `<ol${skin.classAttr("top3")}>${top3}</ol></section>`;
   const tablePanel =
     `<section${skin.idAttr("panel-table")}${skin.classAttr("panel-table")} hidden>${inner.html}</section>`;
-  return { html: tabs + overview + tablePanel, scripts: [...inner.scripts, hiddenTabScript(skin)] };
+  return { html: tabs + overview + tablePanel, scripts: [...inner.scripts, hiddenTabScript(skin, reveal.sel)] };
 }
 
 export function renderStatsPage(opts: { state: LabState; skin: Skin; copy: Copy }): string {
@@ -309,12 +379,13 @@ export function renderStatsPage(opts: { state: LabState; skin: Skin; copy: Copy 
 
 // ── Odds ──────────────────────────────────────────────────────
 
+// [canonical header label, ground-truth field, headerVocab key].
 const ODDS_FIELDS = [
-  ["1", "homeOdds"],
-  ["X", "drawOdds"],
-  ["2", "awayOdds"],
-  ["Over 2.5", "overOdds"],
-  ["Under 2.5", "underOdds"]
+  ["1", "homeOdds", "home"],
+  ["X", "drawOdds", "draw"],
+  ["2", "awayOdds", "away"],
+  ["Over 2.5", "overOdds", "over"],
+  ["Under 2.5", "underOdds", "under"]
 ] as const;
 
 function formatKickoff(iso: string): string {
@@ -338,21 +409,28 @@ function oddsRow(
   return `<tr>${tds}</tr>`;
 }
 
-function oddsTableEl(state: LabState, skin: Skin, american: boolean): string {
+function oddsHeaderRow(hv: HeaderVocab): string {
+  // Kickoff has no vocab key; Match + the 5 odds columns rename via headerVocab.
+  const cols = ODDS_FIELDS.map(([label, , key]) => `<th>${esc(hv(key, label))}</th>`).join("");
+  return `<tr><th>Kickoff</th><th>${esc(hv("match", "Match"))}</th>${cols}</tr>`;
+}
+
+function oddsTableEl(state: LabState, skin: Skin, american: boolean, hv: HeaderVocab): string {
   const rows = state.truth.markets.map((m) => oddsRow(m, state.overrides, skin, american)).join("");
   return (
     `<div${skin.classAttr("table-wrap")}>` +
     `<table${skin.idAttr("odds-table")}${skin.classAttr("odds-table")}>` +
-    `<thead><tr><th>Kickoff</th><th>Match</th><th>1</th><th>X</th><th>2</th><th>Over 2.5</th><th>Under 2.5</th></tr></thead>` +
+    `<thead>${oddsHeaderRow(hv)}</thead>` +
     `<tbody${skin.classAttr("tbody-rows")}>${rows}</tbody></table></div>`
   );
 }
 
-function oddsCards(state: LabState, skin: Skin, american: boolean): string {
+function oddsCards(state: LabState, skin: Skin, american: boolean, hv: HeaderVocab): string {
   const cards = state.truth.markets
     .map((m) => {
       const dl = ODDS_FIELDS.map(
-        ([label, field]) => `<dt>${label}</dt><dd>${esc(displayedOddsCell(m, field, state.overrides, american))}</dd>`
+        ([label, field, key]) =>
+          `<dt>${esc(hv(key, label))}</dt><dd>${esc(displayedOddsCell(m, field, state.overrides, american))}</dd>`
       ).join("");
       return (
         `<article${skin.classAttr("odds-card")}>` +
@@ -366,19 +444,27 @@ function oddsCards(state: LabState, skin: Skin, american: boolean): string {
 }
 
 function oddsView(state: LabState, skin: Skin, american: boolean): View {
-  if (state.hasChaos("layoutVariant")) {
-    return { html: oddsCards(state, skin, american), scripts: [] };
+  const hv = headerVocab(state.params);
+  const layout = resolveLayout(state.hasChaos("layoutVariant"), state.params);
+
+  if (layout === "cards") {
+    return { html: oddsCards(state, skin, american, hv), scripts: [] };
+  }
+  if (layout === "wrapped") {
+    const table = oddsTableEl(state, skin, american, hv);
+    return { html: `<div${skin.classAttr("panel")}>${wrapInDivs(state.seed, table)}</div>`, scripts: [] };
   }
   if (state.hasChaos("delayedRender")) {
-    const delayMs = rngInt(createRng(hashSeed(`delay:${state.seed}`)), 1500, 4000);
+    const [dmin, dmax] = resolveDelayRange(state.params);
+    const delayMs = rngInt(createRng(hashSeed(`delay:${state.seed}`)), dmin, dmax);
     const shimmer = Array.from({ length: 6 }, () => `<div${skin.classAttr("shimmer-row")}></div>`).join("");
     const skeleton =
       `<div${skin.idAttr("skeleton")}${skin.classAttr("skeleton")} data-delay-ms="${delayMs}">${shimmer}</div>`;
     const template =
-      `<template${skin.idAttr("table-template")}${skin.classAttr("table-template")}>${oddsTableEl(state, skin, american)}</template>`;
+      `<template${skin.idAttr("table-template")}${skin.classAttr("table-template")}>${oddsTableEl(state, skin, american, hv)}</template>`;
     return { html: `<div${skin.classAttr("panel")}>${skeleton}${template}</div>`, scripts: [delayedScript(skin)] };
   }
-  return { html: `<div${skin.classAttr("panel")}>${oddsTableEl(state, skin, american)}</div>`, scripts: [] };
+  return { html: `<div${skin.classAttr("panel")}>${oddsTableEl(state, skin, american, hv)}</div>`, scripts: [] };
 }
 
 export function renderOddsPage(opts: { state: LabState; skin: Skin; copy: Copy }): string {

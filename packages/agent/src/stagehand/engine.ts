@@ -25,6 +25,7 @@ import {
   type Engine,
   type PipelineOptions
 } from "../core";
+import { DISMISS_TEXT_PATTERN } from "../core/dismissPattern";
 import {
   CONSENT_ACCEPT_INSTRUCTION,
   ODDS_INSTRUCTION,
@@ -173,23 +174,36 @@ async function overlayPresent(page: StagehandPage): Promise<boolean> {
   }
 }
 
-/** Best-effort: click a dismiss-looking button inside the blocking overlay. */
+/**
+ * Best-effort: click a dismiss control inside the blocking overlay (PROTOCOL_2A
+ * §2a). Candidates are visible enabled button/[role=button]/a inside the FIRST
+ * >50%-viewport fixed overlay; a candidate matches when its TRIMMED WHOLE text
+ * matches the anchored §2a pattern (shared source string, rebuilt in-page since a
+ * closure cannot capture an outer const). Corrects the Phase-1 unanchored matcher
+ * that fired on any text merely CONTAINING an x ("Ne**x**t").
+ */
 async function clickOverlayDismiss(page: StagehandPage): Promise<void> {
   try {
-    await page.evaluate(() => {
+    await page.evaluate((pattern: string) => {
+      const re = new RegExp(pattern, "i");
       const area = window.innerWidth * window.innerHeight;
       for (const el of Array.from(document.querySelectorAll("body *"))) {
         if (getComputedStyle(el).position !== "fixed") continue;
         const rect = el.getBoundingClientRect();
-        if (rect.width * rect.height <= area * 0.5) continue;
-        for (const btn of Array.from(el.querySelectorAll("button"))) {
-          if (/no thanks|close|dismiss|x/i.test(btn.textContent || "")) {
-            btn.click();
+        if (!(area > 0 && rect.width * rect.height > area * 0.5)) continue;
+        for (const c of Array.from(el.querySelectorAll("button, [role=button], a"))) {
+          const r = c.getBoundingClientRect();
+          const s = getComputedStyle(c);
+          const vis = r.width * r.height > 0 && s.visibility !== "hidden" && s.display !== "none";
+          const en = !c.matches(":disabled") && s.pointerEvents !== "none";
+          if (vis && en && re.test((c.textContent || "").trim()) && c instanceof HTMLElement) {
+            c.click();
             return;
           }
         }
+        return; // only the FIRST qualifying overlay is considered
       }
-    });
+    }, DISMISS_TEXT_PATTERN);
   } catch {
     /* deterministic fallback is best-effort */
   }
@@ -319,6 +333,8 @@ async function runStagehandEngine(options: PipelineOptions): Promise<PipelineRes
           await currentTokens(),
           // stagehand never heals; carry the trial-level deterministic-fallback
           // snapshot so a guard that fired on this (losing) attempt is not lost.
+          // (stagehand never runs the B2 deterministic-repair ladder, so the
+          // trailing deterministicRepairSteps param is left unset.)
           undefined,
           [...deterministicFallbacks],
           { cause: error }

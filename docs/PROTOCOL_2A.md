@@ -1,7 +1,13 @@
 # Phase 2A protocol — the policy frontier
 
-**Status: DRAFT (revision 4, after three external design-review rounds) —
-not yet frozen.** This document specifies Phase 2A before any of it is implemented.
+**Status: DRAFT (revision 5, after three external design-review rounds
+plus stage-1 implementation feedback) — not yet frozen.** Revision 5
+refines §2 and §3 from implementing them: reveal-table candidates exclude
+navigation anchors, card-block identity may come from a heading, the
+per-candidate reveal poll is capped, layout-suppresses-pagination is
+documented with its config rejection, and the canary's downstream-failure
+wording matches the observed mechanism (judged failure on accepted
+incomplete output) — all before any tag exists. This document specifies Phase 2A before any of it is implemented.
 It becomes binding at the stage-1 tag (`phase2a-policy-freeze-v1`) and is
 completed by the stage-2 tag (`phase2a-suite-freeze-v1`); no keyed trial may
 run before the stage-2 tag exists. Phase 1 ([PHASE1_RESULTS.md](PHASE1_RESULTS.md),
@@ -126,11 +132,13 @@ cached action failed):
   `/^\s*(no thanks|close|dismiss|×|x)\s*$/i` (the §2a corrected matcher,
   shared with D's guard).
 - `reveal-table`: candidates, in document order: visible enabled elements
-  with `role=tab`; then visible enabled `button`/`a` elements inside a
-  `nav`, `[role=tablist]`, or an ancestor whose children are ≥2 sibling
-  `button`/`a` elements (a tab-strip signature). Click candidates in order
-  (≤5), running the existing content-ready poll after each; stop at first
-  success.
+  with `role=tab`; then, inside a `nav`, `[role=tablist]`, or an ancestor
+  whose children are ≥2 sibling `button`/`a` elements (a tab-strip
+  signature): visible enabled `button` elements, and `a` elements only
+  when their `href` is absent or fragment-only — a full-href anchor is
+  site navigation, not a tab, and clicking one abandons the page. Click
+  candidates in order (≤5), running the existing content-ready poll
+  (capped at 3000 ms per candidate) after each; stop at first success.
 - `next-page`: within the smallest ancestor containing the current-page
   indicator and ≥2 `button`/`a` controls (the pager signature), the first
   visible enabled control with `rel="next"` or trimmed text matching
@@ -141,9 +149,13 @@ cached action failed):
 no header-mappable `<table>` found): find the largest set of ≥4 sibling
 blocks each containing ≥3 label–value pairs; map labels through the **same
 frozen synonym dictionaries B and C use** (`STAT_SYNONYMS`/`ODDS_SYNONYMS`,
-unchanged from Phase 1); apply the same field thresholds as the table path
-(≥4 stat fields; match + ≥3 odds value fields). No new vocabulary: B2's
-dictionary *is* B's dictionary — that boundary is the measurement.
+unchanged from Phase 1). A block's **identity field** (team/match name) may
+come from the block's heading element (`h1`–`h6`) or, absent one, its
+first text outside any label–value pair — identity in card anatomy is
+structural, not vocabulary. All other fields map through the dictionary
+only; apply the same field thresholds as the table path (≥4 stat fields;
+match + ≥3 odds value fields). No new vocabulary: B2's dictionary *is*
+B's dictionary — that boundary is the measurement.
 
 **Recording (schema addition, stage 1):** B2 records successful heuristic
 repairs in a **new optional trial field `deterministicRepairSteps`**.
@@ -178,8 +190,13 @@ per-step semantics buys.
 changes its matcher from `/no thanks|close|dismiss|x/i` tested against raw
 `textContent` to `/^\s*(no thanks|close|dismiss|×|x)\s*$/i` tested against
 trimmed whole text, and widens candidates from `button` only to `button`,
-`[role=button]`, `a`. Recorded here as the single code change to a Phase-1
-policy; it alters no Phase-1 result and is applied before the stage-1 tag.
+`[role=button]`, `a` — filtered to visible and enabled candidates per §2's
+operational definitions (the guard and B2's rung share one semantics), and
+considering only the **first** >50%-viewport fixed overlay (the Phase-1
+guard fell through to later overlays; none of the frozen scenarios renders
+more than one). Recorded here as the single disclosed change-set to a
+Phase-1 policy; it alters no Phase-1 result against the frozen lab and is
+applied before the stage-1 tag.
 
 ## 3. Perturbation machinery — the frozen axes
 
@@ -187,6 +204,14 @@ Machinery (renderers, config plumbing, schema) is frozen at stage 1; the
 *values* are held-out scenario data. Ground truth is never affected:
 headers, labels, class names, decoys, and layout are presentation; truth
 always comes from `/__lab/ground-truth`.
+
+**Layout suppresses pagination (Phase-1 lab semantics, carried forward):**
+when a layout condition is active (`layoutVariant` flag or
+`layoutCondition` param), the pagination render path — and with it the
+`next-page` control — does not render. A scenario with `decoyLevel ≥ 1`
+(which always rebinds `next-page`) therefore cannot compose with a layout
+condition; the config API rejects that combination rather than rebinding a
+control that does not exist.
 
 **Precedence and contradiction rule (enforced in lab config validation and
 the suite loader):** for any rendering surface, a scenario uses the legacy
@@ -219,9 +244,14 @@ decoys) or held-out cells:
   evidence): a built-in decoy fixture — not a held-out scenario — run with
   `--repair-mode llm` and a syntactically valid **fake key**. Required
   observations: the cached click reports success at the act layer;
-  downstream behavior fails; `llmCalls === 0`; `healedSteps` empty; and no
-  provider/auth error occurs — the fake key proves no model call was even
-  *attempted*, which is exactly trigger-blindness.
+  downstream behavior fails — as a pipeline failure **or a judged
+  failure**: implementing the canary showed the level-1 decoy's actual
+  mechanism is that the pipeline *accepts* incomplete standings (5 of 12
+  rows) and the judge fails the trial, i.e. the trigger-blind failure
+  mode is accepted-wrong-output, the silent-corruption class; `llmCalls
+  === 0`; `healedSteps` empty; and no provider/auth error occurs — the
+  fake key proves no model call was even *attempted*, which is exactly
+  trigger-blindness.
 - **Keyless A/B/B2 grid** (§8 gate 3) checks mechanism instrumentation,
   never outcomes: (a) the fixture and decoy behavior are mechanically
   valid — decoy present, inert, carrying the canonical id; functional

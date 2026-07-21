@@ -6,7 +6,7 @@ import {
   type NormalizedMarket,
   type NormalizedTeamStats
 } from "./schemas/domain";
-import { TrialResultSchema } from "./schemas/benchmark";
+import { ScenarioSpecSchema, TrialResultSchema } from "./schemas/benchmark";
 import { PipelineResultSchema } from "./schemas/run";
 import { generateGroundTruth } from "./seed/generate";
 
@@ -174,5 +174,79 @@ describe("deterministicFallbacks disclosure (F2)", () => {
       deterministicFallbacks: ["consent"]
     });
     expect(parsed.deterministicFallbacks).toEqual(["consent"]);
+  });
+});
+
+describe("Phase-2A schema additions (stage 1)", () => {
+  const trialBase = {
+    scenarioId: "f1-2201",
+    engine: "hybrid" as const,
+    trial: 1,
+    runId: "r",
+    outcome: "pass" as const,
+    outcomeReason: "ok",
+    outcomeClass: "pass" as const,
+    pipelineSuccess: true,
+    extractionSuccess: true,
+    validationSuccess: true,
+    accuracy: null,
+    durationMs: 1,
+    retries: 0,
+    recoveredAfterFailure: false,
+    artifactsDir: "d"
+  };
+
+  it("TrialResultSchema accepts and preserves deterministicRepairSteps", () => {
+    const parsed = TrialResultSchema.parse({
+      ...trialBase,
+      deterministicRepairSteps: ["login", "extract-stats"]
+    });
+    expect(parsed.deterministicRepairSteps).toEqual(["login", "extract-stats"]);
+  });
+
+  it("TrialResultSchema leaves deterministicRepairSteps optional (omitted parses)", () => {
+    expect(TrialResultSchema.parse(trialBase).deterministicRepairSteps).toBeUndefined();
+  });
+
+  it("ScenarioSpecSchema accepts optional §3 params", () => {
+    const parsed = ScenarioSpecSchema.parse({
+      id: "f1-2201",
+      name: "class drift 2",
+      description: "F1 level 2",
+      chaos: [],
+      seed: 2201,
+      session: "fresh",
+      expected: "success",
+      params: { classDriftLevel: 2, pageSize: 3, layoutCondition: "cards" }
+    });
+    expect(parsed.params?.classDriftLevel).toBe(2);
+    expect(parsed.params?.layoutCondition).toBe("cards");
+  });
+
+  it("ScenarioSpecSchema still parses a params-less Phase-1 scenario", () => {
+    const parsed = ScenarioSpecSchema.parse({
+      id: "clean-extraction",
+      name: "clean",
+      description: "d",
+      chaos: [],
+      seed: 1101,
+      session: "fresh",
+      expected: "success"
+    });
+    expect(parsed.params).toBeUndefined();
+  });
+
+  it("ScenarioSpecSchema rejects an out-of-range param (validated by ChaosParamsSchema)", () => {
+    const spec = {
+      id: "x",
+      name: "x",
+      description: "x",
+      chaos: [],
+      seed: 2201,
+      session: "fresh" as const,
+      expected: "success" as const,
+      params: { classDriftLevel: 9 }
+    };
+    expect(ScenarioSpecSchema.safeParse(spec).success).toBe(false);
   });
 });

@@ -2,6 +2,7 @@ import type {
   EngineName,
   FailureCategory,
   PipelineResult,
+  RepairMode,
   RunLogger,
   SessionMode,
   StepResult,
@@ -52,6 +53,15 @@ export interface PipelineOptions {
    */
   disableRepair?: boolean;
   /**
+   * The hybrid engine's repair dispatch (PROTOCOL_2A §1). When unset the engine
+   * derives it from `disableRepair` (`off` when true, else `llm`), so existing
+   * callers keep their exact behaviour. `off` reproduces --no-repair; `llm`
+   * (default) runs the key-gated LLM repair; `deterministic` runs the B2 ladder
+   * with NO model call in the code path. The baseline and stagehand engines
+   * ignore this option.
+   */
+  repairMode?: RepairMode;
+  /**
    * Warm-cache seeding (--seed-cache <path>): a path to a healed-cache.json
    * artifact (the same shape the hybrid engine persists after a repair). When
    * set, the hybrid engine loads it as the trial's INITIAL selector cache
@@ -78,6 +88,13 @@ export interface AttemptOutcome {
    * PipelineResult.healedSteps.
    */
   healedSteps?: string[];
+  /**
+   * Step names the B2 deterministic ladder re-located/re-read this trial (hybrid
+   * `--repair-mode deterministic` only, PROTOCOL_2A §2). Trial-scoped across
+   * attempts exactly like healedSteps; runPipeline copies it into
+   * PipelineResult. B2 NEVER writes healedSteps.
+   */
+  deterministicRepairSteps?: string[];
   /**
    * Step names where a hand-written deterministic guard fired after the semantic
    * act failed to clear a session blocker (stagehand engine only). Trial-scoped
@@ -108,7 +125,16 @@ export class AttemptFailure extends Error {
      * never lost when the whole trial fails.
      */
     readonly deterministicFallbacks?: string[],
-    options?: { cause?: unknown }
+    options?: { cause?: unknown },
+    /**
+     * Trial-scoped B2 deterministic-repair step names so far this trial (hybrid
+     * `--repair-mode deterministic` only). Carried on the failure so a trial that
+     * deterministically repaired then failed entirely still records it. Ordered
+     * AFTER `options` deliberately: the baseline engine constructs AttemptFailure
+     * with `options` as its final positional argument and is out of scope for this
+     * change, so a new param before `options` would shift its call.
+     */
+    readonly deterministicRepairSteps?: string[]
   ) {
     super(message, options);
     this.name = "AttemptFailure";

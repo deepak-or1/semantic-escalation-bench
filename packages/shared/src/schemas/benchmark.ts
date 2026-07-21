@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ChaosFlagSchema } from "../chaos";
+import { ChaosParamsSchema } from "../chaosParams";
 import {
   EngineNameSchema,
   FailureCategorySchema,
@@ -8,6 +9,15 @@ import {
 
 export const SessionModeSchema = z.enum(["fresh", "reuse", "expired"]);
 export type SessionMode = z.infer<typeof SessionModeSchema>;
+
+/**
+ * The hybrid engine's repair dispatch (PROTOCOL_2A §1). `off` freezes the tier
+ * (the frozen alias of `--no-repair`, policy B); `deterministic` runs the B2
+ * deterministic re-location ladder with NO model call in the code path;
+ * `llm` (default) runs the one key-gated LLM repair per broken step (policy C).
+ */
+export const RepairModeSchema = z.enum(["off", "deterministic", "llm"]);
+export type RepairMode = z.infer<typeof RepairModeSchema>;
 
 /**
  * What "correct behaviour" means for a scenario. `validation-failure` means
@@ -70,7 +80,14 @@ export const ScenarioSpecSchema = z.object({
   seed: z.number().int(),
   session: SessionModeSchema,
   expected: ExpectedOutcomeSchema,
-  group: ScenarioGroupSchema.default("core")
+  group: ScenarioGroupSchema.default("core"),
+  /**
+   * Phase-2A perturbation parameters (PROTOCOL_2A §3), the parameterized parallel
+   * to the binary `chaos` flags. Optional and subject to the §3 flag-XOR-param
+   * precedence rule (see chaosParams.validateChaosParamsCompat). Absent for every
+   * Phase-1 scenario.
+   */
+  params: ChaosParamsSchema.optional()
 });
 export type ScenarioSpec = z.infer<typeof ScenarioSpecSchema>;
 export type ScenarioSpecInput = z.input<typeof ScenarioSpecSchema>;
@@ -129,6 +146,14 @@ export const TrialResultSchema = z.object({
   /** Step names the engine repaired via LLM observe this trial (hybrid only). */
   healedSteps: z.array(z.string()).optional(),
   /**
+   * Step names the B2 deterministic ladder re-located/re-read this trial
+   * (PROTOCOL_2A §2; hybrid `--repair-mode deterministic` only). DISTINCT from
+   * `healedSteps` (semantic/LLM repair, which B2 never writes) and from
+   * `deterministicFallbacks` (stagehand's guards). Present and non-empty only
+   * when a deterministic repair actually fired.
+   */
+  deterministicRepairSteps: z.array(z.string()).optional(),
+  /**
    * Steps where a hand-written deterministic guard fired after the semantic act
    * failed to clear a session blocker (stagehand engine only). Disclosed so
    * full-semantic results never silently lean on hand-written code.
@@ -175,7 +200,12 @@ export const EngineSummarySchema = z.object({
    * Number of trials in which at least one step was LLM-repaired (hybrid only).
    * Omitted when no trial healed anything.
    */
-  healedTrials: z.number().int().nonnegative().optional()
+  healedTrials: z.number().int().nonnegative().optional(),
+  /**
+   * Number of trials in which the B2 deterministic ladder repaired ≥1 step
+   * (hybrid `--repair-mode deterministic` only). Omitted when none fired.
+   */
+  deterministicRepairTrials: z.number().int().nonnegative().optional()
 });
 export type EngineSummary = z.infer<typeof EngineSummarySchema>;
 
@@ -210,6 +240,12 @@ export const BenchmarkResultsSchema = z.object({
     gitDirty: z.boolean().nullable(),
     /** Whether the hybrid repair path was frozen for this run (--no-repair). */
     disableRepair: z.boolean(),
+    /**
+     * The hybrid engine's resolved repair dispatch for this run (PROTOCOL_2A §1).
+     * Optional for backward compatibility with committed Phase-1 results.json
+     * files, which predate the flag; absent there. `--no-repair` records "off".
+     */
+    repairMode: RepairModeSchema.optional(),
     /** Which warm-cache seeding mode was active. */
     seedCacheMode: z.enum(["none", "file", "manifest"]),
     /**
@@ -233,7 +269,19 @@ export const BenchmarkResultsSchema = z.object({
      */
     promptsHash: z.string(),
     /** sha256 of pnpm-lock.yaml — pins the exact dependency graph. */
-    lockfileHash: z.string()
+    lockfileHash: z.string(),
+    /**
+     * Protocol identifier (PROTOCOL_2A §5 item 6; e.g. "phase2a-v1"). Optional for
+     * backward compatibility with Phase-1 files, which predate it. Populated by a
+     * later stage-1 deliverable; the aggregator refuses to mix protocolIds.
+     */
+    protocolId: z.string().optional(),
+    /**
+     * sha256 of the scenario-suite file bytes (or the built-in catalog's canonical
+     * serialization) for this run (PROTOCOL_2A §5 item 4). Optional for backward
+     * compatibility with Phase-1 files; populated by a later stage-1 deliverable.
+     */
+    suiteHash: z.string().optional()
   })
 });
 export type BenchmarkResults = z.infer<typeof BenchmarkResultsSchema>;

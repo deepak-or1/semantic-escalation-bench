@@ -148,6 +148,21 @@ describe("summarizeEngine", () => {
     expect(withHeal.healedTrials).toBe(1);
   });
 
+  it("counts deterministicRepairTrials only for B2 trials with a deterministic repair", () => {
+    const none = summarizeEngine("baseline", [trial({}), trial({})]);
+    expect(none.deterministicRepairTrials).toBeUndefined();
+
+    const withB2 = summarizeEngine("hybrid", [
+      trial({ engine: "hybrid", deterministicRepairSteps: ["login"] }),
+      trial({ engine: "hybrid", deterministicRepairSteps: ["extract-stats"] }),
+      trial({ engine: "hybrid", deterministicRepairSteps: [] }),
+      trial({ engine: "hybrid" })
+    ]);
+    expect(withB2.deterministicRepairTrials).toBe(2);
+    // B2 never writes healedSteps, so healedTrials stays omitted (orthogonal).
+    expect(withB2.healedTrials).toBeUndefined();
+  });
+
   it("tallies outcomeClasses and the silent-corruption rate (count/trials)", () => {
     const trials: TrialResult[] = [
       trial({ outcomeClass: "pass" }),
@@ -203,6 +218,15 @@ describe("classifyOutcome", () => {
         healedSteps: ["reveal-table"]
       })
     ).toBe("recovered");
+  });
+
+  it("classes a perfect B2 deterministic-repair success as pass, not recovered", () => {
+    // B2 records deterministicRepairSteps but NEVER healedSteps, and classifyOutcome
+    // keys `recovered` off healedSteps only — so a perfect B2 success stays `pass`
+    // (PROTOCOL_2A §2). classifyOutcome takes no deterministicRepairSteps input.
+    expect(
+      classifyOutcome({ pipelineSuccess: true, overall: 1, expected: "success", healedSteps: [] })
+    ).toBe("pass");
   });
 
   it("classes accepted output on a validation-failure scenario as silent-corruption (8b)", () => {

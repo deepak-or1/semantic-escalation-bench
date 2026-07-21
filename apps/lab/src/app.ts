@@ -3,6 +3,7 @@ import cookieParser from "cookie-parser";
 import express, { type Express, type Request, type Response } from "express";
 import {
   ChaosFlagSchema,
+  ChaosParamsSchema,
   createRng,
   DEFAULT_SEED,
   hashSeed,
@@ -10,10 +11,17 @@ import {
   rngFloat,
   SESSION_COOKIE,
   SESSION_TTL_MS,
-  type ChaosFlag
+  type ChaosFlag,
+  type ChaosParams
 } from "@ssda/shared";
 import { getCopy } from "./copy";
 import { createSkin } from "./markup";
+import {
+  decoyStateFrom,
+  resolveClassDriftLevel,
+  resolveNetworkDelayRange,
+  validateLabConfig
+} from "./params";
 import { renderConsentPage, renderLoginPage, renderOddsPage, renderStatsPage } from "./render";
 import { LabState, type Session } from "./state";
 
@@ -61,16 +69,20 @@ export function createLabApp(): Express {
   });
 
   // networkDelay: seeded latency, page routes only — the control API is never delayed.
+  // networkDelayRangeMs (§3 Timing) only re-bounds the same seeded draw when active.
   app.use(async (req, _res, next) => {
     if (!req.path.startsWith(CONTROL_PREFIX) && state.hasChaos("networkDelay")) {
       const rng = createRng(hashSeed(`net:${state.seed}:${req.path}:${state.requestCount}`));
-      await sleep(rngFloat(rng, 500, 2500));
+      const [nmin, nmax] = resolveNetworkDelayRange(state.params);
+      await sleep(rngFloat(rng, nmin, nmax));
     }
     next();
   });
 
-  const skin = () => createSkin(state.seed, state.hasChaos("classDrift"));
-  const copy = () => getCopy(state.seed, state.hasChaos("copyDrift"));
+  const skin = () =>
+    createSkin(state.seed, resolveClassDriftLevel(state.hasChaos("classDrift"), state.params));
+  const copy = () => getCopy(state.seed, state.hasChaos("copyDrift"), state.params.uiCopy);
+  const decoy = () => decoyStateFrom(state.params);
 
   // ── Control API ──────────────────────────────────────────────
   app.get(`${CONTROL_PREFIX}/health`, (_req, res) => {
@@ -91,7 +103,7 @@ export function createLabApp(): Express {
   });
 
   app.post(`${CONTROL_PREFIX}/config`, (req, res) => {
-    const body = (req.body ?? {}) as { seed?: unknown; chaos?: unknown };
+    const body = (req.body ?? {}) as { seed?: unknown; chaos?: unknown; params?: unknown };
 
     let chaos: ChaosFlag[] = state.chaosList();
     if (body.chaos !== undefined) {
@@ -120,7 +132,29 @@ export function createLabApp(): Express {
       seed = body.seed;
     }
 
-    state.reconfigure(seed, chaos);
+    // Phase-2A perturbation params (§3): schema-validate, then the flag-XOR-param
+    // contradictions and the lab-side checks. Any error ⇒ 400 with the full list;
+    // never resolved silently. Params are presentation-only and never affect truth.
+    let params: ChaosParams = state.params;
+    if (body.params !== undefined) {
+      const parsed = ChaosParamsSchema.safeParse(body.params);
+      if (!parsed.success) {
+        res.status(400).json({
+          error: "invalid params",
+          issues: parsed.error.issues.map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`)
+        });
+        return;
+      }
+      params = parsed.data;
+    }
+
+    const configErrors = validateLabConfig(chaos, params);
+    if (configErrors.length > 0) {
+      res.status(400).json({ error: "invalid config", issues: configErrors });
+      return;
+    }
+
+    state.reconfigure(seed, chaos, params);
     res.json(state.toJson());
   });
 
@@ -145,7 +179,7 @@ export function createLabApp(): Express {
   // ── Auth routes ──────────────────────────────────────────────
   app.get("/login", (req, res) => {
     const next = safeNext(req.query.next, "/stats");
-    res.status(200).send(renderLoginPage({ skin: skin(), copy: copy(), next }));
+    res.status(200).send(renderLoginPage({ skin: skin(), copy: copy(), next, decoy: decoy() }));
   });
 
   app.post("/login", (req, res) => {
@@ -155,7 +189,15 @@ export function createLabApp(): Express {
     if (body.username !== creds.username || body.password !== creds.password) {
       res
         .status(401)
-        .send(renderLoginPage({ skin: skin(), copy: copy(), next, error: "Incorrect username or password." }));
+        .send(
+          renderLoginPage({
+            skin: skin(),
+            copy: copy(),
+            next,
+            error: "Incorrect username or password.",
+            decoy: decoy()
+          })
+        );
       return;
     }
     const token = crypto.randomBytes(16).toString("hex");

@@ -18,6 +18,7 @@
     "bench": "tsx scripts/run-benchmark.ts",
     "heals:collect": "tsx scripts/collect-heals.ts",
     "campaign:aggregate": "tsx scripts/aggregate-campaign.ts",
+    "verify:suite": "tsx scripts/verify-suite.ts",
     "report": "tsx scripts/generate-report.ts",
     "test": "vitest run",
     "test:unit": "vitest run --project unit",

@@ -120,6 +120,12 @@ export function summarizeEngine(
     (t) => (t.healedSteps?.length ?? 0) > 0
   ).length;
 
+  // Trials in which the B2 deterministic ladder repaired at least one step
+  // (hybrid deterministic mode only). Omitted when none fired (PROTOCOL_2A §2).
+  const deterministicRepairTrials = trials.filter(
+    (t) => (t.deterministicRepairSteps?.length ?? 0) > 0
+  ).length;
+
   return {
     engine,
     trials: total,
@@ -143,7 +149,8 @@ export function summarizeEngine(
     outcomeClasses,
     silentCorruptionRate,
     tokens: sumTokens(trials),
-    ...(healedTrials > 0 ? { healedTrials } : {})
+    ...(healedTrials > 0 ? { healedTrials } : {}),
+    ...(deterministicRepairTrials > 0 ? { deterministicRepairTrials } : {})
   };
 }
 

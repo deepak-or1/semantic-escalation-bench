@@ -153,7 +153,8 @@ function sum(xs: number[]): number {
  * the same engine under different flags never merge:
  *  - baseline  → "A-baseline"
  *  - stagehand → "D-full-semantic"
- *  - hybrid    → "B-structural" (--no-repair), "hybrid-keyless" (no model key),
+ *  - hybrid    → "B2-deterministic-repair" (repairMode=deterministic, checked
+ *                first), "B-structural" (--no-repair), "hybrid-keyless" (no model key),
  *                "C-hybrid-repair-cold" (keyed, no seed cache), or — when keyed
  *                AND seeded — split by run purpose so paired persistence runs
  *                never blend into the warm economics sweep (they can share a
@@ -167,7 +168,11 @@ export function configurationLabel(
 ): string {
   if (engine === "baseline") return "A-baseline";
   if (engine === "stagehand") return "D-full-semantic";
-  // hybrid: precedence is disableRepair → keyless → seed-cache mode → purpose.
+  // hybrid: repairMode=deterministic (B2) is checked FIRST so it never collapses
+  // into B-structural; Phase-1 files lack repairMode (undefined) and fall through
+  // to the unchanged labels below (PROTOCOL_2A §1).
+  if (env.repairMode === "deterministic") return "B2-deterministic-repair";
+  // precedence: disableRepair → keyless → seed-cache mode → purpose.
   if (env.disableRepair) return "B-structural";
   if (env.modelProvider == null) return "hybrid-keyless";
   if (env.seedCacheMode === "none") return "C-hybrid-repair-cold";
@@ -333,6 +338,39 @@ export function aggregateCampaign(
     );
   }
   const smoke = hasSmoke; // by the guard above, all-smoke whenever true
+
+  // ── Protocol / suite gate (PROTOCOL_2A §5 item 6; UNCONDITIONAL) ───────────
+  // Aggregating runs whose environment.protocolId or suiteHash differ is a HARD
+  // ERROR (never a warning, never overridable by allowMixed): a single campaign
+  // number over two different protocols or two different held-out suites is
+  // meaningless. Pre-stage-1 evidence files carry NEITHER field; they all share
+  // the `undefined` value and so form ONE legacy group that still aggregates.
+  const runLabelFor = (i: number): string =>
+    meta.sources?.[i] ?? runs[i]?.benchId ?? `run #${i + 1}`;
+  const namedMismatch = (field: "protocolId" | "suiteHash"): string => {
+    const byValue = new Map<string, string[]>();
+    runs.forEach((r, i) => {
+      const value = r.environment[field] ?? "<none>";
+      const bucket = byValue.get(value) ?? [];
+      bucket.push(runLabelFor(i));
+      byValue.set(value, bucket);
+    });
+    return [...byValue.entries()]
+      .map(([value, labels]) => `${value} [${labels.join(", ")}]`)
+      .join("; ");
+  };
+  if (new Set(runs.map((r) => r.environment.protocolId)).size > 1) {
+    throw new Error(
+      `Cannot aggregate: runs disagree on environment.protocolId (${namedMismatch("protocolId")}). ` +
+        `Runs of different protocols can never share a campaign report.`
+    );
+  }
+  if (new Set(runs.map((r) => r.environment.suiteHash)).size > 1) {
+    throw new Error(
+      `Cannot aggregate: runs disagree on environment.suiteHash (${namedMismatch("suiteHash")}). ` +
+        `Runs of different held-out suites can never share a campaign report.`
+    );
+  }
 
   // ── Consistency gate ──────────────────────────────────────────────────────
   const promptsHashes = [...new Set(runs.map((r) => r.environment.promptsHash))];
