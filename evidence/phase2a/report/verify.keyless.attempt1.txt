@@ -1,0 +1,39 @@
+
+> stateful-sports-data-agent@0.1.0 verify:suite /Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent
+> tsx scripts/verify-suite.ts /Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T17-38-50-314Z /Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T17-42-16-083Z /Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T17-46-57-066Z /Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T17-53-07-842Z /Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T17-56-33-134Z /Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T18-01-12-286Z /Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T18-07-22-043Z /Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T18-10-47-862Z /Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T18-15-29-179Z /Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T18-21-39-739Z /Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T18-25-05-428Z /Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T18-29-46-923Z /Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T18-35-56-750Z /Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T18-39-22-587Z /Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T18-44-03-315Z --suite data/phase2a/scenario-suite.json --expect-policies A\,B\,B2 --expect-trials 5
+
+# Suite verification
+
+## schema: OK
+## provenance: 14 violation(s)
+  - runs/bench-2026-07-21T17-42-16-083Z/results.json: gitDirty must be false (got true)
+  - runs/bench-2026-07-21T17-46-57-066Z/results.json: gitDirty must be false (got true)
+  - runs/bench-2026-07-21T17-53-07-842Z/results.json: gitDirty must be false (got true)
+  - runs/bench-2026-07-21T17-56-33-134Z/results.json: gitDirty must be false (got true)
+  - runs/bench-2026-07-21T18-01-12-286Z/results.json: gitDirty must be false (got true)
+  - runs/bench-2026-07-21T18-07-22-043Z/results.json: gitDirty must be false (got true)
+  - runs/bench-2026-07-21T18-10-47-862Z/results.json: gitDirty must be false (got true)
+  - runs/bench-2026-07-21T18-15-29-179Z/results.json: gitDirty must be false (got true)
+  - runs/bench-2026-07-21T18-21-39-739Z/results.json: gitDirty must be false (got true)
+  - runs/bench-2026-07-21T18-25-05-428Z/results.json: gitDirty must be false (got true)
+  - runs/bench-2026-07-21T18-29-46-923Z/results.json: gitDirty must be false (got true)
+  - runs/bench-2026-07-21T18-35-56-750Z/results.json: gitDirty must be false (got true)
+  - runs/bench-2026-07-21T18-39-22-587Z/results.json: gitDirty must be false (got true)
+  - runs/bench-2026-07-21T18-44-03-315Z/results.json: gitDirty must be false (got true)
+## completeness: OK
+## grading: OK
+
+## predictions (report-only — never a gate)
+  87 hit · 9 miss · 64 not-run
+  - MISS f3-page-size-3-a policy B: predicted all-pass, observed 0/5
+  - MISS f3-page-size-3-a policy B2: predicted all-pass, observed 0/5
+  - MISS f3-page-size-3-b policy B: predicted all-pass, observed 0/5
+  - MISS f3-page-size-3-b policy B2: predicted all-pass, observed 0/5
+  - MISS f3-page-size-2-a policy B: predicted all-pass, observed 0/5
+  - MISS f3-page-size-2-a policy B2: predicted all-pass, observed 0/5
+  - MISS f3-page-size-2-b policy B: predicted all-pass, observed 0/5
+  - MISS f3-page-size-2-b policy B2: predicted all-pass, observed 0/5
+  - MISS x-class-l3-page-size-2 policy B2: predicted all-pass, observed 0/5
+
+VERIFY: FAIL
+ ELIFECYCLE  Command failed with exit code 1.

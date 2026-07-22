@@ -1,0 +1,119 @@
+{
+  "version": 1,
+  "protocolId": "phase2a-v1",
+  "suiteHash": "a3e77433869ff77f513a0cdb435c5c46fd6627e6b0905be50fc20e1c129ab722",
+  "thresholdUsd": 39.9,
+  "spendUsd": 8.213773999999995,
+  "entries": [
+    {
+      "phase": "keyed",
+      "sweep": 1,
+      "policy": "C",
+      "status": "complete",
+      "benchId": "bench-2026-07-21T22-44-24-779Z",
+      "dir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T22-44-24-779Z",
+      "costUsd": 0.118885,
+      "completedTrials": 32,
+      "reruns": 0
+    },
+    {
+      "phase": "keyed",
+      "sweep": 1,
+      "policy": "D",
+      "status": "complete",
+      "benchId": "bench-2026-07-21T22-52-37-627Z",
+      "dir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T22-52-37-627Z",
+      "costUsd": 1.0568929999999999,
+      "completedTrials": 32,
+      "reruns": 0
+    },
+    {
+      "phase": "keyed",
+      "sweep": 2,
+      "policy": "D",
+      "status": "complete",
+      "benchId": "bench-2026-07-21T23-09-51-773Z",
+      "dir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T23-09-51-773Z",
+      "costUsd": 1.0569340000000003,
+      "completedTrials": 32,
+      "reruns": 0
+    },
+    {
+      "phase": "keyed",
+      "sweep": 2,
+      "policy": "C",
+      "status": "complete",
+      "benchId": "bench-2026-07-21T23-27-02-456Z",
+      "dir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T23-27-02-456Z",
+      "costUsd": 0.11933500000000001,
+      "completedTrials": 32,
+      "reruns": 0
+    },
+    {
+      "phase": "keyed",
+      "sweep": 3,
+      "policy": "C",
+      "status": "complete",
+      "benchId": "bench-2026-07-21T23-35-26-520Z",
+      "dir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T23-35-26-520Z",
+      "costUsd": 0.11979500000000001,
+      "completedTrials": 32,
+      "reruns": 0
+    },
+    {
+      "phase": "keyed",
+      "sweep": 3,
+      "policy": "D",
+      "status": "complete",
+      "benchId": "bench-2026-07-21T23-43-48-250Z",
+      "dir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T23-43-48-250Z",
+      "costUsd": 1.0570710000000003,
+      "completedTrials": 32,
+      "reruns": 0
+    },
+    {
+      "phase": "keyed",
+      "sweep": 4,
+      "policy": "D",
+      "status": "complete",
+      "benchId": "bench-2026-07-22T00-01-01-696Z",
+      "dir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-22T00-01-01-696Z",
+      "costUsd": 1.05604,
+      "completedTrials": 32,
+      "reruns": 0
+    },
+    {
+      "phase": "keyed",
+      "sweep": 4,
+      "policy": "C",
+      "reruns": 0,
+      "status": "complete",
+      "benchId": "bench-2026-07-22T00-27-09-349Z",
+      "dir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-22T00-27-09-349Z",
+      "costUsd": 0.11895,
+      "completedTrials": 32
+    },
+    {
+      "phase": "keyed",
+      "sweep": 5,
+      "policy": "C",
+      "reruns": 0,
+      "status": "complete",
+      "benchId": "bench-2026-07-22T00-35-35-880Z",
+      "dir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-22T00-35-35-880Z",
+      "costUsd": 0.118991,
+      "completedTrials": 32
+    },
+    {
+      "phase": "keyed",
+      "sweep": 5,
+      "policy": "D",
+      "reruns": 0,
+      "status": "complete",
+      "benchId": "bench-2026-07-22T00-43-54-463Z",
+      "dir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-22T00-43-54-463Z",
+      "costUsd": 1.0554090000000003,
+      "completedTrials": 32
+    }
+  ]
+}

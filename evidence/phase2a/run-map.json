@@ -1,0 +1,157 @@
+{
+  "keyless-s1-A": {
+    "dir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T19-15-31-508Z",
+    "bundle": "runs/keyless-s1-A",
+    "ledger": "keyless"
+  },
+  "keyless-s1-B": {
+    "dir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T19-18-57-375Z",
+    "bundle": "runs/keyless-s1-B",
+    "ledger": "keyless"
+  },
+  "keyless-s1-B2": {
+    "dir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T19-23-38-148Z",
+    "bundle": "runs/keyless-s1-B2",
+    "ledger": "keyless"
+  },
+  "keyless-s2-A": {
+    "dir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T19-29-48-375Z",
+    "bundle": "runs/keyless-s2-A",
+    "ledger": "keyless"
+  },
+  "keyless-s2-B": {
+    "dir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T19-33-14-262Z",
+    "bundle": "runs/keyless-s2-B",
+    "ledger": "keyless"
+  },
+  "keyless-s2-B2": {
+    "dir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T19-37-53-040Z",
+    "bundle": "runs/keyless-s2-B2",
+    "ledger": "keyless"
+  },
+  "keyless-s3-A": {
+    "dir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T19-44-01-977Z",
+    "bundle": "runs/keyless-s3-A",
+    "ledger": "keyless"
+  },
+  "keyless-s3-B": {
+    "dir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T19-47-27-583Z",
+    "bundle": "runs/keyless-s3-B",
+    "ledger": "keyless"
+  },
+  "keyless-s3-B2": {
+    "dir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T19-52-22-914Z",
+    "bundle": "runs/keyless-s3-B2",
+    "ledger": "keyless"
+  },
+  "keyless-s4-A": {
+    "dir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T19-58-32-865Z",
+    "bundle": "runs/keyless-s4-A",
+    "ledger": "keyless"
+  },
+  "keyless-s4-B": {
+    "dir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T20-01-58-807Z",
+    "bundle": "runs/keyless-s4-B",
+    "ledger": "keyless"
+  },
+  "keyless-s4-B2": {
+    "dir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T20-06-38-145Z",
+    "bundle": "runs/keyless-s4-B2",
+    "ledger": "keyless"
+  },
+  "keyless-s5-A": {
+    "dir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T20-23-23-938Z",
+    "bundle": "runs/keyless-s5-A",
+    "ledger": "keyless"
+  },
+  "keyless-s5-B": {
+    "dir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T20-26-49-534Z",
+    "bundle": "runs/keyless-s5-B",
+    "ledger": "keyless"
+  },
+  "keyless-s5-B2": {
+    "dir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T20-31-29-392Z",
+    "bundle": "runs/keyless-s5-B2",
+    "ledger": "keyless"
+  },
+  "keyed-s1-C": {
+    "dir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T22-44-24-779Z",
+    "bundle": "runs/keyed-s1-C",
+    "ledger": "keyed-restart1"
+  },
+  "keyed-s1-D": {
+    "dir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T22-52-37-627Z",
+    "bundle": "runs/keyed-s1-D",
+    "ledger": "keyed-restart1"
+  },
+  "keyed-s2-D": {
+    "dir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T23-09-51-773Z",
+    "bundle": "runs/keyed-s2-D",
+    "ledger": "keyed-restart1"
+  },
+  "keyed-s2-C": {
+    "dir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T23-27-02-456Z",
+    "bundle": "runs/keyed-s2-C",
+    "ledger": "keyed-restart1"
+  },
+  "keyed-s3-C": {
+    "dir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T23-35-26-520Z",
+    "bundle": "runs/keyed-s3-C",
+    "ledger": "keyed-restart1"
+  },
+  "keyed-s3-D": {
+    "dir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T23-43-48-250Z",
+    "bundle": "runs/keyed-s3-D",
+    "ledger": "keyed-restart1"
+  },
+  "keyed-s4-D": {
+    "dir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-22T00-01-01-696Z",
+    "bundle": "runs/keyed-s4-D",
+    "ledger": "keyed-restart1"
+  },
+  "keyed-s4-C": {
+    "dir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-22T00-27-09-349Z",
+    "bundle": "runs/keyed-s4-C",
+    "ledger": "keyed-restart1"
+  },
+  "keyed-s5-C": {
+    "dir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-22T00-35-35-880Z",
+    "bundle": "runs/keyed-s5-C",
+    "ledger": "keyed-restart1"
+  },
+  "keyed-s5-D": {
+    "dir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-22T00-43-54-463Z",
+    "bundle": "runs/keyed-s5-D",
+    "ledger": "keyed-restart1"
+  },
+  "aborted-s1-C": {
+    "dir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T21-11-49-534Z",
+    "bundle": "runs-aborted-attempt1/aborted-s1-C",
+    "ledger": "keyed-attempt1-aborted",
+    "note": "transport-contaminated attempt; never pooled"
+  },
+  "aborted-s1-D": {
+    "dir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T21-20-10-273Z",
+    "bundle": "runs-aborted-attempt1/aborted-s1-D",
+    "ledger": "keyed-attempt1-aborted",
+    "note": "transport-contaminated attempt; never pooled"
+  },
+  "aborted-s2-D": {
+    "dir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T21-38-01-590Z",
+    "bundle": "runs-aborted-attempt1/aborted-s2-D",
+    "ledger": "keyed-attempt1-aborted",
+    "note": "transport-contaminated attempt; never pooled"
+  },
+  "aborted-s2-C": {
+    "dir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T21-54-11-072Z",
+    "bundle": "runs-aborted-attempt1/aborted-s2-C",
+    "ledger": "keyed-attempt1-aborted",
+    "note": "transport-contaminated attempt; never pooled"
+  },
+  "aborted-s3-C": {
+    "dir": "/Users/deepakdalai/Documents/GitHub/stateful-sports-data-agent/runs/bench-2026-07-21T22-01-53-491Z",
+    "bundle": "runs-aborted-attempt1/aborted-s3-C",
+    "ledger": "keyed-attempt1-aborted",
+    "note": "transport-contaminated attempt; never pooled"
+  }
+}

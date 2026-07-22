@@ -1,0 +1,2196 @@
+{
+  "benchId": "bench-2026-07-21T22-52-37-627Z",
+  "createdAt": "2026-07-21T23:09:51.105Z",
+  "labUrl": "http://127.0.0.1:50290",
+  "trialsPerScenario": 1,
+  "scenarios": [
+    {
+      "id": "f1-class-l0-a",
+      "name": "F1 class drift level 0, instance A",
+      "description": "Unperturbed class and id tokens for paired seed 2209.",
+      "chaos": [],
+      "seed": 2209,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core",
+      "params": {
+        "classDriftLevel": 0
+      }
+    },
+    {
+      "id": "f1-class-l0-b",
+      "name": "F1 class drift level 0, instance B",
+      "description": "Unperturbed class and id tokens for paired seed 2213.",
+      "chaos": [],
+      "seed": 2213,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core",
+      "params": {
+        "classDriftLevel": 0
+      }
+    },
+    {
+      "id": "f1-class-l1-a",
+      "name": "F1 class drift level 1, instance A",
+      "description": "A seeded 25 percent of class tokens and an independent seeded 25 percent of id tokens are renamed for paired seed 2209.",
+      "chaos": [],
+      "seed": 2209,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core",
+      "params": {
+        "classDriftLevel": 1
+      }
+    },
+    {
+      "id": "f1-class-l1-b",
+      "name": "F1 class drift level 1, instance B",
+      "description": "A seeded 25 percent of class tokens and an independent seeded 25 percent of id tokens are renamed for paired seed 2213.",
+      "chaos": [],
+      "seed": 2213,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core",
+      "params": {
+        "classDriftLevel": 1
+      }
+    },
+    {
+      "id": "f1-class-l2-a",
+      "name": "F1 class drift level 2, instance A",
+      "description": "A seeded 50 percent of class tokens and an independent seeded 50 percent of id tokens are renamed for paired seed 2209.",
+      "chaos": [],
+      "seed": 2209,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core",
+      "params": {
+        "classDriftLevel": 2
+      }
+    },
+    {
+      "id": "f1-class-l2-b",
+      "name": "F1 class drift level 2, instance B",
+      "description": "A seeded 50 percent of class tokens and an independent seeded 50 percent of id tokens are renamed for paired seed 2213.",
+      "chaos": [],
+      "seed": 2213,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core",
+      "params": {
+        "classDriftLevel": 2
+      }
+    },
+    {
+      "id": "f1-class-l3-a",
+      "name": "F1 class drift level 3, instance A",
+      "description": "All class and id tokens are renamed while ids remain present for paired seed 2209.",
+      "chaos": [],
+      "seed": 2209,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core",
+      "params": {
+        "classDriftLevel": 3
+      }
+    },
+    {
+      "id": "f1-class-l3-b",
+      "name": "F1 class drift level 3, instance B",
+      "description": "All class and id tokens are renamed while ids remain present for paired seed 2213.",
+      "chaos": [],
+      "seed": 2213,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core",
+      "params": {
+        "classDriftLevel": 3
+      }
+    },
+    {
+      "id": "f1-class-l4-a",
+      "name": "F1 class drift level 4, instance A",
+      "description": "All class tokens are renamed and all ids are removed for paired seed 2209.",
+      "chaos": [],
+      "seed": 2209,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core",
+      "params": {
+        "classDriftLevel": 4
+      }
+    },
+    {
+      "id": "f1-class-l4-b",
+      "name": "F1 class drift level 4, instance B",
+      "description": "All class tokens are renamed and all ids are removed for paired seed 2213.",
+      "chaos": [],
+      "seed": 2213,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core",
+      "params": {
+        "classDriftLevel": 4
+      }
+    },
+    {
+      "id": "f2-decoy-l0-a",
+      "name": "F2 decoy rebinding level 0, instance A",
+      "description": "The pagination and hidden-tab scaffold is present, with no controls rebound, for paired seed 2221.",
+      "chaos": [
+        "pagination",
+        "hiddenTab"
+      ],
+      "seed": 2221,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core",
+      "params": {
+        "decoyLevel": 0,
+        "decoyCopy": {
+          "next-page": "More standings",
+          "reveal-table": "Season details",
+          "login-submit": "Continue"
+        },
+        "decoyPlacement": "before"
+      }
+    },
+    {
+      "id": "f2-decoy-l0-b",
+      "name": "F2 decoy rebinding level 0, instance B",
+      "description": "The pagination and hidden-tab scaffold is present, with no controls rebound, for paired seed 2222.",
+      "chaos": [
+        "pagination",
+        "hiddenTab"
+      ],
+      "seed": 2222,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core",
+      "params": {
+        "decoyLevel": 0,
+        "decoyCopy": {
+          "next-page": "Browse older",
+          "reveal-table": "View standings",
+          "login-submit": "Open dashboard"
+        },
+        "decoyPlacement": "after"
+      }
+    },
+    {
+      "id": "f2-decoy-l1-a",
+      "name": "F2 decoy rebinding level 1, instance A",
+      "description": "The canonical next-page id is rebound to an inert decoy placed before the functional control for paired seed 2221.",
+      "chaos": [
+        "pagination",
+        "hiddenTab"
+      ],
+      "seed": 2221,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core",
+      "params": {
+        "decoyLevel": 1,
+        "decoyCopy": {
+          "next-page": "More standings",
+          "reveal-table": "Season details",
+          "login-submit": "Continue"
+        },
+        "decoyPlacement": "before"
+      }
+    },
+    {
+      "id": "f2-decoy-l1-b",
+      "name": "F2 decoy rebinding level 1, instance B",
+      "description": "The canonical next-page id is rebound to an inert decoy placed after the functional control for paired seed 2222.",
+      "chaos": [
+        "pagination",
+        "hiddenTab"
+      ],
+      "seed": 2222,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core",
+      "params": {
+        "decoyLevel": 1,
+        "decoyCopy": {
+          "next-page": "Browse older",
+          "reveal-table": "View standings",
+          "login-submit": "Open dashboard"
+        },
+        "decoyPlacement": "after"
+      }
+    },
+    {
+      "id": "f2-decoy-l2-a",
+      "name": "F2 decoy rebinding level 2, instance A",
+      "description": "The next-page and reveal-table ids are rebound to inert decoys placed before their functional controls for paired seed 2221.",
+      "chaos": [
+        "pagination",
+        "hiddenTab"
+      ],
+      "seed": 2221,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core",
+      "params": {
+        "decoyLevel": 2,
+        "decoyCopy": {
+          "next-page": "More standings",
+          "reveal-table": "Season details",
+          "login-submit": "Continue"
+        },
+        "decoyPlacement": "before"
+      }
+    },
+    {
+      "id": "f2-decoy-l2-b",
+      "name": "F2 decoy rebinding level 2, instance B",
+      "description": "The next-page and reveal-table ids are rebound to inert decoys placed after their functional controls for paired seed 2222.",
+      "chaos": [
+        "pagination",
+        "hiddenTab"
+      ],
+      "seed": 2222,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core",
+      "params": {
+        "decoyLevel": 2,
+        "decoyCopy": {
+          "next-page": "Browse older",
+          "reveal-table": "View standings",
+          "login-submit": "Open dashboard"
+        },
+        "decoyPlacement": "after"
+      }
+    },
+    {
+      "id": "f2-decoy-l3-a",
+      "name": "F2 decoy rebinding level 3, instance A",
+      "description": "The next-page, reveal-table, and login-submit ids are rebound to inert decoys placed before their functional controls for paired seed 2221.",
+      "chaos": [
+        "pagination",
+        "hiddenTab"
+      ],
+      "seed": 2221,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core",
+      "params": {
+        "decoyLevel": 3,
+        "decoyCopy": {
+          "next-page": "More standings",
+          "reveal-table": "Season details",
+          "login-submit": "Continue"
+        },
+        "decoyPlacement": "before"
+      }
+    },
+    {
+      "id": "f2-decoy-l3-b",
+      "name": "F2 decoy rebinding level 3, instance B",
+      "description": "The next-page, reveal-table, and login-submit ids are rebound to inert decoys placed after their functional controls for paired seed 2222.",
+      "chaos": [
+        "pagination",
+        "hiddenTab"
+      ],
+      "seed": 2222,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core",
+      "params": {
+        "decoyLevel": 3,
+        "decoyCopy": {
+          "next-page": "Browse older",
+          "reveal-table": "View standings",
+          "login-submit": "Open dashboard"
+        },
+        "decoyPlacement": "after"
+      }
+    },
+    {
+      "id": "f3-page-size-5-a",
+      "name": "F3 pagination stress page size 5, instance A",
+      "description": "The standings are paginated at five rows per page for paired seed 2231.",
+      "chaos": [],
+      "seed": 2231,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core",
+      "params": {
+        "pageSize": 5
+      }
+    },
+    {
+      "id": "f3-page-size-5-b",
+      "name": "F3 pagination stress page size 5, instance B",
+      "description": "The standings are paginated at five rows per page for paired seed 2232.",
+      "chaos": [],
+      "seed": 2232,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core",
+      "params": {
+        "pageSize": 5
+      }
+    },
+    {
+      "id": "f3-page-size-3-a",
+      "name": "F3 pagination stress page size 3, instance A",
+      "description": "The standings are paginated at three rows per page for paired seed 2231.",
+      "chaos": [],
+      "seed": 2231,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core",
+      "params": {
+        "pageSize": 3
+      }
+    },
+    {
+      "id": "f3-page-size-3-b",
+      "name": "F3 pagination stress page size 3, instance B",
+      "description": "The standings are paginated at three rows per page for paired seed 2232.",
+      "chaos": [],
+      "seed": 2232,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core",
+      "params": {
+        "pageSize": 3
+      }
+    },
+    {
+      "id": "f3-page-size-2-a",
+      "name": "F3 pagination stress page size 2, instance A",
+      "description": "The standings are paginated at two rows per page for paired seed 2231.",
+      "chaos": [],
+      "seed": 2231,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core",
+      "params": {
+        "pageSize": 2
+      }
+    },
+    {
+      "id": "f3-page-size-2-b",
+      "name": "F3 pagination stress page size 2, instance B",
+      "description": "The standings are paginated at two rows per page for paired seed 2232.",
+      "chaos": [],
+      "seed": 2232,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core",
+      "params": {
+        "pageSize": 2
+      }
+    },
+    {
+      "id": "k-header-vocabulary",
+      "name": "K unfamiliar but human-readable header vocabulary",
+      "description": "Stats and odds headers use clear football terminology outside the frozen deterministic synonym dictionaries.",
+      "chaos": [],
+      "seed": 2251,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core",
+      "params": {
+        "headerVocab": {
+          "team": "Entrant",
+          "P": "Appearances",
+          "W": "Victories",
+          "D": "Level finishes",
+          "L": "Setbacks",
+          "GF": "Goals tallied",
+          "GA": "Goals allowed",
+          "GD": "Goal balance",
+          "Pts": "League score",
+          "Form": "Last five results",
+          "match": "Contest",
+          "home": "Host price",
+          "draw": "Tie price",
+          "away": "Visitor price",
+          "over": "Above 2.5 goals",
+          "under": "Below 2.5 goals"
+        }
+      }
+    },
+    {
+      "id": "k-ui-copy",
+      "name": "K unfamiliar but task-clear UI copy",
+      "description": "All nine interface-copy surfaces use held-out language while preserving clear human intent.",
+      "chaos": [],
+      "seed": 2252,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core",
+      "params": {
+        "uiCopy": {
+          "siteName": "Northstar Football Data",
+          "statsHeading": "Competition rankings",
+          "oddsHeading": "Fixture pricing",
+          "loginHeading": "Member verification",
+          "loginButton": "Open workspace",
+          "fullTableTab": "Complete rankings",
+          "nextButton": "Advance",
+          "prevButton": "Return",
+          "acceptCookies": "Permit required cookies"
+        }
+      }
+    },
+    {
+      "id": "k-column-order",
+      "name": "K fully deranged stat-column order",
+      "description": "All nine stat columns move away from their canonical positions while retaining canonical headers.",
+      "chaos": [],
+      "seed": 2253,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core",
+      "params": {
+        "columnOrder": [
+          "Form",
+          "Pts",
+          "GA",
+          "GF",
+          "L",
+          "D",
+          "W",
+          "P",
+          "GD"
+        ]
+      }
+    },
+    {
+      "id": "k-layout-cards",
+      "name": "K card-grid layout",
+      "description": "Stats and odds leave table markup and render as labeled card collections.",
+      "chaos": [],
+      "seed": 2254,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core",
+      "params": {
+        "layoutCondition": "cards"
+      }
+    },
+    {
+      "id": "x-cards-header-vocabulary",
+      "name": "X card-grid layout with unfamiliar header vocabulary",
+      "description": "Card collections use clear held-out field labels outside the deterministic synonym dictionaries.",
+      "chaos": [],
+      "seed": 2261,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core",
+      "params": {
+        "headerVocab": {
+          "team": "Entrant",
+          "P": "Appearances",
+          "W": "Victories",
+          "D": "Level finishes",
+          "L": "Setbacks",
+          "GF": "Goals tallied",
+          "GA": "Goals allowed",
+          "GD": "Goal balance",
+          "Pts": "League score",
+          "Form": "Last five results",
+          "match": "Contest",
+          "home": "Host price",
+          "draw": "Tie price",
+          "away": "Visitor price",
+          "over": "Above 2.5 goals",
+          "under": "Below 2.5 goals"
+        },
+        "layoutCondition": "cards"
+      }
+    },
+    {
+      "id": "x-class-l2-decoy-l2",
+      "name": "X class drift level 2 with decoy rebinding level 2",
+      "description": "Half-strength class and id drift is composed with trigger-blind next-page and reveal-table decoys.",
+      "chaos": [
+        "pagination",
+        "hiddenTab"
+      ],
+      "seed": 2262,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core",
+      "params": {
+        "classDriftLevel": 2,
+        "decoyLevel": 2,
+        "decoyCopy": {
+          "next-page": "Continue standings",
+          "reveal-table": "Season detail",
+          "login-submit": "Enter workspace"
+        },
+        "decoyPlacement": "before"
+      }
+    },
+    {
+      "id": "x-class-l3-page-size-2",
+      "name": "X class drift level 3 with page size 2",
+      "description": "Every class and id token is renamed while the standings require six paginated views.",
+      "chaos": [],
+      "seed": 2263,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core",
+      "params": {
+        "classDriftLevel": 3,
+        "pageSize": 2
+      }
+    },
+    {
+      "id": "x-wrapped-column-copy",
+      "name": "X wrapped layout with deranged columns and held-out copy",
+      "description": "Non-semantic wrappers are composed with a fully deranged stat-column order and unfamiliar but task-clear UI copy.",
+      "chaos": [],
+      "seed": 2264,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core",
+      "params": {
+        "uiCopy": {
+          "siteName": "Northstar Match Centre",
+          "statsHeading": "Competition rankings",
+          "oddsHeading": "Fixture pricing",
+          "loginHeading": "Member verification",
+          "loginButton": "Open workspace",
+          "fullTableTab": "Complete rankings",
+          "nextButton": "Advance",
+          "prevButton": "Return",
+          "acceptCookies": "Permit required cookies"
+        },
+        "columnOrder": [
+          "Form",
+          "Pts",
+          "GA",
+          "GF",
+          "L",
+          "D",
+          "W",
+          "P",
+          "GD"
+        ],
+        "layoutCondition": "wrapped"
+      }
+    }
+  ],
+  "trials": [
+    {
+      "scenarioId": "f1-class-l0-a",
+      "engine": "stagehand",
+      "trial": 1,
+      "runId": "f1-class-l0-a-stagehand-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 25168,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-21T22-52-37-627Z/trials/f1-class-l0-a-stagehand-t1",
+      "tokens": {
+        "llmCalls": 5,
+        "inputTokens": 16478,
+        "outputTokens": 2434
+      }
+    },
+    {
+      "scenarioId": "f1-class-l0-b",
+      "engine": "stagehand",
+      "trial": 1,
+      "runId": "f1-class-l0-b-stagehand-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 21253,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-21T22-52-37-627Z/trials/f1-class-l0-b-stagehand-t1",
+      "tokens": {
+        "llmCalls": 5,
+        "inputTokens": 16479,
+        "outputTokens": 2438
+      }
+    },
+    {
+      "scenarioId": "f1-class-l1-a",
+      "engine": "stagehand",
+      "trial": 1,
+      "runId": "f1-class-l1-a-stagehand-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 21134,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-21T22-52-37-627Z/trials/f1-class-l1-a-stagehand-t1",
+      "tokens": {
+        "llmCalls": 5,
+        "inputTokens": 16478,
+        "outputTokens": 2414
+      }
+    },
+    {
+      "scenarioId": "f1-class-l1-b",
+      "engine": "stagehand",
+      "trial": 1,
+      "runId": "f1-class-l1-b-stagehand-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 20963,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-21T22-52-37-627Z/trials/f1-class-l1-b-stagehand-t1",
+      "tokens": {
+        "llmCalls": 5,
+        "inputTokens": 16479,
+        "outputTokens": 2405
+      }
+    },
+    {
+      "scenarioId": "f1-class-l2-a",
+      "engine": "stagehand",
+      "trial": 1,
+      "runId": "f1-class-l2-a-stagehand-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 21586,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-21T22-52-37-627Z/trials/f1-class-l2-a-stagehand-t1",
+      "tokens": {
+        "llmCalls": 5,
+        "inputTokens": 16478,
+        "outputTokens": 2401
+      }
+    },
+    {
+      "scenarioId": "f1-class-l2-b",
+      "engine": "stagehand",
+      "trial": 1,
+      "runId": "f1-class-l2-b-stagehand-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 20621,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-21T22-52-37-627Z/trials/f1-class-l2-b-stagehand-t1",
+      "tokens": {
+        "llmCalls": 5,
+        "inputTokens": 16479,
+        "outputTokens": 2402
+      }
+    },
+    {
+      "scenarioId": "f1-class-l3-a",
+      "engine": "stagehand",
+      "trial": 1,
+      "runId": "f1-class-l3-a-stagehand-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 21606,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-21T22-52-37-627Z/trials/f1-class-l3-a-stagehand-t1",
+      "tokens": {
+        "llmCalls": 5,
+        "inputTokens": 16478,
+        "outputTokens": 2382
+      }
+    },
+    {
+      "scenarioId": "f1-class-l3-b",
+      "engine": "stagehand",
+      "trial": 1,
+      "runId": "f1-class-l3-b-stagehand-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 21309,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-21T22-52-37-627Z/trials/f1-class-l3-b-stagehand-t1",
+      "tokens": {
+        "llmCalls": 5,
+        "inputTokens": 16479,
+        "outputTokens": 2480
+      }
+    },
+    {
+      "scenarioId": "f1-class-l4-a",
+      "engine": "stagehand",
+      "trial": 1,
+      "runId": "f1-class-l4-a-stagehand-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 21932,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-21T22-52-37-627Z/trials/f1-class-l4-a-stagehand-t1",
+      "tokens": {
+        "llmCalls": 5,
+        "inputTokens": 16478,
+        "outputTokens": 2570
+      }
+    },
+    {
+      "scenarioId": "f1-class-l4-b",
+      "engine": "stagehand",
+      "trial": 1,
+      "runId": "f1-class-l4-b-stagehand-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 20612,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-21T22-52-37-627Z/trials/f1-class-l4-b-stagehand-t1",
+      "tokens": {
+        "llmCalls": 5,
+        "inputTokens": 16479,
+        "outputTokens": 2431
+      }
+    },
+    {
+      "scenarioId": "f2-decoy-l0-a",
+      "engine": "stagehand",
+      "trial": 1,
+      "runId": "f2-decoy-l0-a-stagehand-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 41069,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-21T22-52-37-627Z/trials/f2-decoy-l0-a-stagehand-t1",
+      "tokens": {
+        "llmCalls": 11,
+        "inputTokens": 30160,
+        "outputTokens": 2903
+      }
+    },
+    {
+      "scenarioId": "f2-decoy-l0-b",
+      "engine": "stagehand",
+      "trial": 1,
+      "runId": "f2-decoy-l0-b-stagehand-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 42143,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-21T22-52-37-627Z/trials/f2-decoy-l0-b-stagehand-t1",
+      "tokens": {
+        "llmCalls": 11,
+        "inputTokens": 30152,
+        "outputTokens": 3011
+      }
+    },
+    {
+      "scenarioId": "f2-decoy-l1-a",
+      "engine": "stagehand",
+      "trial": 1,
+      "runId": "f2-decoy-l1-a-stagehand-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 39730,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-21T22-52-37-627Z/trials/f2-decoy-l1-a-stagehand-t1",
+      "tokens": {
+        "llmCalls": 11,
+        "inputTokens": 30214,
+        "outputTokens": 2901
+      }
+    },
+    {
+      "scenarioId": "f2-decoy-l1-b",
+      "engine": "stagehand",
+      "trial": 1,
+      "runId": "f2-decoy-l1-b-stagehand-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 40479,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-21T22-52-37-627Z/trials/f2-decoy-l1-b-stagehand-t1",
+      "tokens": {
+        "llmCalls": 11,
+        "inputTokens": 30207,
+        "outputTokens": 2973
+      }
+    },
+    {
+      "scenarioId": "f2-decoy-l2-a",
+      "engine": "stagehand",
+      "trial": 1,
+      "runId": "f2-decoy-l2-a-stagehand-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 40329,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-21T22-52-37-627Z/trials/f2-decoy-l2-a-stagehand-t1",
+      "tokens": {
+        "llmCalls": 11,
+        "inputTokens": 30280,
+        "outputTokens": 2910
+      }
+    },
+    {
+      "scenarioId": "f2-decoy-l2-b",
+      "engine": "stagehand",
+      "trial": 1,
+      "runId": "f2-decoy-l2-b-stagehand-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 43437,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-21T22-52-37-627Z/trials/f2-decoy-l2-b-stagehand-t1",
+      "tokens": {
+        "llmCalls": 11,
+        "inputTokens": 30273,
+        "outputTokens": 2969
+      }
+    },
+    {
+      "scenarioId": "f2-decoy-l3-a",
+      "engine": "stagehand",
+      "trial": 1,
+      "runId": "f2-decoy-l3-a-stagehand-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 41536,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-21T22-52-37-627Z/trials/f2-decoy-l3-a-stagehand-t1",
+      "tokens": {
+        "llmCalls": 11,
+        "inputTokens": 30310,
+        "outputTokens": 2946
+      }
+    },
+    {
+      "scenarioId": "f2-decoy-l3-b",
+      "engine": "stagehand",
+      "trial": 1,
+      "runId": "f2-decoy-l3-b-stagehand-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 40055,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-21T22-52-37-627Z/trials/f2-decoy-l3-b-stagehand-t1",
+      "tokens": {
+        "llmCalls": 11,
+        "inputTokens": 30307,
+        "outputTokens": 2945
+      }
+    },
+    {
+      "scenarioId": "f3-page-size-5-a",
+      "engine": "stagehand",
+      "trial": 1,
+      "runId": "f3-page-size-5-a-stagehand-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 30068,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-21T22-52-37-627Z/trials/f3-page-size-5-a-stagehand-t1",
+      "tokens": {
+        "llmCalls": 9,
+        "inputTokens": 28330,
+        "outputTokens": 2829
+      }
+    },
+    {
+      "scenarioId": "f3-page-size-5-b",
+      "engine": "stagehand",
+      "trial": 1,
+      "runId": "f3-page-size-5-b-stagehand-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 28722,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-21T22-52-37-627Z/trials/f3-page-size-5-b-stagehand-t1",
+      "tokens": {
+        "llmCalls": 9,
+        "inputTokens": 28331,
+        "outputTokens": 2857
+      }
+    },
+    {
+      "scenarioId": "f3-page-size-3-a",
+      "engine": "stagehand",
+      "trial": 1,
+      "runId": "f3-page-size-3-a-stagehand-t1",
+      "outcome": "fail",
+      "outcomeReason": "expected success but pipeline failed [not_found] stats content never appeared",
+      "outcomeClass": "hard-failure",
+      "pipelineSuccess": false,
+      "extractionSuccess": false,
+      "validationSuccess": false,
+      "accuracy": null,
+      "durationMs": 50042,
+      "retries": 1,
+      "recoveredAfterFailure": false,
+      "failureCategory": "not_found",
+      "failureDetail": "stats content never appeared",
+      "artifactsDir": "runs/bench-2026-07-21T22-52-37-627Z/trials/f3-page-size-3-a-stagehand-t1",
+      "tokens": {
+        "llmCalls": 10,
+        "inputTokens": 17526,
+        "outputTokens": 660
+      }
+    },
+    {
+      "scenarioId": "f3-page-size-3-b",
+      "engine": "stagehand",
+      "trial": 1,
+      "runId": "f3-page-size-3-b-stagehand-t1",
+      "outcome": "fail",
+      "outcomeReason": "expected success but pipeline failed [not_found] stats content never appeared",
+      "outcomeClass": "hard-failure",
+      "pipelineSuccess": false,
+      "extractionSuccess": false,
+      "validationSuccess": false,
+      "accuracy": null,
+      "durationMs": 49833,
+      "retries": 1,
+      "recoveredAfterFailure": false,
+      "failureCategory": "not_found",
+      "failureDetail": "stats content never appeared",
+      "artifactsDir": "runs/bench-2026-07-21T22-52-37-627Z/trials/f3-page-size-3-b-stagehand-t1",
+      "tokens": {
+        "llmCalls": 10,
+        "inputTokens": 17526,
+        "outputTokens": 707
+      }
+    },
+    {
+      "scenarioId": "f3-page-size-2-a",
+      "engine": "stagehand",
+      "trial": 1,
+      "runId": "f3-page-size-2-a-stagehand-t1",
+      "outcome": "fail",
+      "outcomeReason": "expected success but pipeline failed [not_found] stats content never appeared",
+      "outcomeClass": "hard-failure",
+      "pipelineSuccess": false,
+      "extractionSuccess": false,
+      "validationSuccess": false,
+      "accuracy": null,
+      "durationMs": 52179,
+      "retries": 1,
+      "recoveredAfterFailure": false,
+      "failureCategory": "not_found",
+      "failureDetail": "stats content never appeared",
+      "artifactsDir": "runs/bench-2026-07-21T22-52-37-627Z/trials/f3-page-size-2-a-stagehand-t1",
+      "tokens": {
+        "llmCalls": 10,
+        "inputTokens": 17128,
+        "outputTokens": 781
+      }
+    },
+    {
+      "scenarioId": "f3-page-size-2-b",
+      "engine": "stagehand",
+      "trial": 1,
+      "runId": "f3-page-size-2-b-stagehand-t1",
+      "outcome": "fail",
+      "outcomeReason": "expected success but pipeline failed [not_found] stats content never appeared",
+      "outcomeClass": "hard-failure",
+      "pipelineSuccess": false,
+      "extractionSuccess": false,
+      "validationSuccess": false,
+      "accuracy": null,
+      "durationMs": 50558,
+      "retries": 1,
+      "recoveredAfterFailure": false,
+      "failureCategory": "not_found",
+      "failureDetail": "stats content never appeared",
+      "artifactsDir": "runs/bench-2026-07-21T22-52-37-627Z/trials/f3-page-size-2-b-stagehand-t1",
+      "tokens": {
+        "llmCalls": 10,
+        "inputTokens": 17128,
+        "outputTokens": 714
+      }
+    },
+    {
+      "scenarioId": "k-header-vocabulary",
+      "engine": "stagehand",
+      "trial": 1,
+      "runId": "k-header-vocabulary-stagehand-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 23097,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-21T22-52-37-627Z/trials/k-header-vocabulary-stagehand-t1",
+      "tokens": {
+        "llmCalls": 5,
+        "inputTokens": 16586,
+        "outputTokens": 2432
+      }
+    },
+    {
+      "scenarioId": "k-ui-copy",
+      "engine": "stagehand",
+      "trial": 1,
+      "runId": "k-ui-copy-stagehand-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 20514,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-21T22-52-37-627Z/trials/k-ui-copy-stagehand-t1",
+      "tokens": {
+        "llmCalls": 5,
+        "inputTokens": 16492,
+        "outputTokens": 2396
+      }
+    },
+    {
+      "scenarioId": "k-column-order",
+      "engine": "stagehand",
+      "trial": 1,
+      "runId": "k-column-order-stagehand-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 22354,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-21T22-52-37-627Z/trials/k-column-order-stagehand-t1",
+      "tokens": {
+        "llmCalls": 5,
+        "inputTokens": 16480,
+        "outputTokens": 2411
+      }
+    },
+    {
+      "scenarioId": "k-layout-cards",
+      "engine": "stagehand",
+      "trial": 1,
+      "runId": "k-layout-cards-stagehand-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 24293,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-21T22-52-37-627Z/trials/k-layout-cards-stagehand-t1",
+      "tokens": {
+        "llmCalls": 5,
+        "inputTokens": 18837,
+        "outputTokens": 2423
+      }
+    },
+    {
+      "scenarioId": "x-cards-header-vocabulary",
+      "engine": "stagehand",
+      "trial": 1,
+      "runId": "x-cards-header-vocabulary-stagehand-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 22295,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-21T22-52-37-627Z/trials/x-cards-header-vocabulary-stagehand-t1",
+      "tokens": {
+        "llmCalls": 5,
+        "inputTokens": 19108,
+        "outputTokens": 2451
+      }
+    },
+    {
+      "scenarioId": "x-class-l2-decoy-l2",
+      "engine": "stagehand",
+      "trial": 1,
+      "runId": "x-class-l2-decoy-l2-stagehand-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 43871,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-21T22-52-37-627Z/trials/x-class-l2-decoy-l2-stagehand-t1",
+      "tokens": {
+        "llmCalls": 11,
+        "inputTokens": 30280,
+        "outputTokens": 2913
+      }
+    },
+    {
+      "scenarioId": "x-class-l3-page-size-2",
+      "engine": "stagehand",
+      "trial": 1,
+      "runId": "x-class-l3-page-size-2-stagehand-t1",
+      "outcome": "fail",
+      "outcomeReason": "expected success but pipeline failed [not_found] stats content never appeared",
+      "outcomeClass": "hard-failure",
+      "pipelineSuccess": false,
+      "extractionSuccess": false,
+      "validationSuccess": false,
+      "accuracy": null,
+      "durationMs": 49781,
+      "retries": 1,
+      "recoveredAfterFailure": false,
+      "failureCategory": "not_found",
+      "failureDetail": "stats content never appeared",
+      "artifactsDir": "runs/bench-2026-07-21T22-52-37-627Z/trials/x-class-l3-page-size-2-stagehand-t1",
+      "tokens": {
+        "llmCalls": 10,
+        "inputTokens": 17130,
+        "outputTokens": 675
+      }
+    },
+    {
+      "scenarioId": "x-wrapped-column-copy",
+      "engine": "stagehand",
+      "trial": 1,
+      "runId": "x-wrapped-column-copy-stagehand-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 20648,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-21T22-52-37-627Z/trials/x-wrapped-column-copy-stagehand-t1",
+      "tokens": {
+        "llmCalls": 5,
+        "inputTokens": 16493,
+        "outputTokens": 2402
+      }
+    }
+  ],
+  "engines": [
+    {
+      "engine": "stagehand",
+      "trials": 32,
+      "taskSuccessRate": 0.84375,
+      "extractionSuccessRate": 0.84375,
+      "validationSuccessRate": 0.84375,
+      "meanAccuracy": 1,
+      "meanDurationMs": 32288.03125,
+      "totalRetries": 5,
+      "recovery": {
+        "firstAttemptFailures": 5,
+        "recovered": 0,
+        "recoveryRate": 0
+      },
+      "retryRecoveries": 0,
+      "failuresByCategory": {
+        "not_found": 5
+      },
+      "outcomeClasses": {
+        "pass": 27,
+        "hard-failure": 5
+      },
+      "silentCorruptionRate": 0,
+      "tokens": {
+        "llmCalls": 247,
+        "inputTokens": 684063,
+        "outputTokens": 74566
+      }
+    }
+  ],
+  "comparison": [
+    {
+      "scenarioId": "f1-class-l0-a",
+      "results": {
+        "stagehand": "pass"
+      }
+    },
+    {
+      "scenarioId": "f1-class-l0-b",
+      "results": {
+        "stagehand": "pass"
+      }
+    },
+    {
+      "scenarioId": "f1-class-l1-a",
+      "results": {
+        "stagehand": "pass"
+      }
+    },
+    {
+      "scenarioId": "f1-class-l1-b",
+      "results": {
+        "stagehand": "pass"
+      }
+    },
+    {
+      "scenarioId": "f1-class-l2-a",
+      "results": {
+        "stagehand": "pass"
+      }
+    },
+    {
+      "scenarioId": "f1-class-l2-b",
+      "results": {
+        "stagehand": "pass"
+      }
+    },
+    {
+      "scenarioId": "f1-class-l3-a",
+      "results": {
+        "stagehand": "pass"
+      }
+    },
+    {
+      "scenarioId": "f1-class-l3-b",
+      "results": {
+        "stagehand": "pass"
+      }
+    },
+    {
+      "scenarioId": "f1-class-l4-a",
+      "results": {
+        "stagehand": "pass"
+      }
+    },
+    {
+      "scenarioId": "f1-class-l4-b",
+      "results": {
+        "stagehand": "pass"
+      }
+    },
+    {
+      "scenarioId": "f2-decoy-l0-a",
+      "results": {
+        "stagehand": "pass"
+      }
+    },
+    {
+      "scenarioId": "f2-decoy-l0-b",
+      "results": {
+        "stagehand": "pass"
+      }
+    },
+    {
+      "scenarioId": "f2-decoy-l1-a",
+      "results": {
+        "stagehand": "pass"
+      }
+    },
+    {
+      "scenarioId": "f2-decoy-l1-b",
+      "results": {
+        "stagehand": "pass"
+      }
+    },
+    {
+      "scenarioId": "f2-decoy-l2-a",
+      "results": {
+        "stagehand": "pass"
+      }
+    },
+    {
+      "scenarioId": "f2-decoy-l2-b",
+      "results": {
+        "stagehand": "pass"
+      }
+    },
+    {
+      "scenarioId": "f2-decoy-l3-a",
+      "results": {
+        "stagehand": "pass"
+      }
+    },
+    {
+      "scenarioId": "f2-decoy-l3-b",
+      "results": {
+        "stagehand": "pass"
+      }
+    },
+    {
+      "scenarioId": "f3-page-size-5-a",
+      "results": {
+        "stagehand": "pass"
+      }
+    },
+    {
+      "scenarioId": "f3-page-size-5-b",
+      "results": {
+        "stagehand": "pass"
+      }
+    },
+    {
+      "scenarioId": "f3-page-size-3-a",
+      "results": {
+        "stagehand": "fail"
+      },
+      "note": "stagehand: expected success but pipeline failed [not_found] stats content never appeared"
+    },
+    {
+      "scenarioId": "f3-page-size-3-b",
+      "results": {
+        "stagehand": "fail"
+      },
+      "note": "stagehand: expected success but pipeline failed [not_found] stats content never appeared"
+    },
+    {
+      "scenarioId": "f3-page-size-2-a",
+      "results": {
+        "stagehand": "fail"
+      },
+      "note": "stagehand: expected success but pipeline failed [not_found] stats content never appeared"
+    },
+    {
+      "scenarioId": "f3-page-size-2-b",
+      "results": {
+        "stagehand": "fail"
+      },
+      "note": "stagehand: expected success but pipeline failed [not_found] stats content never appeared"
+    },
+    {
+      "scenarioId": "k-header-vocabulary",
+      "results": {
+        "stagehand": "pass"
+      }
+    },
+    {
+      "scenarioId": "k-ui-copy",
+      "results": {
+        "stagehand": "pass"
+      }
+    },
+    {
+      "scenarioId": "k-column-order",
+      "results": {
+        "stagehand": "pass"
+      }
+    },
+    {
+      "scenarioId": "k-layout-cards",
+      "results": {
+        "stagehand": "pass"
+      }
+    },
+    {
+      "scenarioId": "x-cards-header-vocabulary",
+      "results": {
+        "stagehand": "pass"
+      }
+    },
+    {
+      "scenarioId": "x-class-l2-decoy-l2",
+      "results": {
+        "stagehand": "pass"
+      }
+    },
+    {
+      "scenarioId": "x-class-l3-page-size-2",
+      "results": {
+        "stagehand": "fail"
+      },
+      "note": "stagehand: expected success but pipeline failed [not_found] stats content never appeared"
+    },
+    {
+      "scenarioId": "x-wrapped-column-copy",
+      "results": {
+        "stagehand": "pass"
+      }
+    }
+  ],
+  "environment": {
+    "node": "v20.14.0",
+    "stagehandVersion": "3.6.0",
+    "stagehandModel": "anthropic/claude-haiku-4-5",
+    "modelProvider": "anthropic",
+    "browserbase": false,
+    "gitCommit": "867723c838a119e6fd99626efe33d78fe77d0a09",
+    "gitDirty": false,
+    "disableRepair": false,
+    "repairMode": "llm",
+    "seedCacheMode": "none",
+    "seedCacheHash": null,
+    "runPurpose": "cold",
+    "promptsHash": "5c07ce1fbc35431dce46022d8e4e23a52d5b649b7edd756abe19f1bf16345d99",
+    "lockfileHash": "b6f0dd3ad6190377983d2983cfae91216e98463d02b7b5a3948766263a2f0349",
+    "protocolId": "phase2a-v1",
+    "suiteHash": "a3e77433869ff77f513a0cdb435c5c46fd6627e6b0905be50fc20e1c129ab722"
+  }
+}
