@@ -224,16 +224,16 @@ def chart_outcome_map(cells):
 
     # callouts
     f2 = group_bounds[1]
-    ax.annotate("C fails all six pure F2 decoy cells with 0 repair calls —\nwrong data looks like success, the trigger never fires",
-                xy=((f2[1] + f2[2]) / 2, -1.15), xytext=((f2[1] + f2[2]) / 2, -2.15),
-                fontsize=8.8, family=SANS, color=FAIL_C, ha="center", va="top",
-                arrowprops=dict(arrowstyle="-", color=FAIL_C, lw=0.8))
+    ax.text((f2[1] + f2[2]) / 2, -2.15,
+            "C fails all six pure F2 decoy cells with 0 repair calls —\nwrong data looks like success, the trigger never fires",
+            fontsize=8.8, family=SANS, color=FAIL_C, ha="center", va="top",
+            linespacing=1.55)
     f3 = group_bounds[2]
     gx = (xpos["f3-page-size-3-a"] + xpos["f3-page-size-2-b"]) / 2
-    ax.annotate("pages 3 and 2: the shared ≥5-row readiness check\nfails every policy that consults it — only A passes these four cells",
-                xy=(gx, -1.15), xytext=(gx + 4.5, -2.15),
-                fontsize=8.8, family=SANS, color=INK, ha="center", va="top",
-                arrowprops=dict(arrowstyle="-", color=INK, lw=0.8))
+    ax.text(gx + 4.5, -2.15,
+            "pages 3 and 2: the shared ≥5-row readiness check\nfails every policy that consults it — only A passes these four cells",
+            fontsize=8.8, family=SANS, color=INK, ha="center", va="top",
+            linespacing=1.55)
 
     ax.set_xlim(-0.7, x - gap + 2.3)
     ax.set_ylim(-2.6, len(POLICIES) + 0.4)
@@ -247,7 +247,7 @@ def chart_outcome_map(cells):
              "The small-page cluster falls to nobody gated behind the readiness check.",
              y=0.965, sub_y=0.875)
     footnote(fig, "green = passed all 5 sweeps, red = failed all 5")
-    fig.savefig(OUT / "outcome_map.png", facecolor=BG)
+    fig.savefig(OUT / "outcome_map.png", facecolor=BG, dpi=300)
     plt.close(fig)
 
 
@@ -305,7 +305,7 @@ def chart_pass_vs_cost(cells, costs):
              "full semantics (D) adds seven more for a dollar.",
              y=0.955, sub_y=0.87)
     footnote(fig)
-    fig.savefig(OUT / "pass_vs_cost.png", facecolor=BG)
+    fig.savefig(OUT / "pass_vs_cost.png", facecolor=BG, dpi=300)
     plt.close(fig)
 
 
@@ -328,10 +328,9 @@ def chart_gate_effect(cells):
         ax.text(i + w / 2, ex * 100 + 1.2, f"{ex * 100:.0f}", fontsize=9.5,
                 family=MONO, color=INK, ha="center", fontweight="bold")
 
-    ax.annotate("100% — the model was never the ceiling;\nthe readiness gate was",
-                xy=(4 + w / 2, 101), xytext=(2.55, 92), fontsize=9.5, family=SANS,
-                color=INK, fontweight="bold", ha="center",
-                arrowprops=dict(arrowstyle="-", color=INK, lw=0.8))
+    ax.text(2.9, 96, "100% — the model was never the ceiling;\nthe readiness gate was",
+            fontsize=9.5, family=SANS, color=INK, fontweight="bold",
+            ha="center", va="top", linespacing=1.55)
 
     ax.set_xticks(range(len(POLICIES)))
     ax.set_xticklabels([POLICY_LABEL[p] for p in POLICIES], fontsize=9.5,
@@ -351,7 +350,7 @@ def chart_gate_effect(cells):
              "each policy buys — B2 < C < D, with D perfect.",
              y=0.95, sub_y=0.86, size=19)
     footnote(fig)
-    fig.savefig(OUT / "gate_effect.png", facecolor=BG)
+    fig.savefig(OUT / "gate_effect.png", facecolor=BG, dpi=300)
     plt.close(fig)
 
 
