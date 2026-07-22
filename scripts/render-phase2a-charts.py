@@ -9,12 +9,12 @@ re-asserts the two structural claims the charts lean on: every cell is
 deterministic (0/5 or 5/5 across sweeps), and every keyless trial recorded
 zero LLM calls.
 
+Style variant: "newsroom graphics desk" (Economist/FT lineage, modernized).
+Presentation layer only — the data-integrity gate below is unchanged.
+
 Usage:
     python3 -m venv .venv && .venv/bin/pip install matplotlib
-    .venv/bin/python scripts/render-phase2a-charts.py
-
-Writes docs/img/outcome_map.png, docs/img/pass_vs_cost.png,
-docs/img/gate_effect.png.
+    .venv/bin/python render.py
 """
 
 from __future__ import annotations
@@ -28,7 +28,8 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from matplotlib.patches import FancyBboxPatch
+from matplotlib.patches import FancyBboxPatch, Rectangle
+from matplotlib.lines import Line2D
 
 REPO = Path(__file__).resolve().parents[1]
 EV = REPO / "evidence" / "phase2a"
@@ -114,19 +115,32 @@ def verify(cells, costs):
     return not bad
 
 
-# ── editorial style system ───────────────────────────────────────────────────
-BG = "#F8F5EC"
-INK = "#211E19"
-SUB = "#55503F"
-MUTED = "#8A8371"
-FAINT = "#B4AC97"
-GRID = "#EAE5D4"
-KICK = "#1E7A4C"
-PASS_C = "#1E7A4C"
-FAIL_C = "#A02B23"
+# ── newsroom graphics-desk style system ──────────────────────────────────────
+# Warm broadsheet paper, near-black ink, one signature vermilion. The five
+# policies carry no categorical colour: an ordered ink→silver gray ramp encodes
+# ladder position (darkest = D, lightest = A). Vermilion is reserved, strictly,
+# for the kicker tab, failure tiles, and story-critical marks.
+BG    = "#FDFCF9"   # warm near-white paper
+INK   = "#14171C"   # near-black ink
+SUB   = "#3C3F46"   # subtitle / reading note
+MUTED = "#6E7178"   # secondary labels, ticks
+FAINT = "#A7AAAE"   # footnote, ghost figures
+GRID  = "#E8E4DB"   # hairline grid on paper
+RULE  = "#1F232A"   # header hairline rule
+VERM  = "#C8401F"   # signature vermilion — tab · failures · highlight
 
-SANS = ["Helvetica Neue", "Arial", "DejaVu Sans"]
-MONO = ["Menlo", "Courier New", "DejaVu Sans Mono"]
+# Ink→silver ladder ramp. Colour = rung, not category.
+POLICY_COLOR = {
+    "A":  "#BAB4AA",   # lightest silver
+    "B":  "#948E85",
+    "B2": "#6B655C",
+    "C":  "#423E38",
+    "D":  "#14171C",   # darkest = ink
+}
+
+SERIF = ["Georgia", "Charter", "Palatino", "DejaVu Serif"]              # display headline
+SANS  = ["Seravek", "Avenir Next", "Helvetica Neue", "DejaVu Sans"]     # humanist body
+MONO  = ["Menlo", "Courier New", "DejaVu Sans Mono"]                    # every numeral
 
 POLICY_LABEL = {
     "A": "A · baseline selectors",
@@ -135,35 +149,56 @@ POLICY_LABEL = {
     "C": "C · LLM repair on failure",
     "D": "D · full semantic",
 }
-POLICY_COLOR = {
-    "A": "#8C8678", "B": "#3E8CD1", "B2": "#C08019", "C": "#1E7A4C", "D": "#6B34C4",
-}
 
 
-def glow_point(ax, x, y, color, s=52):
-    ax.scatter([x], [y], s=s * 2.6, color=color, alpha=0.14, lw=0, zorder=2)
-    ax.scatter([x], [y], s=s, color=color, lw=0, zorder=3)
+def dot(ax, x, y, color, s=66, filled=True):
+    """A crisp marker over a whisper of its own colour. Open ring = the
+    policy spends nothing on inference; filled = it pays per run."""
+    ax.scatter([x], [y], s=s * 3.6, color=color, alpha=0.06, lw=0, zorder=2)
+    if filled:
+        ax.scatter([x], [y], s=s, color=color, lw=0.7, edgecolors=BG, zorder=3)
+    else:
+        ax.scatter([x], [y], s=s, facecolors=BG, edgecolors=color, lw=1.6, zorder=3)
 
 
-def header(fig, kicker, title, sub, legend=None, title_y=0.905):
-    """Inspo-style header: tiny mono kicker, compact bold title, muted
-    reading-note subtitle, optional dot legend top-right."""
-    fig.text(0.048, 0.962, kicker, fontsize=8, family=MONO, color=KICK,
+def kicker_tab(fig, x0=0.048, y_top=0.966):
+    """The classic broadsheet red kicker tab — a ~48×8px vermilion rectangle
+    pinned to the very top-left of the figure."""
+    w_in, h_in = fig.get_size_inches()
+    tw = 48.0 / (w_in * fig.dpi)
+    th = 8.0 / (h_in * fig.dpi)
+    fig.add_artist(Rectangle((x0, y_top - th), tw, th, transform=fig.transFigure,
+                             facecolor=VERM, edgecolor="none", zorder=6, clip_on=False))
+
+
+def hairline(fig, y, x0=0.048, x1=0.985):
+    """0.75pt full-width rule under the header block."""
+    fig.add_artist(Line2D([x0, x1], [y, y], transform=fig.transFigure,
+                          color=RULE, lw=0.75, solid_capstyle="butt", zorder=4))
+
+
+def header(fig, kicker, title, sub, legend=None, title_y=0.905, rule_y=0.715):
+    """Broadsheet masthead: vermilion tab, mono eyebrow, serif display
+    headline, humanist-sans standfirst, then a hairline rule."""
+    x0 = 0.048
+    kicker_tab(fig)
+    fig.text(x0, 0.945, kicker, fontsize=7.1, family=MONO, color=MUTED,
              ha="left", va="top", fontweight="bold")
-    fig.text(0.048, title_y, title, fontsize=17.5, family=SANS,
-             fontweight="bold", color=INK, ha="left", va="top", linespacing=1.25)
-    fig.text(0.048, title_y - 0.075, sub, fontsize=9.2, family=SANS, color=SUB,
-             ha="left", va="top", linespacing=1.65)
+    fig.text(x0, title_y, title, fontsize=18, family=SERIF, fontweight="bold",
+             color=INK, ha="left", va="top", linespacing=1.06)
+    fig.text(x0, title_y - 0.066, sub, fontsize=9.4, family=SANS, color=SUB,
+             ha="left", va="top", linespacing=1.6)
+    hairline(fig, rule_y)
     if legend:
-        x = 0.955
+        x = 0.985
         for label, color in reversed(legend):
-            t = fig.text(x, 0.958, label, fontsize=8.4, family=SANS,
+            t = fig.text(x, 0.951, label, fontsize=8.4, family=SANS,
                          color=SUB, ha="right", va="top")
             fig.canvas.draw()
             bb = t.get_window_extent().transformed(fig.transFigure.inverted())
-            fig.text(bb.x0 - 0.007, 0.9535, "●", fontsize=7, color=color,
+            fig.text(bb.x0 - 0.009, 0.9475, "■", fontsize=6.6, color=color,
                      ha="right", va="top")
-            x = bb.x0 - 0.028
+            x = bb.x0 - 0.03
 
 
 def verdict(ax, x, y, line1, line2, color, ha="left"):
@@ -207,12 +242,11 @@ def chart_outcome_map(cells):
         y = len(POLICIES) - 1 - yi
         for sid in SCENARIOS:
             passed = all(p for _, p, _ in cells[pol][sid])
-            color = PASS_C if passed else FAIL_C
-            alpha = 0.85 if not passed else 0.42
+            color = POLICY_COLOR[pol] if passed else VERM
             ax.add_patch(FancyBboxPatch(
                 (xpos[sid] - 0.36, y - 0.28), 0.72, 0.56,
-                boxstyle="round,pad=0,rounding_size=0.10", mutation_aspect=0.62,
-                facecolor=color, alpha=alpha, edgecolor="none"))
+                boxstyle="round,pad=0,rounding_size=0.06", mutation_aspect=0.62,
+                facecolor=color, edgecolor="none"))
         npass = sum(all(p for _, p, _ in cells[pol][s]) for s in SCENARIOS)
         ax.text(x - gap + 0.7, y, f"{npass}/32", fontsize=8.8, family=MONO,
                 color=SUB, va="center", ha="left")
@@ -248,7 +282,7 @@ def chart_outcome_map(cells):
     verdict(ax, (f2[2] + f2[3]) / 2, -1.92,
             "C fails all six pure F2 decoy cells with 0 repair calls —",
             "wrong data looks like success, so the trigger never fires",
-            FAIL_C, ha="center")
+            VERM, ha="center")
     gx = (xpos["f3-page-size-3-a"] + xpos["f3-page-size-2-b"]) / 2
     verdict(ax, gx + 5.5, -1.92,
             "pages 3 and 2: the shared ≥5-row readiness check fails",
@@ -264,7 +298,7 @@ def chart_outcome_map(cells):
            "32 held-out scenarios × 5 policies: three failure regimes",
            "Each tile pools five sweeps; the grid repeats exactly, so the blocks are architecture, not noise. Class drift falls to\n"
            "deterministic repair. Silent decoys fall only to full semantics. The small-page cluster falls to nobody behind the readiness check.",
-           legend=[("passed all 5 sweeps", PASS_C), ("failed all 5", FAIL_C)])
+           legend=[("passed all 5 · tile shade = policy rung", "#6B655C"), ("failed all 5", VERM)])
     footnote(fig)
     fig.savefig(OUT / "outcome_map.png", facecolor=BG)
     plt.close(fig)
@@ -283,7 +317,7 @@ def chart_pass_vs_cost(cells, costs):
         npass = sum(all(p for _, p, _ in cells[pol][s]) for s in SCENARIOS)
         cost = sum(costs[pol]) / len(costs[pol]) if costs[pol] else 0.0
         pts[pol] = (cost, npass)
-        glow_point(ax, cost, npass, POLICY_COLOR[pol])
+        dot(ax, cost, npass, POLICY_COLOR[pol], filled=pol in KEYED)
 
     offsets = {"A": (0.022, 0.0), "B": (0.022, 0.0), "B2": (0.022, 0.0),
                "C": (0.022, 0.25), "D": (-0.026, 0.25)}
@@ -292,7 +326,7 @@ def chart_pass_vs_cost(cells, costs):
         dx, dy = offsets[pol]
         cost_lab = "$0 · zero model inference" if cost == 0 else f"${cost:.3f}/sweep"
         ax.text(cost + dx, npass + dy + 0.18, POLICY_LABEL[pol], fontsize=9,
-                family=SANS, fontweight="bold", color=POLICY_COLOR[pol],
+                family=SANS, fontweight="bold", color=INK,
                 ha=align.get(pol, "left"), va="bottom")
         ax.text(cost + dx, npass + dy + 0.05, f"{npass}/32 · {cost_lab}",
                 fontsize=8, family=MONO, color=MUTED,
@@ -315,7 +349,7 @@ def chart_pass_vs_cost(cells, costs):
     verdict(ax, 0.63, 17.6,
             "D's 7-cell edge over C is exactly the silent-decoy set, at 8.9× the spend —",
             "and the 5 cells D still fails are the shared readiness gate no spend can cross",
-            POLICY_COLOR["D"], ha="center")
+            INK, ha="center")
 
     header(fig,
            "FIVE POLICIES · ONE PIPELINE · 32 HELD-OUT SCENARIOS · EXACT-OUTPUT GRADED",
@@ -323,7 +357,7 @@ def chart_pass_vs_cost(cells, costs):
            "Cells passed against per-sweep inference cost. Up and left is better. Structural addressing without repair (B)\n"
            "lands under the hardcoded baseline; deterministic repair (B2) is the best free policy; LLM repair (C) adds three\n"
            "cells for twelve cents; full semantics (D) adds the seven decoy cells for a dollar.",
-           legend=None)
+           legend=None, rule_y=0.70)
     footnote(fig)
     fig.savefig(OUT / "pass_vs_cost.png", facecolor=BG)
     plt.close(fig)
@@ -339,11 +373,12 @@ def chart_gate_effect(cells):
 
     w = 0.30
     for i, pol in enumerate(POLICIES):
+        col = POLICY_COLOR[pol]
         full = sum(all(p for _, p, _ in cells[pol][s]) for s in SCENARIOS) / 32
         ex = sum(all(p for _, p, _ in cells[pol][s]) for s in SCENARIOS if s not in GATE5) / 27
-        ax.bar(i - w / 2 - 0.02, full * 100, w, facecolor=POLICY_COLOR[pol],
-               alpha=0.16, edgecolor=POLICY_COLOR[pol], lw=1.0)
-        ax.bar(i + w / 2 + 0.02, ex * 100, w, color=POLICY_COLOR[pol], alpha=0.98)
+        ax.bar(i - w / 2 - 0.02, full * 100, w, facecolor=col,
+               alpha=0.22, edgecolor=col, lw=1.1, zorder=2)
+        ax.bar(i + w / 2 + 0.02, ex * 100, w, color=col, zorder=3)
         ax.text(i - w / 2 - 0.02, full * 100 + 1.6, f"{full * 100:.0f}", fontsize=8,
                 family=MONO, color=FAINT, ha="center")
         ax.text(i + w / 2 + 0.02, ex * 100 + 1.6, f"{ex * 100:.0f}", fontsize=8.6,
@@ -352,7 +387,7 @@ def chart_gate_effect(cells):
     verdict(ax, 2.62, 97,
             "D reads 100% with the gate cells set aside —",
             "the model was never the ceiling; the readiness gate was",
-            POLICY_COLOR["D"], ha="center")
+            INK, ha="center")
 
     ax.set_xticks(range(len(POLICIES)))
     ax.set_xticklabels([POLICY_LABEL[p] for p in POLICIES], fontsize=8.6,
