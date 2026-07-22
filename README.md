@@ -383,3 +383,35 @@ stateful-sports-data-agent/
 - [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md) — a 2–3 minute recorded-demo script.
 - [docs/LIMITATIONS.md](docs/LIMITATIONS.md) — honest scope, caveats, and what production would need.
 - [docs/EVIDENCE.md](docs/EVIDENCE.md) — the citation appendix: each lab chaos mode mapped to a documented real-world failure mode.
+
+## Related work
+
+This is not the first look at web-agent robustness, and the neighbors
+are worth knowing: [StressWeb](https://arxiv.org/abs/2604.16385)
+stress-tests web agents under controlled layout, semantic, and
+execution perturbations across models;
+[SKILL.nb](https://arxiv.org/abs/2606.08049) decides which workflow
+steps to formalize into code with gated execution;
+[ReUseIt](https://arxiv.org/abs/2510.14308) synthesizes reusable web
+workflows with error-detecting guards;
+[NEXT-EVAL](https://arxiv.org/abs/2505.17125) compares heuristic and
+LLM extraction under synthetic DOM transformations; deterministic
+locator repair is an established line from
+[Robula+](https://doi.org/10.1002/smr.1771) to
+[zero-cost self-healing](https://arxiv.org/abs/2603.20358);
+[Agentic Compilation](https://arxiv.org/abs/2604.09718) compiles
+semantic understanding once and executes deterministically after;
+[WAREX](https://arxiv.org/abs/2510.03285) injects infrastructure
+failures into web-agent benchmark runs; and a
+[budget-constrained study of web agents](https://arxiv.org/abs/2606.15017)
+asks whether agent modules earn back their tokens. What this repo adds
+is the control: model, task, site, ground truth, and validator held
+fixed while the *placement and triggering* of semantic inference is the
+experimental variable, under a prospectively frozen policy ladder and
+an independently authored held-out suite with registered per-cell
+predictions. No individual ingredient is claimed novel; the experiment
+design and its diagnosis are the contribution.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
