@@ -127,18 +127,26 @@ MUTED = "#6E7178"   # secondary labels, ticks
 FAINT = "#A7AAAE"   # footnote, ghost figures
 GRID  = "#E8E4DB"   # hairline grid on paper
 RULE  = "#1F232A"   # header hairline rule
-VERM  = "#C13A2E"   # signature carmine — tab · failures · highlight
+VERM  = "#E03131"   # signature crimson-coral — tab · failures · highlight
 
-# Per-policy palette — deep jewel register: high chroma at low lightness,
-# varied lightness across hues (luminosity from contrast, not brightness).
+# Per-policy palette — "Stripe-warm vibrant": chroma-equalized mid-lightness
+# hues, warm-shifted toward the paper. Each hue ships with a designed lighter
+# partner for within-mark duotone gradients (the Tableau-20 mechanism).
 POLICY_COLOR = {
-    "A":  "#6E6759",   # deep warm gray
-    "B":  "#31519B",   # sapphire
-    "B2": "#A06A1C",   # bronze-amber
-    "C":  "#146B54",   # emerald
-    "D":  "#63437C",   # amethyst
+    "A":  "#6B6259",   # warm slate
+    "B":  "#4C6EF5",   # cobalt
+    "B2": "#F59F00",   # marigold
+    "C":  "#099268",   # emerald
+    "D":  "#9C36B5",   # grape
 }
-PASS_TINT = "#E7EFE9"  # near-silent pass tile — the grid's elegance is quiet passes
+POLICY_LIGHT = {
+    "A":  "#CFC7BC",   # bone
+    "B":  "#91A7FF",   # periwinkle
+    "B2": "#FFCE85",   # light gold
+    "C":  "#63E6BE",   # mint
+    "D":  "#E599F7",   # orchid
+}
+PASS_TINT = "#E6F6EC"  # quiet mint-sage pass tile — passes stay silent
 
 
 def blend(hex1, hex2, t):
@@ -160,28 +168,27 @@ POLICY_LABEL = {
 }
 
 
-def grad_bar(ax, x, h, w, color, n=180):
-    """Solid bar with a within-mark vertical gradient: full hue at the cap
-    fading toward a paper-lightened base — depth without any outer halo."""
+def grad_bar(ax, x, h, w, color, light, n=180):
+    """Solid bar with a within-mark duotone gradient: full hue at the cap
+    fading toward its designed lighter partner at the base."""
     import numpy as np
     from matplotlib import colors as mcolors
     top = np.array(mcolors.to_rgb(color))
-    bot = np.array(mcolors.to_rgb(blend(color, BG, 0.38)))
+    bot = np.array(mcolors.to_rgb(blend(color, light, 0.68)))
     t = np.linspace(0, 1, n).reshape(-1, 1, 1)
     img = bot + (top - bot) * t
     ax.imshow(img, extent=(x - w / 2, x + w / 2, 0, h), origin="lower",
               aspect="auto", zorder=3, interpolation="bilinear")
 
 
-def dot(ax, x, y, color, s=66, filled=True):
+def dot(ax, x, y, color, light, s=66, filled=True):
     """Open ring = the policy spends nothing on inference; filled = it pays.
     Only the filled marks carry depth: one tight same-hue blur under a crisp
-    core, plus a lighter-core highlight (gradient-within-hue)."""
+    core, plus a highlight core in the hue's designed lighter partner."""
     if filled:
         ax.scatter([x], [y], s=s * 2.8, color=color, alpha=0.20, lw=0, zorder=2)
         ax.scatter([x], [y], s=s, color=color, lw=0.7, edgecolors=BG, zorder=3)
-        ax.scatter([x], [y], s=s * 0.38, color=blend(color, "#FFFFFF", 0.45),
-                   alpha=0.9, lw=0, zorder=4)
+        ax.scatter([x], [y], s=s * 0.38, color=light, alpha=0.9, lw=0, zorder=4)
     else:
         ax.scatter([x], [y], s=s, facecolors=BG, edgecolors=color, lw=1.6, zorder=3)
 
@@ -322,7 +329,7 @@ def chart_outcome_map(cells):
            "32 held-out scenarios × 5 policies: three failure regimes",
            "Each tile pools five sweeps; the grid repeats exactly, so the blocks are architecture, not noise. Class drift falls to\n"
            "deterministic repair. Silent decoys fall only to full semantics. The small-page cluster falls to nobody behind the readiness check.",
-           legend=[("passed all 5 sweeps", "#D3E2D8"), ("failed all 5", VERM)])
+           legend=[("passed all 5 sweeps", "#C9E9D6"), ("failed all 5", VERM)])
     footnote(fig)
     fig.savefig(OUT / "outcome_map.png", facecolor=BG)
     plt.close(fig)
@@ -341,7 +348,7 @@ def chart_pass_vs_cost(cells, costs):
         npass = sum(all(p for _, p, _ in cells[pol][s]) for s in SCENARIOS)
         cost = sum(costs[pol]) / len(costs[pol]) if costs[pol] else 0.0
         pts[pol] = (cost, npass)
-        dot(ax, cost, npass, POLICY_COLOR[pol], filled=pol in KEYED)
+        dot(ax, cost, npass, POLICY_COLOR[pol], POLICY_LIGHT[pol], filled=pol in KEYED)
 
     offsets = {"A": (0.022, 0.0), "B": (0.022, 0.0), "B2": (0.022, 0.0),
                "C": (0.022, 0.25), "D": (-0.026, 0.25)}
@@ -400,8 +407,9 @@ def chart_gate_effect(cells):
         col = POLICY_COLOR[pol]
         full = sum(all(p for _, p, _ in cells[pol][s]) for s in SCENARIOS) / 32
         ex = sum(all(p for _, p, _ in cells[pol][s]) for s in SCENARIOS if s not in GATE5) / 27
-        ax.bar(i - w / 2 - 0.02, full * 100, w, color=blend(col, BG, 0.78), zorder=2)
-        grad_bar(ax, i + w / 2 + 0.02, ex * 100, w, col)
+        ax.bar(i - w / 2 - 0.02, full * 100, w,
+               color=blend(POLICY_LIGHT[pol], BG, 0.45), zorder=2)
+        grad_bar(ax, i + w / 2 + 0.02, ex * 100, w, col, POLICY_LIGHT[pol])
         ax.text(i - w / 2 - 0.02, full * 100 + 1.6, f"{full * 100:.0f}", fontsize=8,
                 family=MONO, color=FAINT, ha="center")
         ax.text(i + w / 2 + 0.02, ex * 100 + 1.6, f"{ex * 100:.0f}", fontsize=8.6,
