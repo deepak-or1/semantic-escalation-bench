@@ -1,10 +1,120 @@
 # stateful-sports-data-agent
 
-A browser-native sports-analytics agent, and a reliability harness that measures whether you can trust it.
+When should a web agent pay for a model call: never, only when something
+breaks, or on every step?
 
-The agent logs into a stateful, deliberately flaky local sports-stats site, extracts league standings and betting odds into zod-validated schemas, feeds them through a Poisson / expected-value model to produce a ranked "value" watchlist, and then **benchmarks three element-addressing strategies against each other across 24 failure scenarios** — a semantic Stagehand agent, a brittle Playwright selector baseline, and a new self-healing hybrid. It is built on [Stagehand](https://github.com/browserbase/stagehand) + [Browserbase](https://browserbase.com), runs read-only, and never places bets, automates wagering, bypasses paywalls, or defeats anti-bot protections. The flaky site it works against is local and synthetic — precisely so the demo is reproducible and doesn't depend on hammering a real site.
+This repo is a browser-native sports-analytics agent and a controlled
+harness for that one decision. One pipeline (log into a stateful,
+deliberately flaky stats site, extract standings and betting odds into
+zod-validated schemas, score them against exact ground truth) runs under
+five frozen addressing policies, and the only thing that changes is
+where semantic inference is allowed to enter:
 
-> **Phase-1 keyed campaign — completed 2026-07-20.** Under the prospectively frozen protocol (tag `protocol-freeze-v4`), 16 runs / 384 keyed trials: the hybrid's key-gated repair policy (C) **matched full semantic automation (D) 120/120 judged-correct on this frozen suite at 8.6× lower model-inference cost** ($0.0036 vs $0.0312 per success). Replaying persisted repairs cut model calls a further 60% (−19.7% cost — extraction tokens dominate). All 16 poisoned-data trials were rejected by the shared deterministic validator; zero silent corruption was observed in 384 trials. Every keyed policy passed every scenario — that ceiling is a disclosed limitation of the suite, not a strength, and motivates the Phase-2A follow-up. Full bounded analysis: **[docs/PHASE1_RESULTS.md](docs/PHASE1_RESULTS.md)** · checksummed portable evidence: **[evidence/phase1/](evidence/phase1/README.md)**
+| Policy | Element addressing | Repair on failure | Model inference |
+| --- | --- | --- | --- |
+| **A** baseline | hardcoded ids + fixed column indices | retry / re-login | zero |
+| **B** structural | cached actions + header-name mapping | none | zero |
+| **B2** deterministic repair | same as B | deterministic re-location ladder | zero |
+| **C** LLM repair | same as B | one key-gated LLM repair per broken step | on failure only |
+| **D** full semantic | model-driven on every step | inherent | every step |
+
+Built on [Stagehand](https://github.com/browserbase/stagehand) +
+[Browserbase](https://browserbase.com), read-only, against a local
+synthetic site, so the benchmark is reproducible and nothing real is
+scraped (and nothing here places bets — see
+[Safety & compliance](#safety--compliance)).
+
+Two pre-registered campaigns measure the ladder:
+
+- **Phase 1** (protocol frozen before any keyed trial, tag
+  `protocol-freeze-v4`; 384 keyed trials): selective repair (C)
+  **matched full semantics (D) 120/120 judged-correct at 8.61× lower
+  model-inference cost** ($0.0036 vs $0.0312 per successful workflow).
+  Every keyed policy passed every scenario, a disclosed ceiling that
+  motivated the follow-up. [docs/PHASE1_RESULTS.md](docs/PHASE1_RESULTS.md)
+- **Phase 2A** (two-stage freeze): the five policies were frozen and
+  tagged *first*; an external frontier model (GPT-5.6, "sol") then
+  authored a 32-scenario held-out suite and registered per-cell
+  predictions before any trial ran. 25 runs / 800 trials, pooled
+  verification PASS, every cell exactly repeatable across five sweeps.
+  [docs/PHASE2A_RESULTS.md](docs/PHASE2A_RESULTS.md)
+
+![32 held-out scenarios × 5 policies: three failure regimes, zero variance](docs/img/outcome_map.png)
+
+## Phase 2A at a glance
+
+Cells passed (a cell = one scenario, pooled over five sweeps; every
+cell is 5/5 or 0/5):
+
+| Policy | Cells passed | Per-sweep cost | Per successful workflow |
+| --- | ---: | ---: | ---: |
+| A baseline | 15/32 | $0 (zero model-inference cost) | — |
+| B structural | 11/32 | $0 (zero model-inference cost) | — |
+| B2 deterministic repair | 17/32 | $0 (zero model-inference cost) | — |
+| C LLM repair on failure | 20/32 | $0.119 | $0.0060 |
+| D full semantic | 27/32 | $1.056 | $0.0391 |
+
+Four things I'd want to know before wiring an LLM into browser
+automation:
+
+1. **Repair-on-failure is the economical policy when breakage is
+   visible.** Phase 1: C matched D 120/120 at 8.61× lower cost. Phase
+   2A: C recovered three cells beyond deterministic repair (header
+   vocabulary drift, a card-grid redesign, and their compound) for about
+   $0.006 per successful workflow. You don't need the model driving;
+   you need it on call.
+2. **When breakage is silent, the repair trigger never fires.** Decoy
+   scenarios render plausible wrong content alongside the real thing:
+   C's cached actions "succeed", extraction returns wrong rows, and C
+   fails all six pure decoy cells with **zero LLM calls** — it never
+   learns anything went wrong. D passes all of them. That is what D's
+   8.9× per-sweep premium actually buys: catching failures that don't
+   look like failures. (In the one compound cell where C's repair did
+   fire, it healed the broken selector and the trial still failed:
+   repair fixes locators, not meaning.)
+3. **The gate is the policy.** One shared readiness check (a stats
+   table is "ready" only at ≥5 visible rows) defeats every policy above
+   the baseline on valid 3- and 2-row pages: deterministic repair finds
+   nothing to reveal, C's one repair call is aimed at a control that
+   doesn't exist, and D burns 10 calls per trial and still fails,
+   because the failure happens before the model is allowed to see the
+   page. Only the $0 baseline, which never consults the check, passes.
+   Set those five columns aside and D is 27/27: **the model was never
+   the ceiling; the harness assumption was.**
+4. **Held-out prediction worked.** The suite author's frozen per-cell
+   predictions hit 141 of 160; all 19 misses are the same discovered
+   gate cluster (A was predicted exactly, down to an instance-level
+   split). And structure without repair *underperformed* the hardcoded
+   baseline (11 vs 15 cells): structural addressing buys nothing under
+   drift until a repair path exists.
+
+![What paying for semantics buys, cell by cell](docs/img/pass_vs_cost.png)
+
+![Remove the five gate cells and the ladder is a clean dose-response](docs/img/gate_effect.png)
+
+It is deliberately narrow: one model, one synthetic local site, one
+task family, one frozen 32-scenario suite. It measures where semantic
+inference belongs in an automation stack, not general agent ability.
+Full per-axis metrics, the readiness-gate anatomy, cost accounting, and
+the transport-contamination incident that forced a full keyed restart:
+[docs/PHASE2A_RESULTS.md](docs/PHASE2A_RESULTS.md) · design contract:
+[docs/PROTOCOL_2A.md](docs/PROTOCOL_2A.md) · checksummed evidence:
+[evidence/phase2a/](evidence/phase2a/README.md).
+
+**Verify it yourself (no key needed).** The frozen verifier re-checks
+schema, provenance, completeness, and grading over the 800 bundled
+per-trial records and reprints the prediction scorecard:
+
+```bash
+pnpm verify:suite evidence/phase2a/runs/* \
+  --suite data/phase2a/scenario-suite.json \
+  --expect-policies A,B,B2,C,D --expect-trials 5
+```
+
+The charts above regenerate from the same records and refuse to render
+on any mismatch
+(`.venv/bin/python scripts/render-phase2a-charts.py` after
+`python3 -m venv .venv && .venv/bin/pip install matplotlib`).
 
 ---
 
@@ -12,7 +122,7 @@ The agent logs into a stateful, deliberately flaky local sports-stats site, extr
 
 The primitive on display is **instruction-level browser automation**: Stagehand's `act` / `observe` / `extract` address a page *semantically* ("extract every team row, mapping columns by their header names") instead of by CSS selector. When a site drifts — renamed classes, reordered columns, reworded buttons, a different DOM shape — a selector script breaks, but a semantic instruction usually still holds. Browserbase adds the second half: **session and context persistence**, so authenticated state survives across runs instead of forcing a fresh login every time.
 
-Those are claims, so the project makes them measurable. The benchmark runs the **exact same pipeline** three ways; the only thing that changes between engines is *how an element on the page is addressed*:
+Those are claims, so the project makes them measurable. The benchmark runs the **exact same pipeline** three ways; the only thing that changes between engines is *how an element on the page is addressed*. The five-policy ladder above is built from these engines: A is the baseline, B / B2 / C are the hybrid's three repair modes (`--repair-mode off|deterministic|llm`), and D is Stagehand.
 
 - **baseline** — a period-accurate Playwright selector scraper. Competent 2019-era craftsmanship: it waits, retries, paginates, opens tabs, clears overlays, re-logs-in, reuses sessions. But it addresses the page *only* through hardcoded ids (`#login-form`, `#standings`) and fixed `<td>` column indices; it never reads a header to find a column. That single assumption is its one intentional weakness — exactly the variable under test.
 - **hybrid** *(new)* — **your existing selectors become a cache; the LLM is the repair crew.** The same hand-written selectors, stored as a cache of Stagehand `Action` objects and replayed with `selfHeal: false` (zero LLM), plus a reader that maps table columns by their **header name** through a fixed synonym dictionary — never by position, id, or class. When a cached selector or the table shape it assumes stops matching, an explicit, key-gated repair path (`observe` to re-find the element and heal the cache; `extract` when a page abandons the table shape) steps in. Keyless, the deterministic tier still runs and produces real numbers — the repair path is simply unavailable, and those failures are reported honestly rather than crashing.
@@ -125,7 +235,7 @@ pnpm lint
 
 ## Reliability benchmark
 
-The scenario catalog lives in `packages/shared/src/scenarios.ts` — **24 scenarios in three groups: 17 core + 4 compound + 3 survival.** Each fixes a seed and a set of chaos flags and declares what *correct* behaviour is.
+The scenario catalog lives in `packages/shared/src/scenarios.ts` — **24 scenarios in three groups: 17 core + 4 compound + 3 survival.** Each fixes a seed and a set of chaos flags and declares what *correct* behaviour is. (This is the Phase-1 catalog that `pnpm bench` runs; the Phase-2A held-out suite is a separate, externally authored 32-scenario package under `data/phase2a/`, frozen at tag `phase2a-suite-freeze-v1`.)
 
 **Core (17)** — one isolated failure mode each:
 
@@ -215,30 +325,24 @@ The methodology for the keyed runs — exact model, prompts, retry and cache pol
 
 Every watchlist carries its own limitations inline: goals are modelled as independent Poisson draws (no Dixon-Coles low-score correction), scoring rates come from a single partial season and carry sampling noise, home advantage is a constant multiplier, form is a crude 3/1/0-points heuristic, and bookmaker margin means small modelled edges are usually noise. **This is a read-only analytics demo — not betting advice.** See [docs/LIMITATIONS.md](docs/LIMITATIONS.md) for the full accounting.
 
-## Screenshots
+## Screenshots and charts
 
-> The images below are not committed. Produce them once locally and drop them in `docs/img/`.
+The three campaign charts are committed under `docs/img/` and regenerate
+deterministically from `evidence/phase2a/` via
+`scripts/render-phase2a-charts.py` (the script recomputes every plotted
+number from the per-run records and exits nonzero if anything disagrees
+with the published figures).
+
+The interactive views are produced locally:
 
 ```bash
 pnpm bench                    # populate runs/latest with a fresh benchmark
-pnpm agent:local -- --engine baseline   # produce an agent run + watchlist
-pnpm report                   # writes runs/latest/report.html
-pnpm dev:dashboard            # or serve the live dashboard on :4618
+pnpm report                   # writes runs/latest/report.html (self-contained)
+pnpm dev:dashboard            # live dashboard on http://localhost:4618
 ```
 
-Then capture:
-
-- The dashboard scenario matrix (Stagehand vs baseline vs hybrid) and the Survival curve panel at `http://localhost:4618`, or open `runs/latest/report.html`.
-
-  ![Reliability benchmark: scenario matrix](docs/img/dashboard-matrix.png)
-
-- A single failure's detail view (its screenshot + `events.jsonl` timeline).
-
-  ![Failure detail with screenshot and event log](docs/img/failure-detail.png)
-
-- The agent run's value watchlist.
-
-  ![Ranked value watchlist](docs/img/watchlist.png)
+The dashboard shows the scenario matrix, the survival-curve panel, and
+per-failure detail views (screenshot + `events.jsonl` timeline).
 
 ## Safety & compliance
 
@@ -262,14 +366,18 @@ stateful-sports-data-agent/
 │   │       ├── hybrid/      cached-selector engine: Action cache + header-mapped reader + key-gated repair
 │   │       └── reliability/ benchmark runner, metrics, results markdown
 │   └── model/          Poisson / EV model → value watchlist
-├── scripts/            run-agent, run-benchmark, seed-lab (CLIs behind the pnpm scripts)
+├── data/phase2a/       the externally authored held-out suite (frozen: phase2a-suite-freeze-v1)
+├── evidence/           checksummed portable evidence: phase1/ and phase2a/ (runs, ledgers, reports)
+├── scripts/            run-agent, run-benchmark, campaign driver, suite verifier, chart renderer
 ├── tests/integration/  lab+baseline and benchmark integration tests
-├── runs/               per-run artifacts; runs/latest mirrors the newest benchmark
-└── docs/               ARCHITECTURE, WRITEUP, DEMO_SCRIPT, LIMITATIONS
+├── runs/               per-run artifacts (gitignored; the published records live in evidence/)
+└── docs/               protocols, results, ARCHITECTURE, WRITEUP, LIMITATIONS
 ```
 
 ## Docs
 
+- [docs/PROTOCOL.md](docs/PROTOCOL.md) / [docs/PHASE1_RESULTS.md](docs/PHASE1_RESULTS.md) — the Phase-1 frozen protocol and its bounded analysis.
+- [docs/PROTOCOL_2A.md](docs/PROTOCOL_2A.md) / [docs/PHASE2A_RESULTS.md](docs/PHASE2A_RESULTS.md) — the Phase-2A two-stage freeze design and the held-out-grid results.
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — how the system fits together and why.
 - [docs/WRITEUP.md](docs/WRITEUP.md) — the build story: what broke and what it taught.
 - [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md) — a 2–3 minute recorded-demo script.
