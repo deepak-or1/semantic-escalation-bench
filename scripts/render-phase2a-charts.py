@@ -168,6 +168,21 @@ POLICY_LABEL = {
 }
 
 
+def bloom(ax, x, y, color, rx, ry, peak=0.30, n=240):
+    """A smooth Gaussian radial bloom in data coordinates — the mark reads
+    as a light source bleeding softly onto the paper."""
+    import numpy as np
+    from matplotlib import colors as mcolors
+    yy, xx = np.mgrid[-1:1:complex(n), -1:1:complex(n)]
+    falloff = np.exp(-(xx ** 2 + yy ** 2) * 4.5)
+    img = np.empty((n, n, 4))
+    img[..., :3] = mcolors.to_rgb(color)
+    img[..., 3] = peak * falloff
+    ax.imshow(img, extent=(x - rx, x + rx, y - ry, y + ry),
+              origin="lower", aspect="auto", zorder=1.8,
+              interpolation="bilinear")
+
+
 def grad_bar(ax, x, h, w, color, light, n=180):
     """Solid bar with a within-mark duotone gradient: full hue at the cap
     fading toward its designed lighter partner at the base."""
@@ -183,12 +198,15 @@ def grad_bar(ax, x, h, w, color, light, n=180):
 
 def dot(ax, x, y, color, light, s=66, filled=True):
     """Open ring = the policy spends nothing on inference; filled = it pays.
-    Only the filled marks carry depth: one tight same-hue blur under a crisp
-    core, plus a highlight core in the hue's designed lighter partner."""
+    Every mark sits in a soft Gaussian bloom of its own hue (paid marks burn
+    brighter); filled dots are lit from within: saturated rim, light-partner
+    body, near-white hot center."""
+    bloom(ax, x, y, color, rx=0.05, ry=2.55, peak=0.34 if filled else 0.16)
     if filled:
-        ax.scatter([x], [y], s=s * 2.8, color=color, alpha=0.20, lw=0, zorder=2)
         ax.scatter([x], [y], s=s, color=color, lw=0.7, edgecolors=BG, zorder=3)
-        ax.scatter([x], [y], s=s * 0.38, color=light, alpha=0.9, lw=0, zorder=4)
+        ax.scatter([x], [y], s=s * 0.52, color=light, alpha=1.0, lw=0, zorder=4)
+        ax.scatter([x], [y], s=s * 0.20, color=blend(light, "#FFFFFF", 0.65),
+                   alpha=0.95, lw=0, zorder=5)
     else:
         ax.scatter([x], [y], s=s, facecolors=BG, edgecolors=color, lw=1.6, zorder=3)
 
@@ -409,6 +427,8 @@ def chart_gate_effect(cells):
         ex = sum(all(p for _, p, _ in cells[pol][s]) for s in SCENARIOS if s not in GATE5) / 27
         ax.bar(i - w / 2 - 0.02, full * 100, w,
                color=blend(POLICY_LIGHT[pol], BG, 0.45), zorder=2)
+        bloom(ax, i + w / 2 + 0.02, ex * 100, col, rx=0.26, ry=11,
+              peak=0.30 if pol == "D" else 0.22)
         grad_bar(ax, i + w / 2 + 0.02, ex * 100, w, col, POLICY_LIGHT[pol])
         ax.text(i - w / 2 - 0.02, full * 100 + 1.6, f"{full * 100:.0f}", fontsize=8,
                 family=MONO, color=FAINT, ha="center")
