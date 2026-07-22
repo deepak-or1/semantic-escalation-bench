@@ -129,14 +129,15 @@ GRID  = "#E8E4DB"   # hairline grid on paper
 RULE  = "#1F232A"   # header hairline rule
 VERM  = "#C8401F"   # signature vermilion — tab · failures · highlight
 
-# Ink→silver ladder ramp. Colour = rung, not category.
+# Per-policy palette — the "pop of colour without being obnoxious" set.
 POLICY_COLOR = {
-    "A":  "#BAB4AA",   # lightest silver
-    "B":  "#948E85",
-    "B2": "#6B655C",
-    "C":  "#423E38",
-    "D":  "#14171C",   # darkest = ink
+    "A":  "#8C8678",   # warm gray
+    "B":  "#3E8CD1",   # blue
+    "B2": "#C08019",   # ochre
+    "C":  "#1E7A4C",   # green
+    "D":  "#6B34C4",   # purple
 }
+PASS = "#1E7A4C"       # uniform pass-tile green (soft via alpha)
 
 SERIF = ["Georgia", "Charter", "Palatino", "DejaVu Serif"]              # display headline
 SANS  = ["Seravek", "Avenir Next", "Helvetica Neue", "DejaVu Sans"]     # humanist body
@@ -154,7 +155,8 @@ POLICY_LABEL = {
 def dot(ax, x, y, color, s=66, filled=True):
     """A crisp marker over a whisper of its own colour. Open ring = the
     policy spends nothing on inference; filled = it pays per run."""
-    ax.scatter([x], [y], s=s * 3.6, color=color, alpha=0.06, lw=0, zorder=2)
+    ax.scatter([x], [y], s=s * 5.2, color=color, alpha=0.05, lw=0, zorder=2)
+    ax.scatter([x], [y], s=s * 2.6, color=color, alpha=0.12, lw=0, zorder=2)
     if filled:
         ax.scatter([x], [y], s=s, color=color, lw=0.7, edgecolors=BG, zorder=3)
     else:
@@ -242,11 +244,11 @@ def chart_outcome_map(cells):
         y = len(POLICIES) - 1 - yi
         for sid in SCENARIOS:
             passed = all(p for _, p, _ in cells[pol][sid])
-            color = POLICY_COLOR[pol] if passed else VERM
+            color = PASS if passed else VERM
             ax.add_patch(FancyBboxPatch(
                 (xpos[sid] - 0.36, y - 0.28), 0.72, 0.56,
                 boxstyle="round,pad=0,rounding_size=0.06", mutation_aspect=0.62,
-                facecolor=color, edgecolor="none"))
+                facecolor=color, alpha=0.40 if passed else 0.88, edgecolor="none"))
         npass = sum(all(p for _, p, _ in cells[pol][s]) for s in SCENARIOS)
         ax.text(x - gap + 0.7, y, f"{npass}/32", fontsize=8.8, family=MONO,
                 color=SUB, va="center", ha="left")
@@ -298,7 +300,7 @@ def chart_outcome_map(cells):
            "32 held-out scenarios × 5 policies: three failure regimes",
            "Each tile pools five sweeps; the grid repeats exactly, so the blocks are architecture, not noise. Class drift falls to\n"
            "deterministic repair. Silent decoys fall only to full semantics. The small-page cluster falls to nobody behind the readiness check.",
-           legend=[("passed all 5 · tile shade = policy rung", "#6B655C"), ("failed all 5", VERM)])
+           legend=[("passed all 5 sweeps", "#9FC5B0"), ("failed all 5", VERM)])
     footnote(fig)
     fig.savefig(OUT / "outcome_map.png", facecolor=BG)
     plt.close(fig)
@@ -326,7 +328,7 @@ def chart_pass_vs_cost(cells, costs):
         dx, dy = offsets[pol]
         cost_lab = "$0 · zero model inference" if cost == 0 else f"${cost:.3f}/sweep"
         ax.text(cost + dx, npass + dy + 0.18, POLICY_LABEL[pol], fontsize=9,
-                family=SANS, fontweight="bold", color=INK,
+                family=SANS, fontweight="bold", color=POLICY_COLOR[pol],
                 ha=align.get(pol, "left"), va="bottom")
         ax.text(cost + dx, npass + dy + 0.05, f"{npass}/32 · {cost_lab}",
                 fontsize=8, family=MONO, color=MUTED,
@@ -349,7 +351,7 @@ def chart_pass_vs_cost(cells, costs):
     verdict(ax, 0.63, 17.6,
             "D's 7-cell edge over C is exactly the silent-decoy set, at 8.9× the spend —",
             "and the 5 cells D still fails are the shared readiness gate no spend can cross",
-            INK, ha="center")
+            POLICY_COLOR["D"], ha="center")
 
     header(fig,
            "FIVE POLICIES · ONE PIPELINE · 32 HELD-OUT SCENARIOS · EXACT-OUTPUT GRADED",
@@ -387,7 +389,7 @@ def chart_gate_effect(cells):
     verdict(ax, 2.62, 97,
             "D reads 100% with the gate cells set aside —",
             "the model was never the ceiling; the readiness gate was",
-            INK, ha="center")
+            POLICY_COLOR["D"], ha="center")
 
     ax.set_xticks(range(len(POLICIES)))
     ax.set_xticklabels([POLICY_LABEL[p] for p in POLICIES], fontsize=8.6,
