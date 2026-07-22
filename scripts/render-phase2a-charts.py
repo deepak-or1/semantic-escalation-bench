@@ -201,12 +201,10 @@ def dot(ax, x, y, color, light, s=66, filled=True):
     Every mark sits in a soft Gaussian bloom of its own hue (paid marks burn
     brighter); filled dots are lit from within: saturated rim, light-partner
     body, near-white hot center."""
-    bloom(ax, x, y, color, rx=0.05, ry=2.55, peak=0.34 if filled else 0.16)
     if filled:
+        bloom(ax, x, y, color, rx=0.042, ry=2.6, peak=0.10)
         ax.scatter([x], [y], s=s, color=color, lw=0.7, edgecolors=BG, zorder=3)
         ax.scatter([x], [y], s=s * 0.52, color=light, alpha=1.0, lw=0, zorder=4)
-        ax.scatter([x], [y], s=s * 0.20, color=blend(light, "#FFFFFF", 0.65),
-                   alpha=0.95, lw=0, zorder=5)
     else:
         ax.scatter([x], [y], s=s, facecolors=BG, edgecolors=color, lw=1.6, zorder=3)
 
@@ -258,9 +256,10 @@ def verdict(ax, x, y, line1, line2, color, ha="left"):
             ha=ha, va="top", linespacing=1.5)
 
 
-def footnote(fig, extra=""):
+def footnote(fig, extra="", num=None):
+    lead = f"fig. {num}/3 · " if num else ""
     fig.text(0.048, 0.018,
-             "recomputed from evidence/phase2a per-run records · render refuses on any mismatch"
+             lead + "recomputed from evidence/phase2a per-run records · render refuses on any mismatch"
              + (f" · {extra}" if extra else "") + " · phase 2A",
              fontsize=7.2, color=FAINT, family=MONO, ha="left", va="bottom")
 
@@ -273,9 +272,9 @@ def bare(ax):
 
 
 def chart_outcome_map(cells):
-    fig, ax = plt.subplots(figsize=(13.4, 6.0), dpi=150)
+    fig, ax = plt.subplots(figsize=(12.9, 6.1), dpi=150)
     fig.patch.set_facecolor(BG)
-    fig.subplots_adjust(left=0.175, right=0.985, top=0.66, bottom=0.155)
+    fig.subplots_adjust(left=0.185, right=0.985, top=0.66, bottom=0.15)
 
     gap = 1.1
     xpos, bounds = {}, []
@@ -348,15 +347,15 @@ def chart_outcome_map(cells):
            "Each tile pools five sweeps; the grid repeats exactly, so the blocks are architecture, not noise. Class drift falls to\n"
            "deterministic repair. Silent decoys fall only to full semantics. The small-page cluster falls to nobody behind the readiness check.",
            legend=[("passed all 5 sweeps", "#C9E9D6"), ("failed all 5", VERM)])
-    footnote(fig)
+    footnote(fig, num=1)
     fig.savefig(OUT / "outcome_map.png", facecolor=BG)
     plt.close(fig)
 
 
 def chart_pass_vs_cost(cells, costs):
-    fig, ax = plt.subplots(figsize=(11.4, 6.3), dpi=150)
+    fig, ax = plt.subplots(figsize=(12.9, 6.1), dpi=150)
     fig.patch.set_facecolor(BG)
-    fig.subplots_adjust(left=0.085, right=0.955, top=0.665, bottom=0.13)
+    fig.subplots_adjust(left=0.075, right=0.96, top=0.66, bottom=0.13)
     bare(ax)
     ax.grid(axis="y", color=GRID, lw=0.8)
     ax.set_axisbelow(True)
@@ -368,7 +367,7 @@ def chart_pass_vs_cost(cells, costs):
         pts[pol] = (cost, npass)
         dot(ax, cost, npass, POLICY_COLOR[pol], POLICY_LIGHT[pol], filled=pol in KEYED)
 
-    offsets = {"A": (0.022, 0.0), "B": (0.022, 0.0), "B2": (0.022, 0.0),
+    offsets = {"A": (0.022, -1.62), "B": (0.022, 0.0), "B2": (0.022, 0.30),
                "C": (0.022, 0.25), "D": (-0.026, 0.25)}
     align = {"D": "right"}
     for pol, (cost, npass) in pts.items():
@@ -392,7 +391,7 @@ def chart_pass_vs_cost(cells, costs):
         tick.set_fontfamily(MONO)
     ax.set_xlabel("model-inference cost per 32-scenario sweep", fontsize=8,
                   family=MONO, color=MUTED, labelpad=8)
-    ax.set_ylabel("scenario cells passed · of 32", fontsize=8,
+    ax.set_ylabel("cells passed · of 32", fontsize=8,
                   family=MONO, color=MUTED, labelpad=8)
 
     verdict(ax, 0.63, 17.6,
@@ -407,15 +406,15 @@ def chart_pass_vs_cost(cells, costs):
            "lands under the hardcoded baseline; deterministic repair (B2) is the best free policy; LLM repair (C) adds three\n"
            "cells for twelve cents; full semantics (D) adds the seven decoy cells for a dollar.",
            legend=None, rule_y=0.70)
-    footnote(fig)
+    footnote(fig, num=2)
     fig.savefig(OUT / "pass_vs_cost.png", facecolor=BG)
     plt.close(fig)
 
 
 def chart_gate_effect(cells):
-    fig, ax = plt.subplots(figsize=(11.4, 5.7), dpi=150)
+    fig, ax = plt.subplots(figsize=(12.9, 6.1), dpi=150)
     fig.patch.set_facecolor(BG)
-    fig.subplots_adjust(left=0.075, right=0.955, top=0.645, bottom=0.115)
+    fig.subplots_adjust(left=0.075, right=0.96, top=0.66, bottom=0.13)
     bare(ax)
     ax.grid(axis="y", color=GRID, lw=0.8)
     ax.set_axisbelow(True)
@@ -427,11 +426,9 @@ def chart_gate_effect(cells):
         ex = sum(all(p for _, p, _ in cells[pol][s]) for s in SCENARIOS if s not in GATE5) / 27
         ax.bar(i - w / 2 - 0.02, full * 100, w,
                color=blend(POLICY_LIGHT[pol], BG, 0.45), zorder=2)
-        bloom(ax, i + w / 2 + 0.02, ex * 100, col, rx=0.26, ry=11,
-              peak=0.30 if pol == "D" else 0.22)
         grad_bar(ax, i + w / 2 + 0.02, ex * 100, w, col, POLICY_LIGHT[pol])
         ax.text(i - w / 2 - 0.02, full * 100 + 1.6, f"{full * 100:.0f}", fontsize=8,
-                family=MONO, color=FAINT, ha="center")
+                family=MONO, color=MUTED, ha="center")
         ax.text(i + w / 2 + 0.02, ex * 100 + 1.6, f"{ex * 100:.0f}", fontsize=8.6,
                 family=MONO, color=INK, ha="center", fontweight="bold")
 
@@ -449,19 +446,16 @@ def chart_gate_effect(cells):
     ax.set_yticklabels(["0%", "25%", "50%", "75%", "100%"], fontsize=8)
     for tick in ax.get_yticklabels():
         tick.set_fontfamily(MONO)
-    ax.set_ylabel("cells passed", fontsize=8, family=MONO, color=MUTED,
+    ax.set_ylabel("cells passed · %", fontsize=8, family=MONO, color=MUTED,
                   labelpad=8)
-
-    ax.text(0, 106.5, "faint · full 32-cell grid      solid · the 27 cells outside the readiness-gate cluster",
-            fontsize=7.6, family=MONO, color=MUTED, ha="left")
 
     header(fig,
            "A DESCRIPTIVE CUT, NOT A REGISTERED METRIC",
            "Remove the five gate cells and the ladder is a clean dose-response",
            "The five columns where the shared ≥5-row readiness check blocks every gated policy are set aside.\n"
            "What remains orders exactly by how much semantics each policy buys — B2 < C < D, with D perfect.",
-           legend=None)
-    footnote(fig)
+           legend=[("full 32-cell grid", "#DCD6CB"), ("the 27 cells outside the gate cluster", "#57504A")])
+    footnote(fig, num=3)
     fig.savefig(OUT / "gate_effect.png", facecolor=BG)
     plt.close(fig)
 
