@@ -127,17 +127,25 @@ MUTED = "#6E7178"   # secondary labels, ticks
 FAINT = "#A7AAAE"   # footnote, ghost figures
 GRID  = "#E8E4DB"   # hairline grid on paper
 RULE  = "#1F232A"   # header hairline rule
-VERM  = "#E04A26"   # signature vermilion — tab · failures · highlight
+VERM  = "#C13A2E"   # signature carmine — tab · failures · highlight
 
-# Per-policy palette — vivid, modern, still harmonious on warm paper.
+# Per-policy palette — deep jewel register: high chroma at low lightness,
+# varied lightness across hues (luminosity from contrast, not brightness).
 POLICY_COLOR = {
-    "A":  "#7A7466",   # deep warm gray
-    "B":  "#1F7AE0",   # azure
-    "B2": "#F59E0B",   # amber
-    "C":  "#10A76B",   # emerald
-    "D":  "#7C3AED",   # electric violet
+    "A":  "#6E6759",   # deep warm gray
+    "B":  "#31519B",   # sapphire
+    "B2": "#A06A1C",   # bronze-amber
+    "C":  "#146B54",   # emerald
+    "D":  "#63437C",   # amethyst
 }
-PASS = "#10A76B"       # uniform pass-tile green (soft via alpha)
+PASS_TINT = "#E7EFE9"  # near-silent pass tile — the grid's elegance is quiet passes
+
+
+def blend(hex1, hex2, t):
+    """t=0 -> hex1, t=1 -> hex2."""
+    a = [int(hex1[i:i+2], 16) for i in (1, 3, 5)]
+    b = [int(hex2[i:i+2], 16) for i in (1, 3, 5)]
+    return "#" + "".join(f"{round(x + (y - x) * t):02x}" for x, y in zip(a, b))
 
 SERIF = ["Georgia", "Charter", "Palatino", "DejaVu Serif"]              # display headline
 SANS  = ["Seravek", "Avenir Next", "Helvetica Neue", "DejaVu Sans"]     # humanist body
@@ -152,13 +160,28 @@ POLICY_LABEL = {
 }
 
 
+def grad_bar(ax, x, h, w, color, n=180):
+    """Solid bar with a within-mark vertical gradient: full hue at the cap
+    fading toward a paper-lightened base — depth without any outer halo."""
+    import numpy as np
+    from matplotlib import colors as mcolors
+    top = np.array(mcolors.to_rgb(color))
+    bot = np.array(mcolors.to_rgb(blend(color, BG, 0.38)))
+    t = np.linspace(0, 1, n).reshape(-1, 1, 1)
+    img = bot + (top - bot) * t
+    ax.imshow(img, extent=(x - w / 2, x + w / 2, 0, h), origin="lower",
+              aspect="auto", zorder=3, interpolation="bilinear")
+
+
 def dot(ax, x, y, color, s=66, filled=True):
-    """A crisp marker over a whisper of its own colour. Open ring = the
-    policy spends nothing on inference; filled = it pays per run."""
-    ax.scatter([x], [y], s=s * 7.0, color=color, alpha=0.10, lw=0, zorder=2)
-    ax.scatter([x], [y], s=s * 3.5, color=color, alpha=0.18, lw=0, zorder=2)
+    """Open ring = the policy spends nothing on inference; filled = it pays.
+    Only the filled marks carry depth: one tight same-hue blur under a crisp
+    core, plus a lighter-core highlight (gradient-within-hue)."""
     if filled:
+        ax.scatter([x], [y], s=s * 2.8, color=color, alpha=0.20, lw=0, zorder=2)
         ax.scatter([x], [y], s=s, color=color, lw=0.7, edgecolors=BG, zorder=3)
+        ax.scatter([x], [y], s=s * 0.38, color=blend(color, "#FFFFFF", 0.45),
+                   alpha=0.9, lw=0, zorder=4)
     else:
         ax.scatter([x], [y], s=s, facecolors=BG, edgecolors=color, lw=1.6, zorder=3)
 
@@ -244,16 +267,10 @@ def chart_outcome_map(cells):
         y = len(POLICIES) - 1 - yi
         for sid in SCENARIOS:
             passed = all(p for _, p, _ in cells[pol][sid])
-            color = PASS if passed else VERM
-            if not passed:
-                ax.add_patch(FancyBboxPatch(
-                    (xpos[sid] - 0.47, y - 0.39), 0.94, 0.78,
-                    boxstyle="round,pad=0,rounding_size=0.10", mutation_aspect=0.62,
-                    facecolor=VERM, alpha=0.16, edgecolor="none"))
             ax.add_patch(FancyBboxPatch(
                 (xpos[sid] - 0.36, y - 0.28), 0.72, 0.56,
                 boxstyle="round,pad=0,rounding_size=0.06", mutation_aspect=0.62,
-                facecolor=color, alpha=0.42 if passed else 0.92, edgecolor="none"))
+                facecolor=PASS_TINT if passed else VERM, edgecolor="none"))
         npass = sum(all(p for _, p, _ in cells[pol][s]) for s in SCENARIOS)
         ax.text(x - gap + 0.7, y, f"{npass}/32", fontsize=8.8, family=MONO,
                 color=SUB, va="center", ha="left")
@@ -305,7 +322,7 @@ def chart_outcome_map(cells):
            "32 held-out scenarios × 5 policies: three failure regimes",
            "Each tile pools five sweeps; the grid repeats exactly, so the blocks are architecture, not noise. Class drift falls to\n"
            "deterministic repair. Silent decoys fall only to full semantics. The small-page cluster falls to nobody behind the readiness check.",
-           legend=[("passed all 5 sweeps", "#99D8BD"), ("failed all 5", VERM)])
+           legend=[("passed all 5 sweeps", "#D3E2D8"), ("failed all 5", VERM)])
     footnote(fig)
     fig.savefig(OUT / "outcome_map.png", facecolor=BG)
     plt.close(fig)
@@ -383,11 +400,8 @@ def chart_gate_effect(cells):
         col = POLICY_COLOR[pol]
         full = sum(all(p for _, p, _ in cells[pol][s]) for s in SCENARIOS) / 32
         ex = sum(all(p for _, p, _ in cells[pol][s]) for s in SCENARIOS if s not in GATE5) / 27
-        ax.bar(i - w / 2 - 0.02, full * 100, w, facecolor=col,
-               alpha=0.22, edgecolor=col, lw=1.1, zorder=2)
-        if pol == "D":
-            ax.bar(i + w / 2 + 0.02, ex * 100, w * 1.35, color=col, alpha=0.15, zorder=2)
-        ax.bar(i + w / 2 + 0.02, ex * 100, w, color=col, zorder=3)
+        ax.bar(i - w / 2 - 0.02, full * 100, w, color=blend(col, BG, 0.78), zorder=2)
+        grad_bar(ax, i + w / 2 + 0.02, ex * 100, w, col)
         ax.text(i - w / 2 - 0.02, full * 100 + 1.6, f"{full * 100:.0f}", fontsize=8,
                 family=MONO, color=FAINT, ha="center")
         ax.text(i + w / 2 + 0.02, ex * 100 + 1.6, f"{ex * 100:.0f}", fontsize=8.6,
@@ -398,6 +412,7 @@ def chart_gate_effect(cells):
             "the model was never the ceiling; the readiness gate was",
             POLICY_COLOR["D"], ha="center")
 
+    ax.set_xlim(-0.55, len(POLICIES) - 0.45)
     ax.set_xticks(range(len(POLICIES)))
     ax.set_xticklabels([POLICY_LABEL[p] for p in POLICIES], fontsize=8.6,
                        family=SANS, color=INK)
