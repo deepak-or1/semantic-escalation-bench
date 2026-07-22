@@ -28,7 +28,7 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from matplotlib.patches import Rectangle
+from matplotlib.patches import FancyBboxPatch
 
 REPO = Path(__file__).resolve().parents[1]
 EV = REPO / "evidence" / "phase2a"
@@ -114,16 +114,16 @@ def verify(cells, costs):
     return not bad
 
 
-# ── editorial style system ───────────────────────────────────────────────────
-BG = "#F8F5EC"
-INK = "#211E19"
-SUB = "#55503F"
-MUTED = "#8A8371"
-FAINT = "#B4AC97"
-GRID = "#EAE5D4"
-KICK = "#1E7A4C"
-PASS_C = "#1E7A4C"
-FAIL_C = "#A02B23"
+# ── editorial style system (dark) ────────────────────────────────────────────
+BG = "#0F1116"
+INK = "#ECEEF2"
+SUB = "#A6ACB8"
+MUTED = "#6E7481"
+FAINT = "#484E59"
+GRID = "#232833"
+KICK = "#3DDC97"
+PASS_C = "#3DDC97"
+FAIL_C = "#F4655F"
 
 SANS = ["Helvetica Neue", "Arial", "DejaVu Sans"]
 MONO = ["Menlo", "Courier New", "DejaVu Sans Mono"]
@@ -136,8 +136,14 @@ POLICY_LABEL = {
     "D": "D · full semantic",
 }
 POLICY_COLOR = {
-    "A": "#8C8678", "B": "#3E8CD1", "B2": "#C08019", "C": "#1E7A4C", "D": "#6B34C4",
+    "A": "#9AA3B5", "B": "#5AA9F9", "B2": "#F5B84A", "C": "#3DDC97", "D": "#A78BFA",
 }
+
+
+def glow_point(ax, x, y, color, s=52):
+    for mult, a in ((7, 0.05), (3.4, 0.10), (1.7, 0.20)):
+        ax.scatter([x], [y], s=s * mult, color=color, alpha=a, lw=0, zorder=2)
+    ax.scatter([x], [y], s=s, color=color, lw=0, zorder=3)
 
 
 def header(fig, kicker, title, sub, legend=None, title_y=0.905):
@@ -203,9 +209,11 @@ def chart_outcome_map(cells):
         for sid in SCENARIOS:
             passed = all(p for _, p, _ in cells[pol][sid])
             color = PASS_C if passed else FAIL_C
-            alpha = 0.85 if not passed else 0.42
-            ax.add_patch(Rectangle((xpos[sid] - 0.38, y - 0.30), 0.76, 0.60,
-                                   facecolor=color, alpha=alpha, edgecolor="none"))
+            alpha = 0.92 if not passed else 0.30
+            ax.add_patch(FancyBboxPatch(
+                (xpos[sid] - 0.36, y - 0.28), 0.72, 0.56,
+                boxstyle="round,pad=0,rounding_size=0.10", mutation_aspect=0.62,
+                facecolor=color, alpha=alpha, edgecolor="none"))
         npass = sum(all(p for _, p, _ in cells[pol][s]) for s in SCENARIOS)
         ax.text(x - gap + 0.7, y, f"{npass}/32", fontsize=8.8, family=MONO,
                 color=SUB, va="center", ha="left")
@@ -276,7 +284,7 @@ def chart_pass_vs_cost(cells, costs):
         npass = sum(all(p for _, p, _ in cells[pol][s]) for s in SCENARIOS)
         cost = sum(costs[pol]) / len(costs[pol]) if costs[pol] else 0.0
         pts[pol] = (cost, npass)
-        ax.scatter([cost], [npass], s=52, color=POLICY_COLOR[pol], zorder=3)
+        glow_point(ax, cost, npass, POLICY_COLOR[pol])
 
     offsets = {"A": (0.022, 0.0), "B": (0.022, 0.0), "B2": (0.022, 0.0),
                "C": (0.022, 0.25), "D": (-0.026, 0.25)}
@@ -334,8 +342,9 @@ def chart_gate_effect(cells):
     for i, pol in enumerate(POLICIES):
         full = sum(all(p for _, p, _ in cells[pol][s]) for s in SCENARIOS) / 32
         ex = sum(all(p for _, p, _ in cells[pol][s]) for s in SCENARIOS if s not in GATE5) / 27
-        ax.bar(i - w / 2 - 0.02, full * 100, w, color=POLICY_COLOR[pol], alpha=0.32)
-        ax.bar(i + w / 2 + 0.02, ex * 100, w, color=POLICY_COLOR[pol], alpha=0.95)
+        ax.bar(i - w / 2 - 0.02, full * 100, w, facecolor=POLICY_COLOR[pol],
+               alpha=0.16, edgecolor=POLICY_COLOR[pol], lw=1.0)
+        ax.bar(i + w / 2 + 0.02, ex * 100, w, color=POLICY_COLOR[pol], alpha=0.98)
         ax.text(i - w / 2 - 0.02, full * 100 + 1.6, f"{full * 100:.0f}", fontsize=8,
                 family=MONO, color=FAINT, ha="center")
         ax.text(i + w / 2 + 0.02, ex * 100 + 1.6, f"{ex * 100:.0f}", fontsize=8.6,
