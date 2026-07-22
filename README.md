@@ -7,8 +7,9 @@ This repo is a browser-native sports-analytics agent and a controlled
 harness for that one decision. One pipeline (log into a stateful,
 deliberately flaky stats site, extract standings and betting odds into
 zod-validated schemas, score them against exact ground truth) runs under
-five frozen addressing policies, and the only thing that changes is
-where semantic inference is allowed to enter:
+five frozen policies. Model, task, site, ground truth, and downstream
+validation are held fixed; the policies deliberately vary addressing,
+repair, and where semantic inference enters:
 
 | Policy | Element addressing | Repair on failure | Model inference |
 | --- | --- | --- | --- |
@@ -78,9 +79,11 @@ automation:
    nothing to reveal, C's one repair call is aimed at a control that
    doesn't exist, and D burns 10 calls per trial and still fails,
    because the failure happens before the model is allowed to see the
-   page. Only the $0 baseline, which never consults the check, passes.
-   Set those five columns aside and D is 27/27: **the model was never
-   the ceiling; the harness assumption was.**
+   page. Only the $0 baseline, which never consults the check, passes
+   the four pure small-page cells (the fifth gate cell is a compound
+   whose class drift also strips A's login hooks, and the whole ladder
+   goes 0/5). Set those five columns aside and D is 27/27: **the model
+   was never the ceiling; the harness assumption was.**
 4. **Held-out prediction worked.** The suite author's frozen per-cell
    predictions hit 141 of 160; all 19 misses are the same discovered
    gate cluster (A was predicted exactly, down to an instance-level

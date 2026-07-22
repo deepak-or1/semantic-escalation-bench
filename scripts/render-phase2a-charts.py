@@ -224,13 +224,13 @@ def chart_outcome_map(cells):
 
     # callouts
     f2 = group_bounds[1]
-    ax.annotate("C fails every decoy cell with 0 repair calls —\nwrong data looks like success, the trigger never fires",
+    ax.annotate("C fails all six pure F2 decoy cells with 0 repair calls —\nwrong data looks like success, the trigger never fires",
                 xy=((f2[1] + f2[2]) / 2, -1.15), xytext=((f2[1] + f2[2]) / 2, -2.15),
                 fontsize=8.8, family=SANS, color=FAIL_C, ha="center", va="top",
                 arrowprops=dict(arrowstyle="-", color=FAIL_C, lw=0.8))
     f3 = group_bounds[2]
     gx = (xpos["f3-page-size-3-a"] + xpos["f3-page-size-2-b"]) / 2
-    ax.annotate("pages 3 and 2: the shared ≥5-row readiness check\nfails every policy that consults it — only A passes",
+    ax.annotate("pages 3 and 2: the shared ≥5-row readiness check\nfails every policy that consults it — only A passes these four cells",
                 xy=(gx, -1.15), xytext=(gx + 4.5, -2.15),
                 fontsize=8.8, family=SANS, color=INK, ha="center", va="top",
                 arrowprops=dict(arrowstyle="-", color=INK, lw=0.8))
