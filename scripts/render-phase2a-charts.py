@@ -127,17 +127,17 @@ MUTED = "#6E7178"   # secondary labels, ticks
 FAINT = "#A7AAAE"   # footnote, ghost figures
 GRID  = "#E8E4DB"   # hairline grid on paper
 RULE  = "#1F232A"   # header hairline rule
-VERM  = "#C8401F"   # signature vermilion — tab · failures · highlight
+VERM  = "#E04A26"   # signature vermilion — tab · failures · highlight
 
-# Per-policy palette — the "pop of colour without being obnoxious" set.
+# Per-policy palette — vivid, modern, still harmonious on warm paper.
 POLICY_COLOR = {
-    "A":  "#8C8678",   # warm gray
-    "B":  "#3E8CD1",   # blue
-    "B2": "#C08019",   # ochre
-    "C":  "#1E7A4C",   # green
-    "D":  "#6B34C4",   # purple
+    "A":  "#7A7466",   # deep warm gray
+    "B":  "#1F7AE0",   # azure
+    "B2": "#F59E0B",   # amber
+    "C":  "#10A76B",   # emerald
+    "D":  "#7C3AED",   # electric violet
 }
-PASS = "#1E7A4C"       # uniform pass-tile green (soft via alpha)
+PASS = "#10A76B"       # uniform pass-tile green (soft via alpha)
 
 SERIF = ["Georgia", "Charter", "Palatino", "DejaVu Serif"]              # display headline
 SANS  = ["Seravek", "Avenir Next", "Helvetica Neue", "DejaVu Sans"]     # humanist body
@@ -155,8 +155,8 @@ POLICY_LABEL = {
 def dot(ax, x, y, color, s=66, filled=True):
     """A crisp marker over a whisper of its own colour. Open ring = the
     policy spends nothing on inference; filled = it pays per run."""
-    ax.scatter([x], [y], s=s * 5.2, color=color, alpha=0.05, lw=0, zorder=2)
-    ax.scatter([x], [y], s=s * 2.6, color=color, alpha=0.12, lw=0, zorder=2)
+    ax.scatter([x], [y], s=s * 7.0, color=color, alpha=0.10, lw=0, zorder=2)
+    ax.scatter([x], [y], s=s * 3.5, color=color, alpha=0.18, lw=0, zorder=2)
     if filled:
         ax.scatter([x], [y], s=s, color=color, lw=0.7, edgecolors=BG, zorder=3)
     else:
@@ -245,10 +245,15 @@ def chart_outcome_map(cells):
         for sid in SCENARIOS:
             passed = all(p for _, p, _ in cells[pol][sid])
             color = PASS if passed else VERM
+            if not passed:
+                ax.add_patch(FancyBboxPatch(
+                    (xpos[sid] - 0.47, y - 0.39), 0.94, 0.78,
+                    boxstyle="round,pad=0,rounding_size=0.10", mutation_aspect=0.62,
+                    facecolor=VERM, alpha=0.16, edgecolor="none"))
             ax.add_patch(FancyBboxPatch(
                 (xpos[sid] - 0.36, y - 0.28), 0.72, 0.56,
                 boxstyle="round,pad=0,rounding_size=0.06", mutation_aspect=0.62,
-                facecolor=color, alpha=0.40 if passed else 0.88, edgecolor="none"))
+                facecolor=color, alpha=0.42 if passed else 0.92, edgecolor="none"))
         npass = sum(all(p for _, p, _ in cells[pol][s]) for s in SCENARIOS)
         ax.text(x - gap + 0.7, y, f"{npass}/32", fontsize=8.8, family=MONO,
                 color=SUB, va="center", ha="left")
@@ -300,7 +305,7 @@ def chart_outcome_map(cells):
            "32 held-out scenarios × 5 policies: three failure regimes",
            "Each tile pools five sweeps; the grid repeats exactly, so the blocks are architecture, not noise. Class drift falls to\n"
            "deterministic repair. Silent decoys fall only to full semantics. The small-page cluster falls to nobody behind the readiness check.",
-           legend=[("passed all 5 sweeps", "#9FC5B0"), ("failed all 5", VERM)])
+           legend=[("passed all 5 sweeps", "#99D8BD"), ("failed all 5", VERM)])
     footnote(fig)
     fig.savefig(OUT / "outcome_map.png", facecolor=BG)
     plt.close(fig)
@@ -380,6 +385,8 @@ def chart_gate_effect(cells):
         ex = sum(all(p for _, p, _ in cells[pol][s]) for s in SCENARIOS if s not in GATE5) / 27
         ax.bar(i - w / 2 - 0.02, full * 100, w, facecolor=col,
                alpha=0.22, edgecolor=col, lw=1.1, zorder=2)
+        if pol == "D":
+            ax.bar(i + w / 2 + 0.02, ex * 100, w * 1.35, color=col, alpha=0.15, zorder=2)
         ax.bar(i + w / 2 + 0.02, ex * 100, w, color=col, zorder=3)
         ax.text(i - w / 2 - 0.02, full * 100 + 1.6, f"{full * 100:.0f}", fontsize=8,
                 family=MONO, color=FAINT, ha="center")
