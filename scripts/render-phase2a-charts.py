@@ -114,16 +114,16 @@ def verify(cells, costs):
     return not bad
 
 
-# ── editorial style system (dark) ────────────────────────────────────────────
-BG = "#0F1116"
-INK = "#ECEEF2"
-SUB = "#A6ACB8"
-MUTED = "#6E7481"
-FAINT = "#484E59"
-GRID = "#232833"
-KICK = "#3DDC97"
-PASS_C = "#3DDC97"
-FAIL_C = "#F4655F"
+# ── editorial style system ───────────────────────────────────────────────────
+BG = "#F8F5EC"
+INK = "#211E19"
+SUB = "#55503F"
+MUTED = "#8A8371"
+FAINT = "#B4AC97"
+GRID = "#EAE5D4"
+KICK = "#1E7A4C"
+PASS_C = "#1E7A4C"
+FAIL_C = "#A02B23"
 
 SANS = ["Helvetica Neue", "Arial", "DejaVu Sans"]
 MONO = ["Menlo", "Courier New", "DejaVu Sans Mono"]
@@ -136,13 +136,12 @@ POLICY_LABEL = {
     "D": "D · full semantic",
 }
 POLICY_COLOR = {
-    "A": "#9AA3B5", "B": "#5AA9F9", "B2": "#F5B84A", "C": "#3DDC97", "D": "#A78BFA",
+    "A": "#8C8678", "B": "#3E8CD1", "B2": "#C08019", "C": "#1E7A4C", "D": "#6B34C4",
 }
 
 
 def glow_point(ax, x, y, color, s=52):
-    for mult, a in ((7, 0.05), (3.4, 0.10), (1.7, 0.20)):
-        ax.scatter([x], [y], s=s * mult, color=color, alpha=a, lw=0, zorder=2)
+    ax.scatter([x], [y], s=s * 2.6, color=color, alpha=0.14, lw=0, zorder=2)
     ax.scatter([x], [y], s=s, color=color, lw=0, zorder=3)
 
 
@@ -209,7 +208,7 @@ def chart_outcome_map(cells):
         for sid in SCENARIOS:
             passed = all(p for _, p, _ in cells[pol][sid])
             color = PASS_C if passed else FAIL_C
-            alpha = 0.92 if not passed else 0.30
+            alpha = 0.85 if not passed else 0.42
             ax.add_patch(FancyBboxPatch(
                 (xpos[sid] - 0.36, y - 0.28), 0.72, 0.56,
                 boxstyle="round,pad=0,rounding_size=0.10", mutation_aspect=0.62,
