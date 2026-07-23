@@ -18,7 +18,7 @@ Have three terminal tabs ready and a browser open to `http://localhost:4618`. If
 
 **Do:** Open `http://localhost:4618`. If you've run a benchmark before, the scenario matrix is already there; if not, it's the empty state.
 
-**Say:** "This is a sports-analytics agent that logs into a stats site, pulls standings and odds, and finds value bets. That part is easy. The hard part — and what this dashboard is about — is knowing when to trust what it scraped. So the agent benchmarks three ways of addressing a page against 24 ways a page can break."
+**Say:** "This is a benchmark of when web automation should pay for a model call. The agent logs into a synthetic stats site, pulls standings and odds, and the easy part is done. The hard part — and what this dashboard is about — is knowing when to trust what it scraped. So the harness benchmarks three ways of addressing a page against 24 ways a page can break."
 
 **Notice:** the three-engine framing — a Stagehand agent, a plain selector scraper, and a self-healing hybrid — that runs through the whole demo.
 

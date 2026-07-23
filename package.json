@@ -1,9 +1,9 @@
 {
-  "name": "stateful-sports-data-agent",
+  "name": "semantic-escalation-bench",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Browser-native sports analytics and reliability evaluation built on Stagehand + Browserbase. Read-only analytics demo — no automated wagering.",
+  "description": "A controlled benchmark of semantic escalation in web automation: five frozen policies from hardcoded selectors to full LLM control, exact-output grading, pre-registered campaigns. Built on Stagehand + Browserbase; read-only.",
   "engines": {
     "node": ">=20"
   },

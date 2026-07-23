@@ -1,51 +1,69 @@
-# stateful-sports-data-agent
+# semantic-escalation-bench
 
-When should a web agent pay for a model call: never, only when something
-breaks, or on every step?
+Web automation has a new line item: the model call. This benchmark
+measures when it is actually worth paying for.
 
-This repo is a browser-native sports-analytics agent and a controlled
-harness for that one decision. One pipeline (log into a stateful,
-deliberately flaky stats site, extract standings and betting odds into
-zod-validated schemas, score them against exact ground truth) runs under
-five frozen policies. Model, task, site, ground truth, and downstream
-validation are held fixed; the policies deliberately vary addressing,
-repair, and where semantic inference enters:
+Selector scripts are fast and free — until the site changes underneath
+them, and they either crash or, worse, quietly extract the wrong data.
+Handing the browser to an LLM survives change, but now every run costs
+money. So most teams settle in the middle: run the cheap deterministic
+path, and wake the model up when something breaks. That compromise
+rests on an assumption almost nobody tests — **that your automation
+can tell when something broke.**
 
-| Policy | Element addressing | Repair on failure | Model inference |
-| --- | --- | --- | --- |
-| **A** baseline | hardcoded ids + fixed column indices | retry / re-login | zero |
-| **B** structural | cached actions + header-name mapping | none | zero |
-| **B2** deterministic repair | same as B | deterministic re-location ladder | zero |
-| **C** LLM repair | same as B | one key-gated LLM repair per broken step | on failure only |
-| **D** full semantic | model-driven on every step | inherent | every step |
+This repo tests it. One pipeline (log in, navigate, extract structured
+data, grade the output against exact ground truth) runs under five
+frozen policies — frozen as in locked down, git-tagged, before any paid
+trial ran. The only meaningful difference between them is when the
+model is allowed to act:
 
-Built on [Stagehand](https://github.com/browserbase/stagehand) +
-[Browserbase](https://browserbase.com), read-only, against a local
-synthetic site, so the benchmark is reproducible and nothing real is
-scraped (and nothing here places bets — see
-[Safety & compliance](#safety--compliance)).
+| Policy | How it finds things on the page | When the model acts |
+| --- | --- | --- |
+| **A** baseline | hardcoded ids and column positions | never |
+| **B** structural | cached actions + header-name mapping | never |
+| **B2** deterministic repair | B, plus a scripted repair ladder on failure | never |
+| **C** LLM repair | B, plus one model-powered repair per broken step | only on failure |
+| **D** full semantic | the model reads and drives every semantic step | every step |
 
-Two pre-registered campaigns measure the ladder:
+("Cached actions" are saved selector steps replayed with zero model
+calls; "header-name mapping" finds columns by their header text instead
+of their position.)
 
-- **Phase 1** (protocol frozen before any keyed trial, tag
-  `protocol-freeze-v4`; 384 keyed trials): selective repair (C)
-  **matched full semantics (D) 120/120 judged-correct at 8.61× lower
-  model-inference cost** ($0.0036 vs $0.0312 per successful workflow).
-  Every keyed policy passed every scenario, a disclosed ceiling that
-  motivated the follow-up. [docs/PHASE1_RESULTS.md](docs/PHASE1_RESULTS.md)
-- **Phase 2A** (two-stage freeze): the five policies were frozen and
-  tagged *first*; an external frontier model (GPT-5.6, "sol") then
-  authored a 32-scenario held-out suite and registered per-cell
-  predictions before any trial ran. 25 runs / 800 trials, pooled
-  verification PASS, every cell exactly repeatable across five sweeps.
+Model, task, site, ground truth, and validation are all held fixed, so
+when two policies score differently, the policy is the reason. Built on
+[Stagehand](https://github.com/browserbase/stagehand) +
+[Browserbase](https://browserbase.com) against a local synthetic site,
+so the whole benchmark is reproducible and nothing real gets scraped
+(see [Safety & compliance](#safety--compliance)).
+
+Two pre-registered campaigns:
+
+- **Phase 1** — protocol frozen before any paid trial (tag
+  `protocol-freeze-v4`), 384 trials. Repair-on-failure (C) **matched
+  full semantics (D) 120/120 judged-correct on that frozen suite, at
+  8.61× lower inference cost** ($0.0036 vs $0.0312 per successful
+  workflow). But every paid policy passed everything — the suite had no
+  case that could separate C from D, which is a finding about the
+  suite, not the policies.
+  [docs/PHASE1_RESULTS.md](docs/PHASE1_RESULTS.md)
+- **Phase 2A** — the fix for that ceiling, run adversarially: the five
+  policies were frozen and tagged *first*, and only then did an
+  external frontier model (GPT-5.6, "sol") write a 32-scenario test
+  suite — held out, so nothing could be tuned to it — and register a
+  pass/fail prediction for every cell (a cell = one scenario for one
+  policy) before a single trial ran. The grid: 32 scenarios × 5
+  policies × 5 repeat sweeps = 800 trials, all re-verified together by
+  a frozen checker (schema, provenance, completeness, grading: PASS),
+  with every cell landing identically in all five sweeps.
   [docs/PHASE2A_RESULTS.md](docs/PHASE2A_RESULTS.md)
 
 ![32 held-out scenarios × 5 policies: three failure regimes, zero variance](docs/img/outcome_map.png)
 
-## Phase 2A at a glance
+## What it found
 
-Cells passed (a cell = one scenario, pooled over five sweeps; every
-cell is 5/5 or 0/5):
+Scores are scenario cells passed, of 32 (a cell = one scenario for one
+policy, pooled over five sweeps — and every cell came out 5/5 or 0/5,
+so these are exact counts, not averages):
 
 | Policy | Cells passed | Per-sweep cost | Per successful workflow |
 | --- | ---: | ---: | ---: |
@@ -55,8 +73,7 @@ cell is 5/5 or 0/5):
 | C LLM repair on failure | 20/32 | $0.119 | $0.0060 |
 | D full semantic | 27/32 | $1.056 | $0.0391 |
 
-Four things I'd want to know before wiring an LLM into browser
-automation:
+The four results that matter if you build browser automation:
 
 1. **Repair-on-failure is the economical policy when breakage is
    visible.** Phase 1: C matched D 120/120 at 8.61× lower cost. Phase
@@ -73,21 +90,22 @@ automation:
    look like failures. (In the one compound cell where C's repair did
    fire, it healed the broken selector and the trial still failed:
    repair fixes locators, not meaning.)
-3. **The gate is the policy.** One shared readiness check (a stats
-   table is "ready" only at ≥5 visible rows) defeats every policy above
-   the baseline on valid 3- and 2-row pages: deterministic repair finds
-   nothing to reveal, C's one repair call is aimed at a control that
-   doesn't exist, and D burns 10 calls per trial and still fails,
-   because the failure happens before the model is allowed to see the
-   page. Only the $0 baseline, which never consults the check, passes
-   the four pure small-page cells (the fifth gate cell is a compound
-   whose class drift also strips A's login hooks, and the whole ladder
-   goes 0/5). Set those five columns aside and D is 27/27: **the model
-   was never the ceiling; the harness assumption was.**
+3. **The gate is the policy — the model was never the ceiling; a
+   harness assumption was.** One shared readiness check treats a stats
+   table as "ready" only once it shows at least 5 rows. Serve a
+   perfectly valid 3- or 2-row page and every policy above the baseline
+   fails identically: deterministic repair finds nothing to reveal, C's
+   one repair call is aimed at a control that does not exist, and D
+   burns 10 calls per trial and still fails — the failure happens
+   before the model is allowed to see the page. Only the $0 baseline
+   passes those four small-page cells, because it never consults the
+   check. (A fifth, compound gate cell also strips A's login hooks;
+   there the whole ladder goes 0/5.) Of the 27 cells outside this
+   cluster, D passes all 27.
 4. **Held-out prediction worked.** The suite author's frozen per-cell
    predictions hit 141 of 160; all 19 misses are the same discovered
-   gate cluster (A was predicted exactly, down to an instance-level
-   split). And structure without repair *underperformed* the hardcoded
+   gate cluster (A was predicted exactly). And structure without
+   repair *underperformed* the hardcoded
    baseline (11 vs 15 cells): structural addressing buys nothing under
    drift until a repair path exists.
 
@@ -99,7 +117,7 @@ It is deliberately narrow: one model, one synthetic local site, one
 task family, one frozen 32-scenario suite. It measures where semantic
 inference belongs in an automation stack, not general agent ability.
 Full per-axis metrics, the readiness-gate anatomy, cost accounting, and
-the transport-contamination incident that forced a full keyed restart:
+the network incident that forced a full restart of the paid runs:
 [docs/PHASE2A_RESULTS.md](docs/PHASE2A_RESULTS.md) · design contract:
 [docs/PROTOCOL_2A.md](docs/PROTOCOL_2A.md) · checksummed evidence:
 [evidence/phase2a/](evidence/phase2a/README.md).
@@ -133,9 +151,22 @@ Those are claims, so the project makes them measurable. The benchmark runs the *
 
 Because everything downstream of addressing — the validation, the scoring, the judge — is shared, the comparison isolates that one variable and shows precisely where each strategy pays off (class drift, layout change, copy drift, column shuffle) and where nothing differentiates them (a cookie wall or a modal is a mechanical blocker every engine clears the same way).
 
-## The flaky lab
+## The test domain: a fake sports league, on purpose
 
-`apps/lab` is a small Express site (`apps/lab/src/app.ts`) that serves a login, a consent wall, a standings page, and an odds board — all rendered from a **seeded, internally-consistent fake league** (`packages/shared/src/seed/generate.ts`). A private control API (`/__lab/*`, never touched by the agent) lets the benchmark reconfigure it per trial and read exact ground truth, which is what makes **extraction accuracy** measurable rather than guessed.
+The domain is arbitrary; what it enables is not. A league table is
+dense, typed, relational data with built-in arithmetic (games played
+must equal wins + draws + losses), which gives the deterministic
+validator real teeth. A **seeded fake league** means exact per-cell
+ground truth, so "correct" is measured, not guessed. And sports-data
+breakage is unusually well documented in the wild: every chaos flag
+below maps to a cited real-world incident in
+[docs/EVIDENCE.md](docs/EVIDENCE.md) — the flagship being a real
+baseballr fix for a mid-table column insertion that silently mislabeled
+stats, which is this suite's column-shuffle scenario observed in
+production. The benchmark's findings don't depend on the domain; its
+measurability does.
+
+`apps/lab` is a small Express site (`apps/lab/src/app.ts`) that serves a login, a consent wall, a standings page, and an odds board — all rendered from that **seeded, internally-consistent fake league** (`packages/shared/src/seed/generate.ts`). A private control API (`/__lab/*`, never touched by the agent) lets the benchmark reconfigure it per trial and read exact ground truth, which is what makes **extraction accuracy** measurable rather than guessed.
 
 It ships 14 chaos flags (`packages/shared/src/chaos.ts`), each simulating one real way stat/odds pages break automation:
 
@@ -168,7 +199,7 @@ Why a local lab instead of a real site? Three reasons: **stable demos** (the sam
 
 ```bash
 git clone <this-repo>
-cd stateful-sports-data-agent
+cd semantic-escalation-bench
 pnpm install
 cp .env.example .env          # optional; sensible defaults, no keys required
 ```
@@ -324,7 +355,9 @@ The methodology for the keyed runs — exact model, prompts, retry and cache pol
 
 ## The model
 
-`packages/model` turns a validated dataset into a value watchlist (`buildWatchlist`, `packages/model/src/watchlist.ts`). It estimates each team's attack/defence strength against the observed league average, forecasts every upcoming fixture as an **independent-Poisson score matrix** (home/away goals as independent Poisson draws, home-advantage and away multipliers, a light recent-form adjustment), de-vigs the bookmaker's implied probabilities per market group, and surfaces selections where the model's probability beats the no-vig line by more than a 2% edge, ranked by expected value per unit.
+The benchmark never touches this — it is the original agent demo the
+harness grew out of, kept because it gives the pipeline a downstream
+consumer that punishes wrong data. `packages/model` turns a validated dataset into a value watchlist (`buildWatchlist`, `packages/model/src/watchlist.ts`). It estimates each team's attack/defence strength against the observed league average, forecasts every upcoming fixture as an **independent-Poisson score matrix** (home/away goals as independent Poisson draws, home-advantage and away multipliers, a light recent-form adjustment), de-vigs the bookmaker's implied probabilities per market group, and surfaces selections where the model's probability beats the no-vig line by more than a 2% edge, ranked by expected value per unit.
 
 Every watchlist carries its own limitations inline: goals are modelled as independent Poisson draws (no Dixon-Coles low-score correction), scoring rates come from a single partial season and carry sampling noise, home advantage is a constant multiplier, form is a crude 3/1/0-points heuristic, and bookmaker margin means small modelled edges are usually noise. **This is a read-only analytics demo — not betting advice.** See [docs/LIMITATIONS.md](docs/LIMITATIONS.md) for the full accounting.
 
@@ -349,12 +382,12 @@ per-failure detail views (screenshot + `events.jsonl` timeline).
 
 ## Safety & compliance
 
-This is **read-only sports analytics and reliability evaluation**. It never places bets, automates wagering, bypasses paywalls, or attempts to defeat anti-bot protections. All data is synthetic and generated locally; the value model is a modelling demo and explicitly **not betting advice**. The shipped configuration points only at the local lab. If you ever repoint an adapter at a real source, that is on you to do lawfully — respect the site's terms of service, robots policy, and rate limits.
+This is a **read-only reliability benchmark** running against a synthetic local sports-league site. It never places bets, automates wagering, bypasses paywalls, or attempts to defeat anti-bot protections. All data is synthetic and generated locally; the value model is a modelling demo and explicitly **not betting advice**. The shipped configuration points only at the local lab. If you ever repoint an adapter at a real source, that is on you to do lawfully — respect the site's terms of service, robots policy, and rate limits.
 
 ## Repo structure
 
 ```
-stateful-sports-data-agent/
+semantic-escalation-bench/
 ├── apps/
 │   ├── lab/            Express flaky-site: seeded league, chaos flags, /__lab control API
 │   └── dashboard/      Reliability dashboard (server on :4618) + report.html generator

@@ -1,4 +1,6 @@
-# Writeup: building a stateful sports data agent, and measuring where it breaks
+# Writeup: building a semantic-escalation benchmark, and measuring where it breaks
+
+*(The project began life as "stateful-sports-data-agent"; the sports lab survives as the test domain.)*
 
 ## The problem
 
