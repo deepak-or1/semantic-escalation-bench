@@ -5,17 +5,18 @@ measures when it is actually worth paying for.
 
 Selector scripts are fast and free — until the site changes underneath
 them, and they either crash or, worse, quietly extract the wrong data.
-Handing the browser to an LLM survives change, but now every run costs
-money. So most teams settle in the middle: run the cheap deterministic
-path, and wake the model up when something breaks. That compromise
-rests on an assumption almost nobody tests — **that your automation
-can tell when something broke.**
+Handing the browser to an LLM can survive changes that break selectors,
+but now every run costs money. A common compromise is to run the cheap
+deterministic path and wake the model when something breaks. That
+compromise rests on a critical assumption: **that the automation can
+reliably tell when something broke.**
 
 This repo tests it. One pipeline (log in, navigate, extract structured
 data, grade the output against exact ground truth) runs under five
 frozen policies — frozen as in locked down, git-tagged, before any paid
-trial ran. The only meaningful difference between them is when the
-model is allowed to act:
+trial ran. The experimental treatment is the addressing-and-repair
+policy: what the deterministic layer does and when, if ever, the model
+is allowed to act:
 
 | Policy | How it finds things on the page | When the model acts |
 | --- | --- | --- |
