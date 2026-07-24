@@ -27,7 +27,7 @@ trials, exact ground truth, zero flaky results. Three findings:
   agent burned 10 model calls per trial repairing a page that was never
   broken.
 
-That last one was in nobody's plan. The test suite was written by a
+That last result was not predicted. The test suite was written by a
 different frontier model that registered a pass/fail prediction for
 every cell in advance. It went 141 for 160, and all 19 misses were that
 readiness check.
@@ -36,7 +36,8 @@ readiness check.
 
 One pipeline: log in, navigate, extract a stats table into strict JSON,
 grade the output against exact ground truth. Five frozen policies run
-it, from dumbest to smartest. They differ in exactly one thing, the
+it, from hardcoded selectors to full semantic control. They differ in
+exactly one thing, the
 addressing-and-repair policy: how the automation finds things on the
 page, and when, if ever, the model is allowed to act.
 
@@ -300,8 +301,9 @@ failures into web-agent benchmark runs. And a
 asks whether agent modules earn back their tokens.
 
 What this repo adds is the control: model, task, site, ground truth,
-and validator held fixed while the *placement and triggering* of
-semantic inference is the experimental variable, under a prospectively
+and validator held fixed while the *addressing-and-repair policy*,
+including where semantic inference is placed and triggered, is the
+experimental variable, under a prospectively
 frozen policy ladder and an independently authored held-out suite with
 registered per-cell predictions. No individual ingredient is claimed
 novel; the experiment design and its diagnosis are the contribution.
