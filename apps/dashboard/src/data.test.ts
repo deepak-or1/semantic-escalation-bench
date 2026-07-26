@@ -166,6 +166,7 @@ describe("loadDashboardData", () => {
         trials: 2,
         passes: 1,
         semanticInterventions: 1,
+        deterministicRepairs: 0,
         llmCalls: 3,
         retries: 2
       }

@@ -13,19 +13,24 @@ export interface EngineSummaryRow {
   trials: number;
   passes: number;
   semanticInterventions: number;
+  deterministicRepairs: number;
   llmCalls: number;
   retries: number;
 }
 
 /**
- * Whether the engine had to intervene semantically to get through this trial —
- * an LLM step-heal, a deterministic fallback, or a deterministic re-location.
- * Each of those is the engine leaving its scripted path to work out what the
- * page now looks like, so all three count the same way here.
+ * `healedSteps` is the only trial field that records a semantic (LLM observe)
+ * repair — see its TrialResultSchema doc comment. `deterministicFallbacks`
+ * (stagehand's hand-written guards) and `deterministicRepairSteps` (B2's
+ * scripted ladder) are scripted recoveries that involve no model call, so they
+ * are counted separately as deterministic repairs.
  */
 function hasSemanticIntervention(trial: TrialResult): boolean {
+  return (trial.healedSteps?.length ?? 0) > 0;
+}
+
+function hasDeterministicRepair(trial: TrialResult): boolean {
   return (
-    (trial.healedSteps?.length ?? 0) > 0 ||
     (trial.deterministicFallbacks?.length ?? 0) > 0 ||
     (trial.deterministicRepairSteps?.length ?? 0) > 0
   );
@@ -46,6 +51,7 @@ export function summarizeEngines(trials: TrialResult[]): EngineSummaryRow[] {
         trials: 0,
         passes: 0,
         semanticInterventions: 0,
+        deterministicRepairs: 0,
         llmCalls: 0,
         retries: 0
       };
@@ -54,6 +60,7 @@ export function summarizeEngines(trials: TrialResult[]): EngineSummaryRow[] {
     row.trials += 1;
     if (trial.outcome === "pass") row.passes += 1;
     if (hasSemanticIntervention(trial)) row.semanticInterventions += 1;
+    if (hasDeterministicRepair(trial)) row.deterministicRepairs += 1;
     // `tokens` is absent on engines that never call a model, and null when a
     // trial recorded no usage at all; both mean zero calls.
     row.llmCalls += trial.tokens?.llmCalls ?? 0;

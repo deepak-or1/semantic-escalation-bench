@@ -78,19 +78,19 @@ describe("summarizeEngines", () => {
     expect(rows[1]?.retries).toBe(3);
   });
 
-  it("counts a deterministic fallback, and a deterministic repair, on its own", () => {
+  it("counts scripted recoveries as deterministic repairs, never as semantic", () => {
     const fallbackOnly = summarizeEngines([
       trial("stagehand", { deterministicFallbacks: ["dismiss-banner"] })
     ]);
-    expect(fallbackOnly[0]?.semanticInterventions).toBe(1);
+    expect(fallbackOnly[0]).toMatchObject({ semanticInterventions: 0, deterministicRepairs: 1 });
 
     const repairOnly = summarizeEngines([
       trial("hybrid", { deterministicRepairSteps: ["reveal-table"] })
     ]);
-    expect(repairOnly[0]?.semanticInterventions).toBe(1);
+    expect(repairOnly[0]).toMatchObject({ semanticInterventions: 0, deterministicRepairs: 1 });
   });
 
-  it("counts each trial at most once, and skips trials with no repair evidence", () => {
+  it("counts each trial at most once per column, and skips trials with no repair evidence", () => {
     const rows = summarizeEngines([
       trial("hybrid", { healedSteps: ["login"] }),
       trial("hybrid", { healedSteps: ["login"], deterministicRepairSteps: ["reveal-table"] }),
@@ -98,7 +98,12 @@ describe("summarizeEngines", () => {
       trial("hybrid"),
       trial("baseline")
     ]);
-    expect(rows[0]).toMatchObject({ engine: "hybrid", trials: 4, semanticInterventions: 2 });
-    expect(rows[1]?.semanticInterventions).toBe(0);
+    expect(rows[0]).toMatchObject({
+      engine: "hybrid",
+      trials: 4,
+      semanticInterventions: 2,
+      deterministicRepairs: 1
+    });
+    expect(rows[1]).toMatchObject({ semanticInterventions: 0, deterministicRepairs: 0 });
   });
 });

@@ -679,10 +679,11 @@ function engineSummarySection(rows: EngineSummaryRow[]): string {
     .map(
       (r) =>
         `<tr>` +
-        `<td>${esc(r.engine)}</td>` +
+        `<td>${esc(SERIES[r.engine as EngineName]?.label ?? r.engine)}</td>` +
         `<td class="num">${esc(r.trials)}</td>` +
         `<td class="num">${esc(r.passes)}</td>` +
         `<td class="num">${esc(r.semanticInterventions)}</td>` +
+        `<td class="num">${esc(r.deterministicRepairs)}</td>` +
         `<td class="num">${esc(r.llmCalls)}</td>` +
         `<td class="num">${esc(r.retries)}</td>` +
         `</tr>`
@@ -694,8 +695,8 @@ function engineSummarySection(rows: EngineSummaryRow[]): string {
     body:
       `<div class="table-wrap"><table class="engine-summary"><thead><tr>` +
       `<th>Engine</th><th class="num">Trials</th><th class="num">Passes</th>` +
-      `<th class="num">Semantic interventions</th><th class="num">LLM calls</th>` +
-      `<th class="num">Retries</th>` +
+      `<th class="num">Semantic interventions</th><th class="num">Deterministic repairs</th>` +
+      `<th class="num">LLM calls</th><th class="num">Retries</th>` +
       `</tr></thead><tbody>${body}</tbody></table></div>`
   });
 }
