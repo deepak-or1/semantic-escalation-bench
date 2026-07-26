@@ -1,12 +1,12 @@
 # Phase 2B — the readiness-gate ablation
 
-**Status: DRAFT — externally audited (gate 2: PASS 2026-07-25,
-conditional on gate 1's clean smoke); not frozen; no trial may
-run.** This document freezes under its own tag lineage
-(`phase2b-ablation-freeze-v1`) at gate 5, with the expectations table
-below finalized *before* any trial executes. Evidence records use the
-version-2 format ([RECORD_FORMAT.md](RECORD_FORMAT.md)); Phase 2B does
-not begin until that format is implemented and verified.
+**Status: FROZEN at `phase2b-ablation-freeze-v1` (gate 5,
+2026-07-26). Externally audited: gate 2 PASS 2026-07-25 (conditional
+on gate 1's clean smoke, since delivered), gate 4 PASS and the final
+freeze review PASS 2026-07-26. No allowlisted trial ran before this
+freeze.** The expectations table below was finalized before any trial
+executes. Evidence records use the version-2 format
+([RECORD_FORMAT.md](RECORD_FORMAT.md)).
 
 ## What this is, and is not
 
@@ -94,13 +94,23 @@ gate 3.)
 `x-class-l3-page-size-2` — × all five policies × both arms × 5 sweeps
 = 250 trials (150 keyless, 100 keyed).
 
-**Cost projection (recomputed and frozen at gate 5):** keyed trials
-only (C, D). At Phase-2A per-trial averages this is on the order of
-$2 total; the Phase-2A $39.90 stop-threshold convention carries over.
+**Cost projection (recomputed and frozen at gate 5, from Phase-2A
+keyed evidence at the pinned prices):** keyed trials only (C, D). At
+the observed Arm-F per-trial rates on these five scenarios (C mean
+$0.0038, D mean $0.0208, n=25 each) the 100-trial keyed grid costs
+$1.23. Under Arm R the gate clears and D walks the full pager, so
+D's 25 Arm-R trials are projected at the observed
+`f3-page-size-5-*` rate (≈$0.0426/trial — the behavioural proxy for
+a cleared gate; C needs no repair there and prices near $0): grid
+≈ $1.71, plus the two-trial keyed smoke ≈ $0.04 — **≈ $1.75
+expected**. Conservative bound: 100 trials at the most expensive
+single keyed trial observed anywhere in Phase 2A ($0.0455) =
+**$4.55**, 8.8× under the frozen $39.90 stop-threshold, which
+carries over unchanged.
 
 ## Expectations (registered at freeze, before any trial)
 
-Draft, non-binding until the freeze tag exists. Rationale must cite
+Finalized at gate 5 (2026-07-26), before any trial. Rationale cites
 mechanism, not hope:
 
 | Scenario | Arm | A | B | B2 | C | D |
@@ -110,13 +120,19 @@ mechanism, not hope:
 | x-class-l3-page-size-2 | F | fail | fail | fail | fail | fail |
 | x-class-l3-page-size-2 | R | fail | fail | pass | pass | pass |
 
-Draft reasoning, finalized only after the implementation-diff audit
-(gate 4): under Arm R the small pages need no reveal step, so every
+Reasoning (finalized at gate 5, after the gate-4 implementation-diff
+audit): under Arm R the small pages need no reveal step, so every
 policy should pass the four pure small-page scenarios; on the compound
 scenario, class drift L3 still breaks cached login selectors, so B
 (no repair path) fails at login, B2/C pass only if their repair paths
 recover login as they did in Phase 2A's other L3 cells, D passes, and
 A still fails (its login hooks are stripped and it has no repair).
+The C login-recovery premise is evidenced directly on this cell: in
+every Phase-2A sweep, C's Arm-F trial on `x-class-l3-page-size-2`
+records `healedSteps: ["login", "reveal-table"]` and then fails only
+on the readiness predicate ("stats content never appeared") — the
+heal works; the gate is what fails
+(`evidence/phase2a/runs/keyed-s{1..5}-C`).
 Any Arm-F result that does not reproduce Phase 2A on the frozen
 comparison projection invalidates the run environment, not the
 hypothesis.
@@ -224,6 +240,36 @@ hypothesis.
   resume; a failed or crashed smoke leaves its spend banked and is
   re-attempted on the next invocation, subject to the stop
   threshold.
+  **Frozen at gate 5:** `cId = x-class-l3-page-size-2` — its class
+  drift L3 renames every id token, breaking the id-keyed login
+  hooks, and Phase-2A evidence records C healing exactly `login`
+  there in all five sweeps. The criterion is the heal, not C's
+  trial outcome: under Arm F the compound cell still fails on the
+  readiness predicate, which is the experiment's subject, not the
+  smoke's. `dId = f1-class-l3-a` — D passes it in all five Phase-2A
+  sweeps (≈$0.028/trial). `dId` is deliberately NOT one of the five
+  allowlisted scenarios: Phase-2A evidence records D failing all
+  five under the frozen gate in every sweep — the discovered effect
+  this phase ablates — so no allowlisted scenario can demonstrate a
+  working D.
+- **Frozen-expectations file mechanics:** the driver takes the
+  gate-5 values as `--frozen-expectations <file>` and refuses to
+  guess them. The runtime file cannot be a tracked file inside the
+  tagged commit: it must pin `gitCommit` to the very commit the
+  freeze tag points at, and a commit cannot contain its own hash —
+  while an untracked, non-ignored file fails the clean-worktree
+  guard for both phases. So gate 5 ships TWO artifacts: a tracked
+  template, `data/phase2b/frozen-expectations.template.json`,
+  inside the tagged commit, carrying every field with
+  `"gitCommit": null`; and the runtime file, generated after
+  tagging by copying the template and setting `gitCommit` to the
+  tag commit's hash, at `runs/phase2b/frozen-expectations.json`
+  (gitignored, beside the campaign state files). Every field except
+  the two smoke ids is cross-pinned at run time against constants
+  or live observations, so the smoke ids are the only values the
+  tag itself must attest — they are attested by the tracked
+  template, and any runtime divergence from it is visible in
+  `smoke.json`'s recorded scenario ids.
 - **State files:** `runs/phase2b/campaign-state.keyless.json` and
   `runs/phase2b/campaign-state.keyed.json`, never shared; resume =
   Phase 2A's crash-rerun-once with the accumulating ledger.

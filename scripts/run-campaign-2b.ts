@@ -332,9 +332,13 @@ export const Campaign2bStateSchema = z.object({
 export type Campaign2bState = z.infer<typeof Campaign2bStateSchema>;
 
 /**
- * The gate-5 frozen expectations, authored as a checked-in JSON and re-checked
- * immediately before the first paid call. Values are frozen at gate 5; this
- * schema is the mechanism, available now.
+ * The gate-5 frozen expectations, re-checked immediately before the first paid
+ * call. The values are attested by the TRACKED template inside the freeze tag
+ * (`data/phase2b/frozen-expectations.template.json`); the runtime file the
+ * driver consumes is generated from it after tagging — with `gitCommit` set to
+ * the tag commit — at a gitignored path, because a commit cannot contain its
+ * own hash and an untracked, non-ignored file fails the clean-worktree guard
+ * (PROTOCOL_2B §Frozen-expectations file mechanics).
  */
 export const FrozenExpectationsSchema = z.object({
   suiteHash: z.string().min(1),

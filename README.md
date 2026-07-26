@@ -337,7 +337,7 @@ semantic-escalation-bench/
 
 - [docs/PROTOCOL.md](docs/PROTOCOL.md) / [docs/PHASE1_RESULTS.md](docs/PHASE1_RESULTS.md): the Phase-1 frozen protocol and its bounded analysis.
 - [docs/PROTOCOL_2A.md](docs/PROTOCOL_2A.md) / [docs/PHASE2A_RESULTS.md](docs/PHASE2A_RESULTS.md): the Phase-2A two-stage freeze design and the held-out-grid results.
-- [docs/PROTOCOL_2B.md](docs/PROTOCOL_2B.md): the Phase-2B readiness-gate ablation design (draft; nothing has run yet).
+- [docs/PROTOCOL_2B.md](docs/PROTOCOL_2B.md): the Phase-2B readiness-gate ablation design (frozen at `phase2b-ablation-freeze-v1`; nothing has run yet).
 - [docs/RECORD_FORMAT.md](docs/RECORD_FORMAT.md): the version-2 trial record format future campaigns ship (frozen at `record-v2-freeze-v1`).
 - [docs/HARNESS.md](docs/HARNESS.md): engines, lab site, chaos flags, Phase-1 catalog, judge rules, keyless-tier numbers.
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): how the system fits together and why.
