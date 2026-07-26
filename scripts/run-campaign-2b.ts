@@ -884,6 +884,17 @@ export function keyedPhaseGate2b(
   }
 
   const schedule = buildSchedule2b("keyless");
+  // THE MARKER ORACLE'S THIRD WIRING. This gate reads the keyless state file
+  // directly — through neither loadOrInitState nor runCampaign2b — so without
+  // this call a ledger claiming BOTH "schedule complete" and "an entry still in
+  // flight" (contradictory claims; the reconcile check tolerates the marker's
+  // orphan by design) would advance past every check below and authorize the
+  // PAID phase on the strength of a state no honest write sequence produces.
+  try {
+    assertPendingMarkerHonest(state, schedule);
+  } catch (error) {
+    throw new Error(`keyless ${error instanceof Error ? error.message : String(error)}`);
+  }
   let next: Campaign2bEntry | null;
   try {
     next = nextEntry2b(state, schedule);

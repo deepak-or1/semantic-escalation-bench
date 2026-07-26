@@ -1168,6 +1168,48 @@ describe("Phase-2B phase gating (machine-enforced, no key needed to test)", () =
     ).toThrow(/keyless grid is POISONED/);
   });
 
+  it("THE AUDITOR'S FINAL PROBE: a complete ledger with a stale in-flight marker cannot authorize the keyed phase", () => {
+    // "Schedule complete" and "an entry still in flight" are contradictory
+    // claims; the gate is the last read of the keyless ledger before paid spend
+    // and reads the file directly — through neither loadOrInitState nor
+    // runCampaign2b, so this is the marker oracle's third, previously missing
+    // wiring. The refusal must fire before ANY evidence is read.
+    const contradictory = completeKeylessState();
+    contradictory.pendingEntry = {
+      phase: "keyless",
+      sweep: 1,
+      policy: "A",
+      arm: "frozen",
+      benchId: "bench-stale",
+      benchDir: "runs/phase2b/stale"
+    };
+    const before = JSON.parse(JSON.stringify(contradictory));
+    const readerSpy = vi.fn(() => {
+      throw new Error("REACHED_RUN_READER — the gate read evidence past a corrupt marker");
+    });
+    const verifySpy = vi.fn(() => okReport);
+    const phase2aSpy = vi.fn(() => {
+      throw new Error("REACHED_2A_READER — the gate read the baseline past a corrupt marker");
+    });
+    expect(() =>
+      keyedPhaseGate2b(
+        contradictory,
+        fakeSuite(),
+        readerSpy as unknown as Parameters<typeof keyedPhaseGate2b>[2],
+        "suite.json",
+        verifySpy as unknown as Parameters<typeof keyedPhaseGate2b>[4],
+        phase2aSpy as unknown as Parameters<typeof keyedPhaseGate2b>[5]
+      )
+    ).toThrow(
+      /keyless campaign state records an in-flight entry \(keyless\/A\/sweep-1\/frozen\) but the frozen schedule is already COMPLETE/
+    );
+    // No evidence path was touched, and the state object itself is unmodified.
+    expect(readerSpy).not.toHaveBeenCalled();
+    expect(verifySpy).not.toHaveBeenCalled();
+    expect(phase2aSpy).not.toHaveBeenCalled();
+    expect(contradictory).toEqual(before);
+  });
+
   it("(d) the pre-spend recheck stops the campaign before any paid call on ANY mismatch", () => {
     const frozen: PreSpendExpectations = {
       suiteHash: SUITE.suiteHash,
