@@ -143,6 +143,35 @@ describe("loadDashboardData", () => {
     expect(bench?.failures[1]?.screenshots).toEqual([]);
   });
 
+  it("carries the per-engine summary computed from the parsed trials", async () => {
+    await writeJson(path.join(runsDir, "latest", "results.json"), {
+      ...baseResults(),
+      scenarios: [scenario("s-a")],
+      trials: [
+        {
+          ...trial("s-a", "pass", "/elsewhere/runs/bench-x/trials/t-ok"),
+          tokens: { llmCalls: 3 },
+          healedSteps: ["login"]
+        },
+        {
+          ...trial("s-a", "fail", "/elsewhere/runs/bench-x/trials/t-bad"),
+          retries: 2
+        }
+      ]
+    });
+
+    expect((await loadDashboardData()).bench?.summary).toEqual([
+      {
+        engine: "hybrid",
+        trials: 2,
+        passes: 1,
+        semanticInterventions: 1,
+        llmCalls: 3,
+        retries: 2
+      }
+    ]);
+  });
+
   it("reads SSDA_DASHBOARD_FIXTURE instead of runs/latest and flags it as a fixture", async () => {
     const fixtureDir = await mkdtemp(path.join(tmpdir(), "ssda-fixture-"));
     try {

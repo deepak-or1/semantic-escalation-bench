@@ -15,6 +15,7 @@ import {
   type ScenarioSpec,
   type TrialResult
 } from "@ssda/shared";
+import { summarizeEngines, type EngineSummaryRow } from "./summary";
 import { WatchlistSchema, type Watchlist } from "./watchlist";
 
 /**
@@ -51,6 +52,8 @@ export interface DashboardBench {
   isFixture: boolean;
   /** Failed trials, in scenario order, with detail context. */
   failures: FailureTrial[];
+  /** Per-engine roll-up over every trial, in first-appearance order. */
+  summary: EngineSummaryRow[];
 }
 
 export interface DashboardAgent {
@@ -147,7 +150,7 @@ async function loadBench(env: NodeJS.ProcessEnv): Promise<DashboardBench | null>
   const order = new Map(results.scenarios.map((s, i) => [s.id, i]));
   failures.sort((a, b) => (order.get(a.trial.scenarioId) ?? 0) - (order.get(b.trial.scenarioId) ?? 0));
 
-  return { results, isFixture, failures };
+  return { results, isFixture, failures, summary: summarizeEngines(results.trials) };
 }
 
 async function loadAgent(): Promise<DashboardAgent | null> {
