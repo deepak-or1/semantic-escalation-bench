@@ -27,9 +27,10 @@ trials, exact ground truth, zero flaky results. Three findings:
   anything was wrong.
 - **Four tests were passed by exactly one policy: the $0 hardcoded
   script.** A readiness check shared by every other policy's pipeline
-  failed them before extraction could begin. The full LLM
-  agent burned 10 model calls per trial repairing a page that was never
-  broken.
+  failed them before extraction could begin. The full LLM agent burned
+  10 model calls per trial on a page that was never broken: two full
+  attempts, each logging in and then trying to reveal a table its
+  readiness check said was missing.
 
 The registered predictions missed it too. The test suite's author, a
 different frontier model, called all 160 scenario-policy pairs in
@@ -138,8 +139,8 @@ drift, a card-grid redesign, and both at once) for about $0.006 per
 successful workflow. Phase 1 said it louder: C matched full-semantic D
 120/120 judged-correct on that frozen suite, at 8.61× lower inference
 cost ($0.0036 vs $0.0312 per successful workflow). When the failure
-announces itself, you don't need the model driving; you need it on
-call. Finding 2 is what happens when it doesn't announce itself.
+announces itself, it is enough to have the model on call. Finding 2 is
+what happens when it doesn't announce itself.
 
 **2. When breakage is silent, the repair trigger never fires.** Decoy
 scenarios render plausible wrong content alongside the real thing. On
@@ -148,8 +149,8 @@ extraction silently stops after page 1: 5 of 12 standings rows, every
 extracted field correct, graded 0.71 overall accuracy against the
 required 1.00, with no error raised anywhere and no model call made. The
 level-2 and level-3 decoys fail louder (`not_found`, `auth`), but the
-repair trigger still never fires: C fails all six pure decoy cells
-with **zero LLM calls**. D reads the page every step and passes all of
+repair trigger still never fires: C fails all six decoy cells that
+actually rebind a control, with **zero LLM calls**. D reads the page every step and passes all of
 them. None of the six failures ever presented as a cached-selector
 miss, so C's repair trigger never had cause to fire. That is what D's
 8.9× per-sweep premium actually buys: reading the page instead of
@@ -171,8 +172,8 @@ the trial still fails), and D burns 10 calls per trial and still
 fails. The failure happens before extraction ever runs. Only the $0 baseline passes those four
 small-page cells, because it never consults the check. (A fifth,
 compound gate cell also strips A's login hooks; there the whole ladder
-goes 0/5.) Of the 27 cells outside this cluster, D passes all 27. The
-model was never the ceiling here. A shared pipeline assumption was.
+goes 0/5.) Of the 27 cells outside this cluster, D passes all 27; the
+ceiling was a shared pipeline assumption, not the model.
 
 ![Remove the five gate cells and the ladder is a clean dose-response](docs/img/gate_effect.png)
 
@@ -209,8 +210,10 @@ the pinned prices).
 
 The keyless three-fifths of the grid re-runs from scratch with no key
 and no cost (480 trials; it refuses to start if a model key is
-present, and the published keyless grid has already repeated 480/480
-across two independent executions):
+present, and an earlier independent execution matched the shipped grid
+480/480; that execution ships as a campaign state and verifier
+scorecard in [evidence/phase2a/states/](evidence/phase2a/states/), not
+as per-trial records):
 
 ```bash
 pnpm campaign:2a --suite data/phase2a/scenario-suite.json --phase keyless
@@ -247,9 +250,9 @@ modes each map to cited real-world evidence in
 for a mid-table column insertion that silently mislabeled the columns
 after it, the same positional-addressing failure class this suite's
 column-shuffle scenario probes. The decoy and small-page axes are
-constructed diagnostic probes, not observed incidents. The
-findings don't depend on the domain; the measurability does. Everything
-runs against `localhost`.
+constructed diagnostic probes, not observed incidents. Nothing in the
+findings is sports-specific; the domain was chosen because it makes
+correctness checkable. Everything runs against `localhost`.
 
 ## Quickstart
 
@@ -268,13 +271,14 @@ pnpm dev:lab           # the seeded flaky site on http://localhost:4517
 Run the pipeline keyless (no API key, no cloud, no cost):
 
 ```bash
-pnpm agent:local -- --engine baseline   # hardcoded selector scraper (policy A)
-pnpm agent:local -- --engine hybrid     # cached selectors + header mapping (policies B/B2)
+pnpm agent:local -- --engine baseline             # hardcoded selector scraper (policy A)
+pnpm agent:local -- --engine hybrid --no-repair   # cached selectors + header mapping (policy B)
 ```
 
 With a model key (`ANTHROPIC_API_KEY` or `OPENAI_API_KEY` in `.env`):
 
 ```bash
+pnpm agent:local -- --engine hybrid               # cached selectors, LLM repair on failure (policy C)
 pnpm agent:local                                  # Stagehand, full semantic (policy D)
 pnpm agent:local -- --scenario class-drift        # apply a benchmark scenario's lab setup
 pnpm agent:local -- --seed 7 --chaos modal,copyDrift --headed
@@ -300,7 +304,8 @@ Tests and checks: `pnpm test`, `pnpm test:unit`,
 
 The five policies map onto three engines. A is a deliberately brittle
 Playwright selector scraper. B, B2, and C are one hybrid engine at
-three repair settings (`--repair-mode off|deterministic|llm`):
+three repair settings (`--repair-mode off|deterministic|llm` on
+`pnpm bench`):
 hand-written selectors become a replayable cache, a reader maps table
 columns by header name, and repair fires only when a cached step stops
 matching. D is Stagehand, driving every semantic step from
@@ -332,6 +337,8 @@ semantic-escalation-bench/
 
 - [docs/PROTOCOL.md](docs/PROTOCOL.md) / [docs/PHASE1_RESULTS.md](docs/PHASE1_RESULTS.md): the Phase-1 frozen protocol and its bounded analysis.
 - [docs/PROTOCOL_2A.md](docs/PROTOCOL_2A.md) / [docs/PHASE2A_RESULTS.md](docs/PHASE2A_RESULTS.md): the Phase-2A two-stage freeze design and the held-out-grid results.
+- [docs/PROTOCOL_2B.md](docs/PROTOCOL_2B.md): the Phase-2B readiness-gate ablation design (draft; nothing has run yet).
+- [docs/RECORD_FORMAT.md](docs/RECORD_FORMAT.md): the version-2 trial record format future campaigns ship (frozen at `record-v2-freeze-v1`).
 - [docs/HARNESS.md](docs/HARNESS.md): engines, lab site, chaos flags, Phase-1 catalog, judge rules, keyless-tier numbers.
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): how the system fits together and why.
 - [docs/WRITEUP.md](docs/WRITEUP.md): the build story: what broke and what it taught.
@@ -351,7 +358,7 @@ steps to formalize into code with gated execution.
 [ReUseIt](https://arxiv.org/abs/2510.14308) synthesizes reusable web
 workflows with error-detecting guards.
 [NEXT-EVAL](https://arxiv.org/abs/2505.17125) compares heuristic and
-LLM extraction under synthetic DOM transformations. Deterministic
+LLM extraction on evaluation sets generated from web snapshots. Deterministic
 locator repair is an established line from
 [Robula+](https://doi.org/10.1002/smr.1771) to
 [zero-cost self-healing](https://arxiv.org/abs/2603.20358).
