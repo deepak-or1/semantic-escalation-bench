@@ -2503,6 +2503,312 @@ describe("verifySuite", () => {
     expect(report.ok).toBe(true);
   });
 
+  // ── Phase-2B campaign enforcement (docs/PROTOCOL_2B.md) ────────────────────
+  // The five flags are optional and INDEPENDENT; the frozen Phase-2A command
+  // passes none of them and is unaffected (pinned by the whole file above, which
+  // still verifies clean). Every probe here starts from a bundle that PASSES all
+  // five together and breaks exactly one thing.
+
+  /** The two allowlisted ids these tests use — a miniature stand-in for the real five. */
+  const B2_IDS = ["s1", "s2"];
+  const CAMPAIGN = "phase2b-ablation-v1";
+  const MODEL = "anthropic/claude-haiku-4-5";
+  const PRICES = "2026-07-14";
+  const EXPECT_2B: ExpectGrid = {
+    policies: ["A", "D"],
+    trials: 1,
+    scenarios: B2_IDS,
+    arms: ["frozen", "any-row"],
+    campaign: CAMPAIGN,
+    model: MODEL,
+    pricesPinnedAt: PRICES
+  };
+
+  /**
+   * A Phase-2B-shaped v2 trial: real rows, a build, and a policy-appropriate
+   * engine. A stagehand (policy D) trial additionally ships the evidence a
+   * model-bearing engine owes — a token block and a per-step trace that accounts
+   * for its calls — exactly as a real keyed record does. `durationMs` varies per
+   * run so two arms of one policy are genuinely distinct sweeps, which is what
+   * real wall-clock timing guarantees.
+   */
+  const b2Trial = (
+    scenarioId: string,
+    seed: number,
+    engine: "baseline" | "stagehand",
+    build: string,
+    durationMs: number
+  ): TrialResult => {
+    const truth = generateGroundTruth(seed);
+    const base: TrialResult = {
+      ...v2PassTrial(scenarioId, truth),
+      engine,
+      runId: `${scenarioId}-${engine}-t1`,
+      chromeVersion: build,
+      durationMs
+    };
+    if (engine === "baseline") return base;
+    return {
+      ...base,
+      tokens: { llmCalls: 2, inputTokens: 900, outputTokens: 120 },
+      stepTrace: [
+        { step: "extract-stats", modelCallsAtStep: 1, note: "llm call site: extract(stats)" },
+        { step: "extract-odds", modelCallsAtStep: 1, note: "llm call site: extract(odds)" }
+      ]
+    };
+  };
+
+  /**
+   * A complete miniature 2B bundle: 2 scenarios × 2 policies × 2 arms × 1 sweep.
+   * Policy A is keyless (baseline); policy D is model-bearing (stagehand), whose
+   * env mirrors the recorder's keyed branch exactly.
+   */
+  const miniature2B = (
+    mutate: (runs: { source: string; raw: BenchmarkResults }[]) => void = () => undefined
+  ): { suite: LoadedScenarioSuite; inputs: { source: string; raw: BenchmarkResults }[] } => {
+    const suite = loadSuite(B2_IDS);
+    const scenarios = [scenario("s1", 2201), scenario("s2", 2202)];
+    const oracles = { s1: derivedOracle(2201), s2: derivedOracle(2202) };
+    const inputs: { source: string; raw: BenchmarkResults }[] = [];
+    let durationMs = 100;
+    for (const arm of ["frozen", "any-row"] as const) {
+      for (const [policy, engine, build] of [
+        ["A", "baseline", "149.0.7827.55"],
+        ["D", "stagehand", "Chrome/150.0.7871.184"]
+      ] as const) {
+        durationMs += 37;
+        inputs.push({
+          source: `run-${policy}-${arm}`,
+          raw: makeResults(
+            scenarios,
+            [
+              b2Trial("s1", 2201, engine, build, durationMs),
+              b2Trial("s2", 2202, engine, build, durationMs + 11)
+            ],
+            suite.suiteHash,
+            {
+              benchId: `bench-${policy}-${arm}`,
+              createdAt: `2026-07-2${policy === "A" ? "0" : "1"}T0${arm === "frozen" ? "1" : "2"}:00:00.000Z`,
+              oracles,
+              env: {
+                readinessMode: arm,
+                campaignProtocolId: CAMPAIGN,
+                pricesPinnedAt: PRICES,
+                // The keyed branch as the recorder writes it, with the campaign's
+                // frozen model.
+                ...(engine === "stagehand"
+                  ? {
+                      stagehandModel: MODEL,
+                      modelConfig: {
+                        temperature: null,
+                        temperatureSource: "provider-default" as const
+                      }
+                    }
+                  : {})
+              }
+            }
+          )
+        });
+      }
+    }
+    mutate(inputs);
+    return { suite, inputs };
+  };
+
+  it("PASS-PIN: a complete miniature Phase-2B bundle passes all five flags together", () => {
+    const { suite, inputs } = miniature2B();
+    const report = verifySuite(inputs, suite, EXPECT_2B);
+    expect(report.violations).toEqual([]);
+    expect(report.ok).toBe(true);
+  });
+
+  it("ATTACK-ARM-COLLAPSE: presenting one arm's runs twice cannot satisfy a two-arm grid", () => {
+    // The ablation's causal claim IS the within-policy F-vs-R contrast, so two
+    // arms must never collapse into repeat runs of one cell. Here every run is
+    // arm "frozen"; the counts per scenario×policy would look right if the arm
+    // were not part of the cell identity.
+    const { suite, inputs } = miniature2B((runs) => {
+      for (const r of runs) {
+        (r.raw.environment as { readinessMode?: string }).readinessMode = "frozen";
+      }
+    });
+    const report = verifySuite(inputs, suite, EXPECT_2B);
+    expect(report.ok).toBe(false);
+    // Every any-row cell is empty, and every frozen cell is double-counted.
+    expect(
+      report.violations.some((v) =>
+        /policy A \("A-baseline"\) scenario "s1" arm "any-row": got 0 trial\(s\), want 1/.test(v.message)
+      )
+    ).toBe(true);
+    expect(
+      report.violations.some((v) =>
+        /policy A \("A-baseline"\) scenario "s1" arm "frozen": got 2 trial\(s\), want 1/.test(v.message)
+      )
+    ).toBe(true);
+  });
+
+  it("ATTACK-ARM-STAMP-STRIP: deleting a run's readinessMode under --expect-arms is a PROVENANCE violation", () => {
+    const { suite, inputs } = miniature2B((runs) => {
+      delete (runs[0]!.raw.environment as { readinessMode?: unknown }).readinessMode;
+    });
+    const report = verifySuite(inputs, suite, EXPECT_2B);
+    expect(report.ok).toBe(false);
+    expect(
+      report.violations.some(
+        (v) =>
+          v.check === "provenance" &&
+          /run-A-frozen: environment\.readinessMode is missing — --expect-arms requires every run to declare the readiness arm it ran/.test(
+            v.message
+          )
+      )
+    ).toBe(true);
+  });
+
+  it("ATTACK-SCENARIO-SMUGGLE: a scenario outside --expect-scenarios is refused", () => {
+    // The suite still contains it; the ALLOWLIST does not. A bundle whose
+    // declared scope is five scenarios cannot quietly carry a sixth.
+    const suite = loadSuite(["s1", "s2", "s3"]);
+    const scenarios = [scenario("s1", 2201), scenario("s2", 2202), scenario("s3", 2203)];
+    const truth = generateGroundTruth(2203);
+    const results = makeResults(scenarios, [v2PassTrial("s3", truth)], suite.suiteHash, {
+      oracles: { s3: derivedOracle(2203) },
+      env: { readinessMode: "frozen", campaignProtocolId: CAMPAIGN, pricesPinnedAt: PRICES }
+    });
+    const report = verifySuite([{ source: "run-a", raw: results }], suite, {
+      policies: ["A"],
+      trials: 1,
+      scenarios: ["s1", "s2"]
+    });
+    expect(report.ok).toBe(false);
+    expect(
+      report.violations.some((v) =>
+        /run-a: trial for scenario "s3" is outside the --expect-scenarios allowlist/.test(v.message)
+      )
+    ).toBe(true);
+  });
+
+  it("ATTACK-CAMPAIGN-MISMATCH: a wrong or missing campaignProtocolId is a PROVENANCE violation", () => {
+    const wrong = miniature2B((runs) => {
+      (runs[0]!.raw.environment as { campaignProtocolId?: string }).campaignProtocolId =
+        "phase2b-ablation-v2";
+    });
+    const wrongReport = verifySuite(wrong.inputs, wrong.suite, EXPECT_2B);
+    expect(wrongReport.ok).toBe(false);
+    expect(
+      wrongReport.violations.some((v) =>
+        /run-A-frozen: environment\.campaignProtocolId "phase2b-ablation-v2" ≠ expected "phase2b-ablation-v1"/.test(
+          v.message
+        )
+      )
+    ).toBe(true);
+
+    const missing = miniature2B((runs) => {
+      delete (runs[1]!.raw.environment as { campaignProtocolId?: unknown }).campaignProtocolId;
+    });
+    const missingReport = verifySuite(missing.inputs, missing.suite, EXPECT_2B);
+    expect(missingReport.ok).toBe(false);
+    expect(
+      missingReport.violations.some((v) =>
+        /environment\.campaignProtocolId is missing — --expect-campaign phase2b-ablation-v1 requires every run to name its campaign/.test(
+          v.message
+        )
+      )
+    ).toBe(true);
+  });
+
+  it("ATTACK-MODEL-SWAP: a model-bearing run recording a different model is a PROVENANCE violation", () => {
+    const { suite, inputs } = miniature2B((runs) => {
+      const keyed = runs.find((r) => r.source.startsWith("run-D"))!;
+      (keyed.raw.environment as { stagehandModel?: string }).stagehandModel =
+        "anthropic/claude-opus-4-1";
+    });
+    const report = verifySuite(inputs, suite, EXPECT_2B);
+    expect(report.ok).toBe(false);
+    expect(
+      report.violations.some((v) =>
+        /model-bearing run records environment\.stagehandModel "anthropic\/claude-opus-4-1" ≠ expected "anthropic\/claude-haiku-4-5"/.test(
+          v.message
+        )
+      )
+    ).toBe(true);
+  });
+
+  it("ATTACK-MODEL-ON-KEYLESS: a model-less policy that names a model is a PROVENANCE violation", () => {
+    // --expect-model is policy-AWARE: it never demands the keyed model of a
+    // keyless policy, and never lets one carry a model it cannot have used.
+    const { suite, inputs } = miniature2B((runs) => {
+      const keyless = runs.find((r) => r.source.startsWith("run-A"))!;
+      (keyless.raw.environment as { stagehandModel?: string }).stagehandModel = MODEL;
+    });
+    const report = verifySuite(inputs, suite, EXPECT_2B);
+    expect(report.ok).toBe(false);
+    expect(
+      report.violations.some((v) =>
+        /model-less run records environment\.stagehandModel "anthropic\/claude-haiku-4-5" — policies A, B and B2 configure no model at all/.test(
+          v.message
+        )
+      )
+    ).toBe(true);
+  });
+
+  it("ATTACK-CHROME-NULL-2B: a null chromeVersion trial is refused under --expect-campaign", () => {
+    const { suite, inputs } = miniature2B((runs) => {
+      (runs[0]!.raw.trials[0] as { chromeVersion?: string | null }).chromeVersion = null;
+    });
+    const report = verifySuite(inputs, suite, EXPECT_2B);
+    expect(report.ok).toBe(false);
+    expect(
+      report.violations.some((v) =>
+        /chromeVersion is null — a Phase-2B bundle requires a browser build on every trial/.test(v.message)
+      )
+    ).toBe(true);
+  });
+
+  it("ATTACK-BROWSER-SPLIT: one policy reporting two builds across the arms is refused", () => {
+    // If arm F ran one browser and arm R another, the F-vs-R contrast is
+    // confounded by the browser — the machine check behind "the browser is held
+    // fixed across readiness arms".
+    const { suite, inputs } = miniature2B((runs) => {
+      const anyRowA = runs.find((r) => r.source === "run-A-any-row")!;
+      for (const t of anyRowA.raw.trials) {
+        (t as { chromeVersion?: string }).chromeVersion = "151.0.0.1";
+      }
+    });
+    const report = verifySuite(inputs, suite, EXPECT_2B);
+    expect(report.ok).toBe(false);
+    expect(
+      report.violations.some((v) =>
+        /configuration "A-baseline" reports 2 different browser builds across the bundle .* a Phase-2B policy must run ONE build across both arms/.test(
+          v.message
+        )
+      )
+    ).toBe(true);
+    // …and the OTHER policy, which legitimately runs a different browser, is not
+    // implicated: builds are never compared across policies.
+    expect(report.violations.some((v) => /configuration "D-full-semantic" reports/.test(v.message))).toBe(
+      false
+    );
+  });
+
+  it("ATTACK-EXPLICIT-TEMP-2B: temperatureSource \"explicit\" is inadmissible in a Phase-2B bundle", () => {
+    const { suite, inputs } = miniature2B((runs) => {
+      const keyed = runs.find((r) => r.source.startsWith("run-D"))!;
+      (keyed.raw.environment as { modelConfig?: unknown }).modelConfig = {
+        temperature: 0.2,
+        temperatureSource: "explicit"
+      };
+    });
+    const report = verifySuite(inputs, suite, EXPECT_2B);
+    expect(report.ok).toBe(false);
+    expect(
+      report.violations.some((v) =>
+        /temperatureSource is "explicit" — a deliberately set temperature is inadmissible in Phase 2B/.test(
+          v.message
+        )
+      )
+    ).toBe(true);
+  });
+
   it("a scenario id that names an Object.prototype member does not resolve an oracle up the prototype chain", () => {
     // `oracles` is a plain JSON object, so `oracles["constructor"]` would otherwise
     // return Object's constructor and read as a shipped oracle.

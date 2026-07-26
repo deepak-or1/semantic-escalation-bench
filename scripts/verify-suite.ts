@@ -94,6 +94,7 @@ import {
   type BenchmarkResults,
   type LoadedScenarioSuite,
   type Prediction,
+  type ReadinessMode,
   type ScenarioSpec,
   type StepTraceEntry,
   type TrialOracle,
@@ -138,6 +139,41 @@ export interface ExpectGrid {
    * is how the version-1 Phase-1/2A bundles keep verifying.
    */
   recordVersion?: number;
+  // ── Phase-2B expectations (docs/PROTOCOL_2B.md). All optional and INDEPENDENT:
+  // each enforces only its own contract, so every existing invocation — the
+  // frozen Phase-2A command included — is untouched by their existence.
+  /**
+   * `--expect-scenarios`: the EXACT set of scenario ids the grid covers. The
+   * suite stays the full frozen file and its hash is still checked; this
+   * restricts which of its scenarios the campaign is expected to have run, and
+   * refuses any scenario outside it. Phase 2B uses the five allowlisted ids
+   * (§Subset semantics) — the other 27 are excluded by this list, never by
+   * editing the suite.
+   */
+  scenarios?: string[];
+  /**
+   * `--expect-arms`: the readiness arms the campaign covers. Under this flag the
+   * completeness cell identity becomes scenario × policy × ARM × sweep, so two
+   * arms can never collapse into repeat runs of one cell — the ablation's whole
+   * causal claim rests on that (§Arm-aware evidence contract).
+   */
+  arms?: ReadinessMode[];
+  /**
+   * `--expect-campaign`: the campaign every run must name, exactly and
+   * uniformly. Passing it ALSO activates the Phase-2B bundle extras: non-null
+   * per-trial browser builds, one build per policy across both arms, and no
+   * `temperatureSource: "explicit"` anywhere (§Campaign identity, §Schedule).
+   */
+  campaign?: string;
+  /**
+   * `--expect-model`: POLICY-AWARE (§Model-provenance consistency). Model-bearing
+   * policies (C, D) must record exactly this model; model-less policies
+   * (A, B, B2) must record none. It never demands the keyed model of a keyless
+   * policy.
+   */
+  model?: string;
+  /** `--expect-prices-pinned-at`: the price table every v2 run must name. */
+  pricesPinnedAt?: string;
 }
 
 export interface Violation {
@@ -824,6 +860,117 @@ export function verifySuite(
         );
       }
     }
+    // ── Phase-2B expectations, per run (docs/PROTOCOL_2B.md) ─────────────────
+    // Each is gated on its own flag: absent flag, no requirement, so the frozen
+    // Phase-2A command sees none of this.
+    if (expect.arms) {
+      // The arm stamp is the campaign's causal axis. A run that does not declare
+      // its arm cannot be placed in a cell at all, so its absence is named here
+      // rather than surfacing as a mysterious count shortfall.
+      const stamped = env.readinessMode;
+      if (stamped === undefined) {
+        violations.push(
+          reason(
+            "provenance",
+            `${source}: environment.readinessMode is missing — --expect-arms requires every run to declare the readiness arm it ran`
+          )
+        );
+      } else if (!expect.arms.includes(stamped)) {
+        violations.push(
+          reason(
+            "provenance",
+            `${source}: environment.readinessMode "${stamped}" is not among the expected arms [${expect.arms.join(", ")}]`
+          )
+        );
+      }
+    }
+    if (expect.campaign !== undefined) {
+      const recorded = env.campaignProtocolId;
+      if (recorded === undefined) {
+        violations.push(
+          reason(
+            "provenance",
+            `${source}: environment.campaignProtocolId is missing — --expect-campaign ${expect.campaign} requires every run to name its campaign`
+          )
+        );
+      } else if (recorded !== expect.campaign) {
+        violations.push(
+          reason(
+            "provenance",
+            `${source}: environment.campaignProtocolId "${recorded}" ≠ expected "${expect.campaign}"`
+          )
+        );
+      }
+    }
+    if (expect.model !== undefined) {
+      // POLICY-AWARE, reusing the SAME classification the grid uses: a run is
+      // model-bearing exactly when its trials carry a configuration label that is
+      // the image of C or D. It never demands the keyed model of a keyless policy,
+      // and it never lets a keyless policy carry one.
+      const labels = new Set(
+        results.trials.map((t) => configurationLabel(t.engine, results.environment))
+      );
+      const modelBearing = labels.has(POLICY_LABEL.C) || labels.has(POLICY_LABEL.D);
+      const recorded = env.stagehandModel;
+      if (modelBearing && recorded !== expect.model) {
+        violations.push(
+          reason(
+            "provenance",
+            `${source}: model-bearing run records environment.stagehandModel ${
+              recorded === undefined ? "(absent)" : `"${recorded}"`
+            } ≠ expected "${expect.model}"`
+          )
+        );
+      }
+      if (!modelBearing && recorded !== undefined) {
+        violations.push(
+          reason(
+            "provenance",
+            `${source}: model-less run records environment.stagehandModel "${recorded}" — policies A, B and B2 configure no model at all`
+          )
+        );
+      }
+    }
+    if (expect.pricesPinnedAt !== undefined && runIsV2) {
+      if (env.pricesPinnedAt !== expect.pricesPinnedAt) {
+        violations.push(
+          reason(
+            "provenance",
+            `${source}: environment.pricesPinnedAt ${
+              env.pricesPinnedAt == null ? "(absent)" : `"${env.pricesPinnedAt}"`
+            } ≠ expected "${expect.pricesPinnedAt}"`
+          )
+        );
+      }
+    }
+    if (expect.campaign !== undefined) {
+      // ── Phase-2B bundle extras (§Schedule) ─────────────────────────────────
+      // Declaring a campaign is what activates these: they are properties of a
+      // 2B bundle, not of record version 2 in general.
+      for (const t of results.trials) {
+        // (a) a NON-NULL build on every v2 trial. v2 alone allows null; 2B does
+        // not, because "the browser is held fixed across arms" is only checkable
+        // if every trial says which browser it ran.
+        if (declaredRecordVersion(t) === 2 && t.chromeVersion == null) {
+          violations.push(
+            reason(
+              "provenance",
+              `${source}/${t.runId}: chromeVersion is null — a Phase-2B bundle requires a browser build on every trial`
+            )
+          );
+        }
+      }
+      // (c) "explicit" is inadmissible anywhere in the campaign: a set
+      // temperature is a deviation from the frozen Phase-2A behaviour.
+      if (env.modelConfig?.temperatureSource === "explicit") {
+        violations.push(
+          reason(
+            "provenance",
+            `${source}: environment.modelConfig.temperatureSource is "explicit" — a deliberately set temperature is inadmissible in Phase 2B, which replicates Phase 2A's provider-default behaviour`
+          )
+        );
+      }
+    }
     // ── Record format version (docs/RECORD_FORMAT.md) ────────────────────────
     // INTRA-RUN UNIFORMITY: one execution writes one record format, so every
     // trial in a results.json must declare the same version (absent ≡ 1). A run
@@ -871,13 +1018,79 @@ export function verifySuite(
       );
     }
   }
+  // (b) WITHIN-POLICY BROWSER UNIFORMITY, across the whole bundle and BOTH arms.
+  // This is the machine check behind "the browser is held fixed across readiness
+  // arms": if one policy's arm-F runs used one build and its arm-R runs another,
+  // the F-vs-R contrast is confounded by the browser and the causal claim is
+  // gone. Compared as VERBATIM strings and never normalized, and never compared
+  // ACROSS policies — the engine families genuinely run different browsers and
+  // report different forms, which is expected and not a defect.
+  if (expect.campaign !== undefined) {
+    const buildsByPolicy = new Map<string, Map<string, string[]>>();
+    for (const { source, results } of runs) {
+      for (const t of results.trials) {
+        const label = configurationLabel(t.engine, results.environment);
+        if (t.chromeVersion == null) continue; // its own violation above
+        let builds = buildsByPolicy.get(label);
+        if (!builds) {
+          builds = new Map<string, string[]>();
+          buildsByPolicy.set(label, builds);
+        }
+        const where = builds.get(t.chromeVersion) ?? [];
+        if (where.length === 0) builds.set(t.chromeVersion, where);
+        where.push(`${source}/${t.runId}`);
+      }
+    }
+    for (const label of [...buildsByPolicy.keys()].sort()) {
+      const builds = buildsByPolicy.get(label)!;
+      if (builds.size <= 1) continue;
+      const detail = [...builds.entries()]
+        .sort(([a], [b]) => (a < b ? -1 : 1))
+        .map(([build, where]) => `"${build}" (${where.length} trial(s), e.g. ${where[0]})`)
+        .join(" vs ");
+      violations.push(
+        reason(
+          "provenance",
+          `configuration "${label}" reports ${builds.size} different browser builds across the bundle — ${detail}; a Phase-2B policy must run ONE build across both arms or the arm contrast is confounded`
+        )
+      );
+    }
+  }
 
   // (c) COMPLETENESS — the observed runs must realise the declared expect-grid.
   const suiteIds = suite.scenarios.map((s) => s.id);
-  const suiteIdSet = new Set(suiteIds);
+  // The scenarios the GRID covers. Without --expect-scenarios that is the whole
+  // suite (unchanged behaviour); with it, the exact allowlist — the suite file
+  // and its hash are untouched, only the expectation is narrowed
+  // (docs/PROTOCOL_2B.md §Subset semantics). An allowlisted id the suite does
+  // not contain is a caller error and is reported rather than silently expecting
+  // nothing.
+  const gridIds = expect.scenarios ?? suiteIds;
+  const gridIdSet = new Set(gridIds);
+  if (expect.scenarios) {
+    for (const id of expect.scenarios) {
+      if (!suiteIds.includes(id)) {
+        violations.push(
+          reason(
+            "completeness",
+            `--expect-scenarios names "${id}", which is not in the supplied suite — the allowlist restricts the suite, it cannot extend it`
+          )
+        );
+      }
+    }
+  }
+  // The ARMS the grid covers. Without --expect-arms the cell identity is exactly
+  // what it always was (scenario × policy), expressed here as a single unnamed
+  // arm so one code path serves both shapes.
+  const NO_ARM = "*";
+  const gridArms: string[] = expect.arms ?? [NO_ARM];
+  /** The arm a run belongs to, or NO_ARM when arms are not being expected. */
+  const armOf = (results: BenchmarkResults): string =>
+    expect.arms ? (results.environment.readinessMode ?? "(unstamped)") : NO_ARM;
 
-  // Per-cell tallies keyed by (scenarioId, configurationLabel).
-  const cellKey = (scenarioId: string, config: string) => `${scenarioId} ${config}`;
+  // Per-cell tallies keyed by (scenarioId, configurationLabel, arm).
+  const cellKey = (scenarioId: string, config: string, arm: string) =>
+    `${scenarioId} ${config} ${arm}`;
   const cellTrials = new Map<string, number>(); // trial count in the cell
   const cellBenchIds = new Map<string, Set<string>>(); // distinct source runs contributing
   const observedConfigCount = new Map<string, number>(); // total trials per observed label
@@ -885,10 +1098,11 @@ export function verifySuite(
   for (const { source, results } of runs) {
     let artifactsMismatch = 0;
     let firstBadArtifactsDir: string | undefined;
+    const arm = armOf(results);
     for (const t of results.trials) {
       const config = configurationLabel(t.engine, results.environment);
       observedConfigCount.set(config, (observedConfigCount.get(config) ?? 0) + 1);
-      const key = cellKey(t.scenarioId, config);
+      const key = cellKey(t.scenarioId, config, arm);
       cellTrials.set(key, (cellTrials.get(key) ?? 0) + 1);
       let ids = cellBenchIds.get(key);
       if (!ids) {
@@ -896,13 +1110,21 @@ export function verifySuite(
         cellBenchIds.set(key, ids);
       }
       ids.add(results.benchId);
-      // c.5 — every trial's scenario must be in the supplied suite.
-      if (!suiteIdSet.has(t.scenarioId)) {
+      // c.5 — every trial's scenario must be one the grid covers: in the supplied
+      // suite, and — when an allowlist is declared — inside it. A scenario
+      // smuggled in from outside the allowlist would otherwise ride along in a
+      // bundle whose declared scope excluded it.
+      if (!gridIdSet.has(t.scenarioId)) {
         const fk = `${source} ${t.scenarioId}`;
         if (!reportedForeign.has(fk)) {
           reportedForeign.add(fk);
           violations.push(
-            reason("completeness", `${source}: trial for scenario "${t.scenarioId}" not present in the supplied suite`)
+            reason(
+              "completeness",
+              expect.scenarios
+                ? `${source}: trial for scenario "${t.scenarioId}" is outside the --expect-scenarios allowlist`
+                : `${source}: trial for scenario "${t.scenarioId}" not present in the supplied suite`
+            )
           );
         }
       }
@@ -927,36 +1149,49 @@ export function verifySuite(
     }
   }
 
-  // c.1 exact per-cell trial count + c.2 distinct-run sweep count, per expected policy.
+  // c.1 exact per-cell trial count + c.2 distinct-run sweep count, per expected
+  // policy. The cell is (scenario × policy × ARM): with --expect-arms every
+  // scenario×policy pair must be realised in EVERY arm, which is what stops two
+  // arms collapsing into repeat runs of one cell.
+  const armSuffix = (arm: string) => (arm === NO_ARM ? "" : ` arm "${arm}"`);
   for (const policy of expectedPolicies) {
     const label = POLICY_LABEL[policy];
     let policyTotal = 0;
-    for (const id of suiteIds) policyTotal += cellTrials.get(cellKey(id, label)) ?? 0;
+    for (const id of gridIds) {
+      for (const arm of gridArms) policyTotal += cellTrials.get(cellKey(id, label, arm)) ?? 0;
+    }
     // A policy entirely absent gets ONE aggregated line — never one per scenario.
     if (policyTotal === 0) {
       violations.push(reason("completeness", `policy ${policy} ("${label}"): no trials for any suite scenario`));
       continue;
     }
-    // c.1 — exact trial count per (scenario, policy) cell.
-    for (const id of suiteIds) {
-      const got = cellTrials.get(cellKey(id, label)) ?? 0;
-      if (got !== expect.trials) {
-        violations.push(
-          reason("completeness", `policy ${policy} ("${label}") scenario "${id}": got ${got} trial(s), want ${expect.trials}`)
-        );
+    // c.1 — exact trial count per (scenario, policy, arm) cell.
+    for (const id of gridIds) {
+      for (const arm of gridArms) {
+        const got = cellTrials.get(cellKey(id, label, arm)) ?? 0;
+        if (got !== expect.trials) {
+          violations.push(
+            reason(
+              "completeness",
+              `policy ${policy} ("${label}") scenario "${id}"${armSuffix(arm)}: got ${got} trial(s), want ${expect.trials}`
+            )
+          );
+        }
       }
     }
     // c.2 — the trials in each correctly-counted cell must come from expect.trials
     // DISTINCT runs (one sweep each). Cells that already fail c.1 are c.1's to report.
     const badDistinct: { id: string; distinct: number }[] = [];
-    for (const id of suiteIds) {
-      const got = cellTrials.get(cellKey(id, label)) ?? 0;
-      if (got !== expect.trials) continue;
-      const distinct = cellBenchIds.get(cellKey(id, label))?.size ?? 0;
-      if (distinct !== expect.trials) badDistinct.push({ id, distinct });
+    for (const id of gridIds) {
+      for (const arm of gridArms) {
+        const got = cellTrials.get(cellKey(id, label, arm)) ?? 0;
+        if (got !== expect.trials) continue;
+        const distinct = cellBenchIds.get(cellKey(id, label, arm))?.size ?? 0;
+        if (distinct !== expect.trials) badDistinct.push({ id: `${id}${armSuffix(arm)}`, distinct });
+      }
     }
     if (badDistinct.length > 0) {
-      if (badDistinct.length === suiteIds.length) {
+      if (badDistinct.length === gridIds.length * gridArms.length) {
         // Holds for every scenario → aggregate to one readable line.
         const distincts = [...new Set(badDistinct.map((b) => b.distinct))].sort((a, b) => a - b).join("/");
         violations.push(
@@ -1618,10 +1853,23 @@ export function formatReport(report: VerifyReport): string {
 const USAGE =
   "Usage: pnpm verify:suite <runDir...> --suite <scenario-suite.json> " +
   "--expect-policies <A,B,B2,C,D subset> --expect-trials <n> " +
-  "[--expect-record-version <1|2>]";
+  "[--expect-record-version <1|2>] [--expect-scenarios <ids>] " +
+  "[--expect-arms <frozen,any-row>] [--expect-campaign <id>] " +
+  "[--expect-model <id>] [--expect-prices-pinned-at <date>]";
 
 /** The record format versions that exist (docs/RECORD_FORMAT.md). */
 const RECORD_VERSIONS = [1, 2] as const;
+
+/** The readiness arms that exist (docs/PROTOCOL_2B.md §Design). */
+const READINESS_MODES: readonly ReadinessMode[] = ["frozen", "any-row"];
+
+/** Split a comma-separated flag value into trimmed, non-empty tokens. */
+function csv(raw: string): string[] {
+  return raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+}
 
 function bail(message: string): never {
   console.error(message);
@@ -1642,7 +1890,19 @@ interface CliArgs {
 export function parseExpectGrid(
   policiesCsv: string,
   trialsRaw: string,
-  recordVersionRaw?: string
+  recordVersionRaw?: string,
+  /**
+   * The Phase-2B expectations, each independent and each absent by default.
+   * Passed as an object rather than more positional parameters so a caller can
+   * never silently transpose two of them.
+   */
+  phase2b: {
+    scenariosCsv?: string;
+    armsCsv?: string;
+    campaign?: string;
+    model?: string;
+    pricesPinnedAt?: string;
+  } = {}
 ): ExpectGrid {
   const tokens = policiesCsv
     .split(",")
@@ -1668,16 +1928,40 @@ export function parseExpectGrid(
   if (!Number.isInteger(trials) || trials <= 0) {
     bail(`--expect-trials must be a positive integer (got "${trialsRaw}")`);
   }
-  if (recordVersionRaw === undefined) return { policies, trials };
-  const recordVersion = /^\d+$/.test(recordVersionRaw)
-    ? Number.parseInt(recordVersionRaw, 10)
-    : Number.NaN;
-  if (!RECORD_VERSIONS.includes(recordVersion as (typeof RECORD_VERSIONS)[number])) {
-    bail(
-      `--expect-record-version must be one of ${RECORD_VERSIONS.join(", ")} (got "${recordVersionRaw}")`
-    );
+  const grid: ExpectGrid = { policies, trials };
+  if (recordVersionRaw !== undefined) {
+    const recordVersion = /^\d+$/.test(recordVersionRaw)
+      ? Number.parseInt(recordVersionRaw, 10)
+      : Number.NaN;
+    if (!RECORD_VERSIONS.includes(recordVersion as (typeof RECORD_VERSIONS)[number])) {
+      bail(
+        `--expect-record-version must be one of ${RECORD_VERSIONS.join(", ")} (got "${recordVersionRaw}")`
+      );
+    }
+    grid.recordVersion = recordVersion;
   }
-  return { policies, trials, recordVersion };
+  if (phase2b.scenariosCsv !== undefined) {
+    const scenarios = csv(phase2b.scenariosCsv);
+    if (scenarios.length === 0) bail("--expect-scenarios must list at least one scenario id");
+    const duplicate = scenarios.find((id, i) => scenarios.indexOf(id) !== i);
+    if (duplicate) bail(`--expect-scenarios lists "${duplicate}" twice`);
+    grid.scenarios = scenarios;
+  }
+  if (phase2b.armsCsv !== undefined) {
+    const arms = csv(phase2b.armsCsv);
+    if (arms.length === 0) bail(`--expect-arms must list at least one of ${READINESS_MODES.join(", ")}`);
+    for (const arm of arms) {
+      if (!READINESS_MODES.includes(arm as ReadinessMode)) {
+        bail(`--expect-arms has an unknown arm "${arm}" (valid: ${READINESS_MODES.join(", ")})`);
+      }
+      if (arms.indexOf(arm) !== arms.lastIndexOf(arm)) bail(`--expect-arms lists "${arm}" twice`);
+    }
+    grid.arms = arms as ReadinessMode[];
+  }
+  if (phase2b.campaign !== undefined) grid.campaign = phase2b.campaign;
+  if (phase2b.model !== undefined) grid.model = phase2b.model;
+  if (phase2b.pricesPinnedAt !== undefined) grid.pricesPinnedAt = phase2b.pricesPinnedAt;
+  return grid;
 }
 
 export function parseVerifyArgs(argv: string[]): CliArgs {
@@ -1686,6 +1970,11 @@ export function parseVerifyArgs(argv: string[]): CliArgs {
   let policiesCsv: string | undefined;
   let trialsRaw: string | undefined;
   let recordVersionRaw: string | undefined;
+  let scenariosCsv: string | undefined;
+  let armsCsv: string | undefined;
+  let campaign: string | undefined;
+  let model: string | undefined;
+  let pricesPinnedAt: string | undefined;
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === undefined || arg === "--") continue;
@@ -1703,6 +1992,21 @@ export function parseVerifyArgs(argv: string[]): CliArgs {
       if (recordVersionRaw === undefined) {
         bail(`--expect-record-version needs one of ${RECORD_VERSIONS.join(", ")}`);
       }
+    } else if (arg === "--expect-scenarios") {
+      scenariosCsv = argv[++i];
+      if (scenariosCsv === undefined) bail("--expect-scenarios needs a comma-separated list of scenario ids");
+    } else if (arg === "--expect-arms") {
+      armsCsv = argv[++i];
+      if (armsCsv === undefined) bail(`--expect-arms needs a comma-separated subset of ${READINESS_MODES.join(",")}`);
+    } else if (arg === "--expect-campaign") {
+      campaign = argv[++i];
+      if (!campaign) bail("--expect-campaign needs a campaign identifier");
+    } else if (arg === "--expect-model") {
+      model = argv[++i];
+      if (!model) bail("--expect-model needs a model identifier");
+    } else if (arg === "--expect-prices-pinned-at") {
+      pricesPinnedAt = argv[++i];
+      if (!pricesPinnedAt) bail("--expect-prices-pinned-at needs a date");
     } else if (!arg.startsWith("--")) {
       runDirs.push(arg);
     } else {
@@ -1713,7 +2017,13 @@ export function parseVerifyArgs(argv: string[]): CliArgs {
   if (runDirs.length === 0) bail(USAGE);
   if (policiesCsv === undefined) bail(USAGE);
   if (trialsRaw === undefined) bail(USAGE);
-  const expect = parseExpectGrid(policiesCsv, trialsRaw, recordVersionRaw);
+  const expect = parseExpectGrid(policiesCsv, trialsRaw, recordVersionRaw, {
+    ...(scenariosCsv !== undefined ? { scenariosCsv } : {}),
+    ...(armsCsv !== undefined ? { armsCsv } : {}),
+    ...(campaign !== undefined ? { campaign } : {}),
+    ...(model !== undefined ? { model } : {}),
+    ...(pricesPinnedAt !== undefined ? { pricesPinnedAt } : {})
+  });
   return { runDirs: runDirs.map((d) => path.resolve(d)), suiteFile: path.resolve(suiteFile), expect };
 }
 
