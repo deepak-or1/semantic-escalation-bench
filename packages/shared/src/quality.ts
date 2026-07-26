@@ -10,12 +10,25 @@ const MAX_PLAUSIBLE_PLAYED = 60;
 const MAX_PLAUSIBLE_GOALS = 250;
 
 /**
+ * Exactly the dataset fields `assessDataset` reads. Named so a caller holding
+ * only the GRADING INPUTS a record-version-2 trial ships (its `canonical` block:
+ * rows plus the dataset's own failures/warnings) can run the SAME validator the
+ * pipeline ran, without inventing the `meta` provenance it never had. Every
+ * NormalizedDataset satisfies this structurally, so existing callers are
+ * unaffected.
+ */
+export type AssessableDataset = Pick<
+  NormalizedDataset,
+  "teams" | "markets" | "warnings" | "failures"
+>;
+
+/**
  * Domain-layer validation, shared by both engines and the benchmark scorer.
  * Failures are hard problems that make the dataset untrustworthy (the
  * schema-violation scenario expects exactly this to fire). Warnings are soft
  * gaps the model downgrades confidence for but can work around.
  */
-export function assessDataset(dataset: NormalizedDataset): QualityAssessment {
+export function assessDataset(dataset: AssessableDataset): QualityAssessment {
   const failures: string[] = [...dataset.failures];
   const warnings: string[] = [...dataset.warnings];
 

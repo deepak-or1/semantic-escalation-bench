@@ -7,6 +7,7 @@ import {
   type FailureCategory,
   type PipelineResult,
   type StepResult,
+  type StepTraceEntry,
   type TokensUsage
 } from "@ssda/shared";
 import {
@@ -14,6 +15,7 @@ import {
   loadAgentEnvConfig,
   loadSessionState,
   PipelineStepError,
+  acquireChromeVersionFromCdp,
   requireStagehandReady,
   runPipeline,
   saveScreenshot,
@@ -243,6 +245,37 @@ async function runStagehandEngine(options: PipelineOptions): Promise<PipelineRes
   // outlives any single attempt. Entries stay one-per-firing — the same step name
   // may therefore appear once per attempt in which its guard fired.
   const deterministicFallbacks: string[] = [];
+  // Record-version-2 escalation trace (docs/RECORD_FORMAT.md). Stagehand has no
+  // cached-selector tier and therefore no escalation TRIGGER to evaluate: what it
+  // can honestly report is WHERE it spent a model call and WHERE a hand-written
+  // guard fired after a semantic act failed. Fields it cannot know
+  // (cachedSelectorMatched) are omitted, never guessed. Trial-scoped across
+  // attempts, exactly like deterministicFallbacks above.
+  const stepTrace: StepTraceEntry[] = [];
+  /**
+   * Record an LLM call site. Pure bookkeeping — no wait, no page interaction.
+   * Each entry is EXACTLY one model call, recorded at the same place the
+   * llmCalls counter increments, so Σ modelCallsAtStep reconciles against
+   * `tokens.llmCalls` even when the call itself then throws.
+   */
+  const traceLlmCall = (step: string, site: string): void => {
+    stepTrace.push({ step, modelCallsAtStep: 1, note: `llm call site: ${site}` });
+  };
+  // The browser build this trial ran against, read ONCE from CDP after init.
+  let chromeVersion: string | null = null;
+  /**
+   * Close out a step's trace entries once the step has finished:
+   * `downstreamRecovered` answers "did the step complete after a repair
+   * succeeded here?", knowable only at this point. Pure bookkeeping.
+   */
+  const settleStepTrace = (step: string, completed: boolean): void => {
+    for (const entry of stepTrace) {
+      if (entry.step !== step) continue;
+      if (entry.repairSucceeded !== true) continue;
+      if (entry.downstreamRecovered !== undefined) continue;
+      entry.downstreamRecovered = completed;
+    }
+  };
 
   const attemptFn: AttemptFn = async (attempt): Promise<AttemptOutcome> => {
     const steps: StepResult[] = [];
@@ -254,26 +287,36 @@ async function runStagehandEngine(options: PipelineOptions): Promise<PipelineRes
     let oddsRaw: { rows: ExtractedOddsRow[] } | undefined;
     let consentHandled = false;
 
+    // The step currently executing, so an LLM call site can name where it fired.
+    // Steps in this engine are strictly sequential and never nested, and every
+    // model-driven call below runs inside one, so a plain assignment in runStep is
+    // enough to attribute each call correctly.
+    let currentStep = "(pre-step)";
+
     // ── LLM call wrappers (count every model-driven call) ──────────────────
     const act = (
       instruction: string,
       opts?: Parameters<Stagehand["act"]>[1]
     ): ReturnType<Stagehand["act"]> => {
       llmCalls += 1;
+      traceLlmCall(currentStep, "act(instruction)");
       return stagehand!.act(instruction, opts);
     };
     const observe = (instruction: string): ReturnType<Stagehand["observe"]> => {
       llmCalls += 1;
+      traceLlmCall(currentStep, "observe(instruction)");
       return stagehand!.observe(instruction);
     };
     const extractStats = () => {
       llmCalls += 1;
+      traceLlmCall(currentStep, "extract(stats)");
       return stagehand!.extract(STATS_INSTRUCTION, ExtractedStatsPageSchema, {
         timeout: options.stepTimeoutMs
       });
     };
     const extractOdds = () => {
       llmCalls += 1;
+      traceLlmCall(currentStep, "extract(odds)");
       return stagehand!.extract(ODDS_INSTRUCTION, ExtractedOddsPageSchema, {
         timeout: options.stepTimeoutMs
       });
@@ -309,9 +352,11 @@ async function runStagehandEngine(options: PipelineOptions): Promise<PipelineRes
       fn: () => Promise<T>
     ): Promise<T> => {
       const startedAt = Date.now();
+      currentStep = name;
       try {
         const result = await fn();
         steps.push({ name, status: "passed", attempts: 1, durationMs: Date.now() - startedAt });
+        settleStepTrace(name, true);
         return result;
       } catch (error) {
         const category = failureCategoryFor(error, fallback);
@@ -323,6 +368,9 @@ async function runStagehandEngine(options: PipelineOptions): Promise<PipelineRes
           category,
           error: errorMessage(error)
         });
+        // Settled BEFORE the snapshot below, so the carried trace records that
+        // the step did not complete.
+        settleStepTrace(name, false);
         await capture(`failure-a${attempt}`);
         throw new AttemptFailure(
           errorMessage(error),
@@ -337,7 +385,14 @@ async function runStagehandEngine(options: PipelineOptions): Promise<PipelineRes
           // trailing deterministicRepairSteps param is left unset.)
           undefined,
           [...deterministicFallbacks],
-          { cause: error }
+          { cause: error },
+          // stagehand never runs the B2 ladder, so deterministicRepairSteps stays
+          // unset; the record-version-2 trace snapshot follows it.
+          undefined,
+          stepTrace.map((e) => ({ ...e })),
+          // The build this trial ran against, so a trial that DIES still
+          // records which browser executed it.
+          ...(chromeVersion ? [chromeVersion] : [])
         );
       }
     };
@@ -368,12 +423,31 @@ async function runStagehandEngine(options: PipelineOptions): Promise<PipelineRes
           timeout: options.stepTimeoutMs
         });
         await pollUntil(async () => !(await consentPresent(view)), 5_000);
+        // The trace entry for the guard, when one fires. Pushed before the guard
+        // runs and resolved from the SAME presence check the throw below already
+        // performs — no extra page interaction is introduced.
+        let guardTrace: StepTraceEntry | undefined;
         if (await consentPresent(view)) {
           deterministicFallbacks.push("consent");
+          // A hand-written guard is about to run because the semantic act did not
+          // clear the wall — recorded so a "full semantic" pass never silently
+          // leans on deterministic code.
+          guardTrace = {
+            step: "consent",
+            escalationTriggered: true,
+            repairAttempted: true,
+            repairSucceeded: false,
+            repairKind: "deterministic",
+            modelCallsAtStep: 0,
+            note: "semantic act did not clear the consent wall; hand-written guard fired"
+          };
+          stepTrace.push(guardTrace);
           await submitConsentForm(view);
           await pollUntil(async () => !(await consentPresent(view)), 5_000);
         }
-        if (await consentPresent(view)) {
+        const stillBlocked = await consentPresent(view);
+        if (guardTrace) guardTrace.repairSucceeded = !stillBlocked;
+        if (stillBlocked) {
           throw new PipelineStepError(
             `consent wall (${CONSENT_SELECTOR}) could not be cleared`,
             "blocked_ui",
@@ -389,6 +463,13 @@ async function runStagehandEngine(options: PipelineOptions): Promise<PipelineRes
         stagehand = new Stagehand(stagehandOptions);
         await stagehand.init();
       });
+
+      // Browser-build provenance (record version 2). Read ONCE per trial, here —
+      // OUTSIDE any runStep so no step duration absorbs it, off every page path,
+      // never per step, and null-on-any-failure so it can never fail a trial.
+      if (chromeVersion === null) {
+        chromeVersion = await acquireChromeVersionFromCdp(() => stagehand!.connectURL());
+      }
 
       if (options.session.mode === "reuse" || options.session.mode === "expired") {
         await runStep("load-session", "internal", async () => {
@@ -443,12 +524,26 @@ async function runStagehandEngine(options: PipelineOptions): Promise<PipelineRes
         await runStep("dismiss-modal", "blocked_ui", async () => {
           await act(STAGEHAND_DISMISS_MODAL_INSTRUCTION, { timeout: options.stepTimeoutMs });
           await pollUntil(async () => !(await overlayPresent(page!)), 3_000);
+          let guardTrace: StepTraceEntry | undefined;
           if (await overlayPresent(page!)) {
             deterministicFallbacks.push("dismiss-modal");
+            guardTrace = {
+              step: "dismiss-modal",
+              escalationTriggered: true,
+              repairAttempted: true,
+              repairSucceeded: false,
+              repairKind: "deterministic",
+              modelCallsAtStep: 0,
+              note: "semantic act did not dismiss the overlay; hand-written guard fired"
+            };
+            stepTrace.push(guardTrace);
             await clickOverlayDismiss(page!);
             await pollUntil(async () => !(await overlayPresent(page!)), 3_000);
           }
-          if (await overlayPresent(page!)) {
+          // Resolved from the SAME presence check the throw already performs.
+          const stillBlocked = await overlayPresent(page!);
+          if (guardTrace) guardTrace.repairSucceeded = !stillBlocked;
+          if (stillBlocked) {
             throw new PipelineStepError(
               "blocking overlay could not be dismissed",
               "blocked_ui",
@@ -460,11 +555,12 @@ async function runStagehandEngine(options: PipelineOptions): Promise<PipelineRes
 
       if (wantStats) {
         await runStep("reveal-table", "not_found", async () => {
-          let ready = await waitForContent(page!, CONTENT_POLL_MS, "stats");
+          let ready = await waitForContent(page!, CONTENT_POLL_MS, "stats", options.readinessMode);
           if (!ready) {
             const [action] = await observe(REVEAL_STANDINGS_INSTRUCTION);
             if (action) {
               llmCalls += 1;
+              traceLlmCall(currentStep, "act(observed action)");
               await stagehand!.act(action);
             } else {
               await act(STAGEHAND_REVEAL_TABLE_CLICK_INSTRUCTION, {
@@ -472,7 +568,7 @@ async function runStagehandEngine(options: PipelineOptions): Promise<PipelineRes
               });
             }
             await page!.waitForTimeout(400);
-            ready = await waitForContent(page!, CONTENT_POLL_MS, "stats");
+            ready = await waitForContent(page!, CONTENT_POLL_MS, "stats", options.readinessMode);
           }
           if (!ready) {
             throw new PipelineStepError(
@@ -535,7 +631,7 @@ async function runStagehandEngine(options: PipelineOptions): Promise<PipelineRes
         }
 
         await runStep("extract-odds", "extraction", async () => {
-          if (!(await waitForContent(page!, CONTENT_POLL_MS, "odds"))) {
+          if (!(await waitForContent(page!, CONTENT_POLL_MS, "odds", options.readinessMode))) {
             throw new PipelineStepError(
               "odds content never appeared",
               "not_found",
@@ -567,7 +663,9 @@ async function runStagehandEngine(options: PipelineOptions): Promise<PipelineRes
         tokens: await currentTokens(),
         ...(deterministicFallbacks.length > 0
           ? { deterministicFallbacks: [...deterministicFallbacks] }
-          : {})
+          : {}),
+        ...(stepTrace.length > 0 ? { stepTrace: stepTrace.map((e) => ({ ...e })) } : {}),
+        ...(chromeVersion ? { chromeVersion } : {})
       };
     } finally {
       try {

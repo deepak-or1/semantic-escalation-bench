@@ -2,10 +2,12 @@ import type {
   EngineName,
   FailureCategory,
   PipelineResult,
+  ReadinessMode,
   RepairMode,
   RunLogger,
   SessionMode,
   StepResult,
+  StepTraceEntry,
   TokensUsage
 } from "@ssda/shared";
 
@@ -43,6 +45,13 @@ export interface PipelineOptions {
   stepTimeoutMs: number;
   /** Stagehand engine only; the baseline always runs a local browser. */
   env: "local" | "browserbase";
+  /**
+   * Which readiness predicate the content poll applies (docs/PROTOCOL_2B.md
+   * §Design). Unset means `frozen` — the Phase-2A predicate, bit-identical — so
+   * every existing caller keeps its exact behaviour. The baseline engine has no
+   * content poll and ignores this.
+   */
+  readinessMode?: ReadinessMode;
   /** When set, persist the session cookies here after a successful run. */
   saveSessionStateTo?: string;
   /**
@@ -102,6 +111,20 @@ export interface AttemptOutcome {
    * runPipeline copies it into PipelineResult.deterministicFallbacks.
    */
   deterministicFallbacks?: string[];
+  /**
+   * Per-step escalation trace (record version 2, docs/RECORD_FORMAT.md).
+   * Trial-scoped across attempts exactly like healedSteps, so a trigger evaluated
+   * on a losing attempt is still recorded; runPipeline copies it into
+   * PipelineResult.stepTrace. Pure bookkeeping — recording it never changes what
+   * the engine does.
+   */
+  stepTrace?: StepTraceEntry[];
+  /**
+   * The browser build this attempt ran against, when the engine can read it from
+   * its own browser instance for free (Playwright's `browser.version()`).
+   * Stagehand-backed engines drive Chrome over CDP and leave it unset.
+   */
+  chromeVersion?: string;
 }
 
 /** Thrown by engines when an attempt dies mid-flight. Carries what happened. */
@@ -134,7 +157,24 @@ export class AttemptFailure extends Error {
      * with `options` as its final positional argument and is out of scope for this
      * change, so a new param before `options` would shift its call.
      */
-    readonly deterministicRepairSteps?: string[]
+    readonly deterministicRepairSteps?: string[],
+    /**
+     * Trial-scoped escalation trace so far this trial (record version 2). Carried
+     * on the failure so a trial whose trigger evaluations happened on a losing
+     * attempt still ships them. Appended LAST for the same reason
+     * `deterministicRepairSteps` was: every existing positional call site stays
+     * unchanged.
+     */
+    readonly stepTrace?: StepTraceEntry[],
+    /**
+     * The browser build this attempt ran against, carried on the failure so a
+     * trial that DIES still records which browser executed it. Without this the
+     * version is attached only to a completed attempt's outcome, and every
+     * trial whose attempts all threw records `chromeVersion: null` — the
+     * diagnosed cause of the gate-1 smoke's nulls. Appended LAST for the same
+     * reason `stepTrace` was: every existing positional call site is unchanged.
+     */
+    readonly chromeVersion?: string
   ) {
     super(message, options);
     this.name = "AttemptFailure";

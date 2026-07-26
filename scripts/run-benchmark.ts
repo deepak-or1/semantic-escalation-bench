@@ -8,6 +8,9 @@
  *   pnpm bench -- --scenario-suite data/phase2a/scenario-suite.json  # held-out suite (§5 item 4)
  *   pnpm bench -- --scenario-suite <suite.json> --only f2-l1-a,f2-l1-b  # reproduce single cells
  *   pnpm bench -- --engines hybrid --no-repair            # policy B (== --repair-mode off)
+ *   pnpm bench -- --require-chrome-version                # abort unless every trial records a browser build
+ *   pnpm bench -- --readiness-mode any-row                # Phase-2B arm R (default: frozen == Phase 2A)
+ *   pnpm bench -- --campaign-protocol-id phase2b-ablation-v1
  *   pnpm bench -- --engines hybrid --repair-mode deterministic  # policy B2 (deterministic ladder)
  *   pnpm bench -- --engines hybrid --repair-mode llm      # policy C (default; key-gated LLM repair)
  *   pnpm bench -- --seed-cache-manifest heals.json --purpose persistence
@@ -49,6 +52,7 @@ import {
   scenarioById,
   suiteScenarioToSpec,
   type EngineName,
+  type ReadinessMode,
   type RepairMode,
   type RunPurpose,
   type ScenarioSpec
@@ -57,6 +61,8 @@ import { loadAndVerifySeedCacheManifest, runBenchmark, validateRunPurpose } from
 
 const RUN_PURPOSES = ["smoke", "cold", "persistence", "warm"] as const;
 const REPAIR_MODES = ["off", "deterministic", "llm"] as const;
+/** The two Phase-2B arms (docs/PROTOCOL_2B.md §Design); "frozen" is the default. */
+const READINESS_MODES = ["frozen", "any-row"] as const;
 
 export interface CliArgs {
   engines: EngineName[];
@@ -70,6 +76,23 @@ export interface CliArgs {
    * --no-repair is the frozen alias of --repair-mode off; passing both is an error.
    */
   repairMode: RepairMode;
+  /**
+   * Refuse to produce evidence unless EVERY trial records a browser build
+   * (--require-chrome-version, default off). Record version 2 legally allows a
+   * null build, so this is opt-in; Phase 2B requires non-null per-trial values
+   * and per-policy uniformity, so its driver always sets it.
+   */
+  requireChromeVersion: boolean;
+  /**
+   * The ablation ARM (--readiness-mode, default "frozen"). "frozen" is the
+   * Phase-2A predicate bit-for-bit; "any-row" is ready at one visible row/card.
+   */
+  readinessMode: ReadinessMode;
+  /**
+   * Which campaign this run belongs to (--campaign-protocol-id). No default and
+   * never invented — absent flag means the record carries no such key.
+   */
+  campaignProtocolId?: string;
   /** Warm-start the hybrid cache from a healed-cache.json artifact (--seed-cache). */
   seedCacheFile?: string;
   /** Per-scenario warm-cache manifest (--seed-cache-manifest). */
@@ -103,6 +126,9 @@ export function parseArgs(argv: string[]): CliArgs {
   let scenarioSuiteFile: string | undefined;
   let onlyIds: string[] | undefined;
   let headless = true;
+  let requireChromeVersion = false;
+  let readinessMode: ReadinessMode = "frozen";
+  let campaignProtocolId: string | undefined;
   let labUrl: string | undefined;
   let noRepair = false;
   let repairMode: RepairMode | undefined;
@@ -146,6 +172,17 @@ export function parseArgs(argv: string[]): CliArgs {
       onlyIds = ids;
     } else if (arg === "--headed") {
       headless = false;
+    } else if (arg === "--require-chrome-version") {
+      requireChromeVersion = true;
+    } else if (arg === "--readiness-mode") {
+      const raw = argv[++i];
+      if (!raw || !(READINESS_MODES as readonly string[]).includes(raw)) {
+        bail(`--readiness-mode must be one of: ${READINESS_MODES.join(", ")}`);
+      }
+      readinessMode = raw as ReadinessMode;
+    } else if (arg === "--campaign-protocol-id") {
+      campaignProtocolId = argv[++i];
+      if (!campaignProtocolId) bail("--campaign-protocol-id needs a campaign identifier");
     } else if (arg === "--no-repair") {
       noRepair = true;
     } else if (arg === "--repair-mode") {
@@ -264,6 +301,9 @@ export function parseArgs(argv: string[]): CliArgs {
     trials,
     scenarios,
     headless,
+    requireChromeVersion,
+    readinessMode,
+    ...(campaignProtocolId ? { campaignProtocolId } : {}),
     ...(labUrl ? { labUrl } : {}),
     repairMode: resolvedRepairMode,
     ...(seedCacheFile ? { seedCacheFile } : {}),
@@ -348,6 +388,9 @@ async function main(): Promise<void> {
       scenarios: args.scenarios,
       trialsPerScenario: args.trials,
       headless: args.headless,
+      requireChromeVersion: args.requireChromeVersion,
+      readinessMode: args.readinessMode,
+      ...(args.campaignProtocolId ? { campaignProtocolId: args.campaignProtocolId } : {}),
       benchDir: dir,
       benchId: runId,
       runPurpose: args.purpose,

@@ -9,8 +9,21 @@ The short list of reasons to read the headline numbers with care; [docs/WRITEUP.
 1. **The baseline's author knew the scenario catalog.** Its brittleness is *representative*, not naive — positional and id-anchored selectors are exactly what production scrapers ship, and [docs/EVIDENCE.md](EVIDENCE.md) documents how common that is — but the 18/24 pass count is a property of *this scenario mix*, not of the world. The survival and compound groups exist to blunt that (they reprise the same breaks in harder, co-occurring, drifting forms rather than adding easy wins).
 2. **Single trial per scenario in the keyless table.** The two deterministic engines have minimal variance by construction (the hybrid proves it: `llmCalls = 0`), so one trial characterises them. LLM-path variance was measured in the keyed campaign at five sweeps per cold configuration: judged outcomes and call counts did not vary across sweeps on this suite, while token counts and latency varied run to run ([PHASE1_RESULTS.md](PHASE1_RESULTS.md)). N=5 bounds what that repetition can detect.
 3. **The Stagehand column in the keyless table is `skipped`, never faked.** Its measured result comes from the keyed campaign: 120/120 judged-correct across five sweeps, $0.0312 of model inference per success ([PHASE1_RESULTS.md](PHASE1_RESULTS.md)).
-4. **The lab is synthetic.** Its chaos is modelled on documented real-world failure modes (each mapped to a live source in [docs/EVIDENCE.md](EVIDENCE.md)), but it is not a live site — no real auth, rate limits, or adversary.
-5. **The keyed suite has a ceiling.** In the keyed campaign every keyed policy passed every scenario — the suite contains no case that defeats the hybrid's repair path, so "matched on this frozen suite" cannot separate the keyed policies on robustness, only on cost. That is a disclosed limitation motivating the Phase-2A follow-up, and the reason no keyed result here should be read as "equivalent in general."
+4. **The lab is synthetic.** Its three drift modes are modelled on documented real-world failure modes (mapped to live sources in [docs/EVIDENCE.md](EVIDENCE.md)) and its remaining chaos flags model familiar mechanical obstacles without individual citations, but it is not a live site — no real auth, rate limits, or adversary.
+5. **The keyed suite has a ceiling.** In the keyed campaign every keyed policy passed every scenario — the suite contains no case that defeats the hybrid's repair path, so "matched on this frozen suite" cannot separate the keyed policies on robustness, only on cost. That was the disclosed limitation that motivated Phase 2A — which has since run (see [Phase 2A](#phase-2a) below and [PHASE2A_RESULTS.md](PHASE2A_RESULTS.md)) — and the reason no keyed result here should be read as "equivalent in general."
+
+## Phase 2A
+
+The held-out Phase-2A campaign has its own caveats, treated fully in [PHASE2A_RESULTS.md](PHASE2A_RESULTS.md) §Scope and limitations:
+
+- **Five of the 32 scenarios were decided by the shared readiness predicate**, not by addressing policy — disclosed as the campaign's headline finding, and the reason the scoreboard reads alongside the descriptive excluding-gate cut (B2 17 < C 20 < D 27, of 27).
+- **The keyed grid is a single post-incident replacement**: the aborted first attempt is preserved in `evidence/phase2a/states/` and never pooled.
+- **32 scenarios probe chosen axes, not a population**, authored by one external reviewer inside a frozen perturbation grammar.
+- **One model, the cheapest tier** (`anthropic/claude-haiku-4-5`): nothing measures whether a stronger tier moves the decoy or gate cells.
+- **D's 27/27 outside the gate cluster is a ceiling reading** — this suite cannot rank anything stronger than D or bound D's remaining failure modes.
+- **The decoy and small-page axes are constructed diagnostic probes**, not incidents observed in the wild ([EVIDENCE.md](EVIDENCE.md) grounds the three drift modes only).
+- **Costs are provider-reported tokens × pinned prices**, never reconciled against a bill.
+- **Browser runtime is part of the policy bundle.** Policy A ran on Playwright's bundled Chromium while B/B2/C/D drove the installed system Chrome (measured builds: 149.x vs 150.x). Browser build is therefore not controlled across policy families — one more reason comparisons involving A or D are policy-bundle comparisons. The Phase-2B causal comparison is within-policy, where the browser is held fixed across readiness arms.
 
 ## Benchmark scope
 
@@ -23,7 +36,7 @@ The short list of reasons to read the headline numbers with care; [docs/WRITEUP.
 
 - **The keyed campaign ran under a frozen protocol; `runs/latest` stays keyless.** The Stagehand engine was exercised end-to-end in the 2026-07-20 campaign ([PHASE1_RESULTS.md](PHASE1_RESULTS.md)): the frozen login `act` phrasing worked as written, and extraction under heavy drift (class + copy + layout at once) was judged correct in all five sweeps of `site-v3` — on this frozen suite. The `runs/latest` numbers remain **keyless — baseline and hybrid only**; on a keyless machine the benchmark still reports Stagehand as `skipped` and the `stagehand-live` integration test auto-skips.
 - **No live Browserbase run.** Same reason — no `BROWSERBASE_*` keys. The Browserbase path (including the persistent-context `persist: true` param) is written to the SDK's types but untested live.
-- **Token cost is real and unbounded here.** Each Stagehand run makes several model calls (login acts, reveal observe/act, two extracts, plus pagination acts). Cost scales with pages, retries, and model choice; there is no budget cap or cost gate in the runner today (token usage is *recorded*, not *limited*).
+- **Token cost is real and unbounded here.** Each Stagehand run makes several model calls (login acts, reveal observe/act, two extracts, plus pagination acts). Cost scales with pages, retries, and model choice; the per-run agent and benchmark runners enforce no ceiling (token usage is *recorded*, not *limited*). The Phase-2A campaign driver is the exception: it prices every trial and halts at a frozen $39.90 recorded-spend threshold (PROTOCOL_2A §7).
 - **Model non-determinism.** Two identical Stagehand runs can extract slightly differently or phrase an action differently. That's inherent to the approach; it's why trial counts matter and why the domain-validation layer exists as a deterministic backstop.
 
 ## Hybrid side
@@ -52,6 +65,6 @@ This is a portfolio demonstration of the *approach*. To run it for real you woul
 
 - **Context pools and Browserbase per-user contexts + stealth** — real auth persistence per account, warmed contexts, and the anti-detection posture the synthetic lab deliberately omits.
 - **Live-site adapters** — a real site is a moving target with its own auth, pagination, and legal constraints; each source needs its own adapter and its own ToS/robots review. Nothing here should be pointed at a real book without that.
-- **Cost tracking and budget gates** — per-run and per-day token/cost ceilings, model-tier routing, and alerting; today cost is recorded but never enforced.
+- **Cost tracking and budget gates** — per-run and per-day token/cost ceilings, model-tier routing, and alerting; today cost is recorded everywhere but enforced only by the Phase-2A campaign driver's frozen stop-threshold.
 - **CI benchmark gating** — run the benchmark on every change and fail the build on a reliability regression (a scenario that flips PASS→FAIL, or accuracy dropping below a floor), so robustness is defended automatically rather than checked by hand.
 - **More trials and statistical treatment** — enough trials per scenario to report LLM success as a rate with a confidence interval, not a single sample.

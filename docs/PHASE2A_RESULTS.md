@@ -11,14 +11,20 @@ Everything below is computed from the per-run records preserved in
 [`evidence/phase2a/`](../evidence/phase2a/README.md) and follows the
 metrics and language rules frozen in advance in
 [PROTOCOL_2A.md §9](PROTOCOL_2A.md). Design, policy ladder, freeze
-lineage, and gates: [PROTOCOL_2A.md](PROTOCOL_2A.md). Uniform stamps
+lineage, and gates: [PROTOCOL_2A.md](PROTOCOL_2A.md) — its `DRAFT`
+status header is part of the stage-1 frozen bytes; the document became
+binding at `phase2a-policy-freeze-v3` and complete at
+`phase2a-suite-freeze-v1` (see [CORRECTIONS.md](CORRECTIONS.md)).
+Uniform stamps
 across all 25 runs: execution commit `867723c`, gitDirty `false`, suite
 frozen at tag `phase2a-suite-freeze-v1`, Phase-1 `promptsHash` unchanged.
 
 The design in one sentence: five frozen addressing policies — A hardcoded
 selectors, B structural addressing, B2 + deterministic repair, C + LLM
 repair on failure, D full semantic execution — ran against 32 held-out
-scenarios authored by an external reviewer (GPT-5.6 "sol") *after* the
+scenarios authored by an external reviewer (GPT-5.6 "sol"; the model
+identity is operator-attested — the artifacts prove the suite's bytes,
+hash, and timing) *after* the
 policy freeze, with per-cell predictions registered before any trial.
 
 ## Determinism
@@ -63,10 +69,13 @@ wrong content alongside the real content):
 | D | 2 | 2 | 2 | 2 | none observed |
 
 C's six failing decoy cells recorded **zero LLM calls in all five
-sweeps**: the cached action appears to succeed, extraction returns
-plausible wrong rows (e.g. `f2-decoy-l1-a` grades 0.71 where 1.00 is
-required), and the repair trigger — which fires on *failure* — never
-fires. Repair-on-failure is trigger-blind to failures that don't look
+sweeps**. On the L1 cells the cached action appears to succeed and
+extraction silently stops after page 1 — 5 of 12 rows, every extracted
+field correct (`f2-decoy-l1-a` grades 0.71 *overall* where 1.00 is
+required); the L2/L3 cells fail loudly (`not_found`, `auth`). Either
+way the repair trigger — which fires only when a cached selector stops
+matching — never fires, because every decoy carries the id the cache
+expects. Repair-on-failure is trigger-blind to failures that don't look
 like failures. Only D, which pays for semantics on every step, separates
 real from decoy content here.
 
@@ -136,19 +145,24 @@ behind a reveal control, and each fails in its own idiom, every sweep:
 - **A** — never consults the heuristic (it waits for any row and walks
   the pager): passes all four pure small-page cells.
 
-One hard-coded harness assumption sits upstream of every semantic
-capability and defeats all of them at once; model inference cannot buy
-the answer because the failure happens before the model is allowed to
-see the page. Removing the five gate-blocked columns as a descriptive
+One hard-coded assumption in the policies' shared pipeline core sits
+upstream of every semantic capability and defeats all of them at once;
+model inference cannot buy the answer because the failure happens
+before extraction ever runs. Removing the five gate-blocked columns as a descriptive
 cut (not a registered metric), the remainder orders B2 17/27 < C 20/27
 < D 27/27: on the 27 cells the gate doesn't poison, full semantic
 execution passed everything it was asked on this held-out grid.
 
 ## Cost (model-inference cost only, per §9)
 
-A, B, and B2 ran at **zero model-inference cost** (machine-verified:
-every keyless trial records `llmCalls: 0`). Keyed, averaged over five
-sweeps each:
+All model inference is `anthropic/claude-haiku-4-5`, priced from
+provider-reported tokens at the table pinned 2026-07-14 in
+`packages/agent/src/reliability/prices.ts` ($1 in / $5 out per MTok).
+A, B, and B2 ran at **zero model-inference cost**, machine-verified:
+B and B2 record `llmCalls: 0` on every trial; A is a baseline engine
+with no model configured (`tokens: null` on every trial); and the
+keyless campaign ledger prices all 15 sweeps at $0. Keyed, averaged
+over five sweeps each:
 
 | | Per 32-scenario sweep | Per successful workflow | LLM calls / sweep |
 | --- | ---: | ---: | ---: |

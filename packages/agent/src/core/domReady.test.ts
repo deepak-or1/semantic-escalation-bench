@@ -1,12 +1,113 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { waitForContent, type DomReadyPage } from "./domReady";
+import { readinessThresholds, waitForContent, type DomReadyPage } from "./domReady";
 
 /**
- * The readiness poll runs inside the browser, so these tests supply (a) a page
- * whose `evaluate` runs the serialised function locally and (b) a `document`
- * stub covering only the four DOM calls that function makes. That exercises the
- * real predicates and the real poll loop without a browser.
+ * Two suites over the shared readiness poll.
+ *
+ * The first pins the ARM switch (docs/PROTOCOL_2B.md §Design). The arms differ
+ * in EXACTLY one thing — the row/card counts that mean "ready" — so that is
+ * what these tests pin, from both directions:
+ *
+ *  · `frozen` must remain the Phase-2A predicate bit-for-bit. If these numbers
+ *    move, Arm F stops being a replication control and the whole ablation loses
+ *    its baseline.
+ *  · `any-row` must be ready at ONE row or card, with every other property of
+ *    the poll — structure-awareness (requireHeading), the caller's timeout —
+ *    untouched, so the ablation isolates a single variable.
+ *
+ * The second exercises the in-browser poll function itself: the page's
+ * `evaluate` runs the serialised function locally against a `document` stub
+ * covering only the DOM calls that function makes, so the real predicates and
+ * the real poll loop run without a browser.
  */
+
+/** A page that records the argument `waitForContent` serialises into the browser. */
+function capturingPage(): { page: DomReadyPage; args: Record<string, unknown>[] } {
+  const args: Record<string, unknown>[] = [];
+  const page: DomReadyPage = {
+    evaluate: async <R, Arg>(_fn: string | ((arg: Arg) => R | Promise<R>), arg?: Arg) => {
+      args.push(arg as Record<string, unknown>);
+      return true as R;
+    }
+  };
+  return { page, args };
+}
+
+describe("readinessThresholds — frozen is Phase 2A, bit-for-bit", () => {
+  it("stats: >= 5 rows or >= 8 cards, heading required", () => {
+    expect(readinessThresholds("stats", "frozen")).toEqual({
+      minRows: 5,
+      requireHeading: true,
+      minCards: 8
+    });
+  });
+
+  it("odds: >= 4 rows or >= 4 cards, no heading required", () => {
+    expect(readinessThresholds("odds", "frozen")).toEqual({
+      minRows: 4,
+      requireHeading: false,
+      minCards: 4
+    });
+  });
+
+  it("frozen is the DEFAULT — an omitted arm is the Phase-2A predicate", () => {
+    expect(readinessThresholds("stats")).toEqual(readinessThresholds("stats", "frozen"));
+    expect(readinessThresholds("odds")).toEqual(readinessThresholds("odds", "frozen"));
+  });
+});
+
+describe("readinessThresholds — any-row is ready at one row or card", () => {
+  it("stats: >= 1 row or >= 1 card", () => {
+    expect(readinessThresholds("stats", "any-row")).toEqual({
+      minRows: 1,
+      requireHeading: true,
+      minCards: 1
+    });
+  });
+
+  it("odds: >= 1 row or >= 1 card", () => {
+    expect(readinessThresholds("odds", "any-row")).toEqual({
+      minRows: 1,
+      requireHeading: false,
+      minCards: 1
+    });
+  });
+
+  it("changes ONLY the counts: structure-awareness is a property of the content mode, not the arm", () => {
+    for (const mode of ["stats", "odds"] as const) {
+      expect(readinessThresholds(mode, "any-row").requireHeading).toBe(
+        readinessThresholds(mode, "frozen").requireHeading
+      );
+    }
+  });
+});
+
+describe("waitForContent passes the arm's thresholds into the page", () => {
+  it("omitting the arm sends the frozen thresholds — every existing call site is unchanged", async () => {
+    const { page, args } = capturingPage();
+    await waitForContent(page, 8_000, "stats");
+    expect(args[0]).toEqual({ minRows: 5, requireHeading: true, minCards: 8, timeoutMs: 8_000 });
+  });
+
+  it("any-row sends the relaxed thresholds and the caller's timeout untouched", async () => {
+    const { page, args } = capturingPage();
+    await waitForContent(page, 8_000, "stats", "any-row");
+    expect(args[0]).toEqual({ minRows: 1, requireHeading: true, minCards: 1, timeoutMs: 8_000 });
+    await waitForContent(page, 3_000, "odds", "any-row");
+    expect(args[1]).toEqual({ minRows: 1, requireHeading: false, minCards: 1, timeoutMs: 3_000 });
+  });
+
+  it("still never throws — a page whose evaluate rejects reads as not-ready", async () => {
+    const page: DomReadyPage = {
+      evaluate: async () => {
+        throw new Error("execution context destroyed");
+      }
+    };
+    await expect(waitForContent(page, 100, "stats", "any-row")).resolves.toBe(false);
+  });
+});
+
+// ── In-browser poll behaviour (frozen arm) ──────────────────────────────────
 
 interface FakeElement {
   getClientRects(): unknown[];
@@ -60,27 +161,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("waitForContent", () => {
-  it("passes mode-specific thresholds and the timeout into the page", async () => {
-    const args: unknown[] = [];
-    const page: DomReadyPage = {
-      evaluate: async <R, Arg>(
-        _pageFunction: string | ((arg: Arg) => R | Promise<R>),
-        arg?: Arg
-      ): Promise<R> => {
-        args.push(arg);
-        return true as unknown as R;
-      }
-    };
-
-    expect(await waitForContent(page, 1234, "stats")).toBe(true);
-    expect(await waitForContent(page, 1234, "odds")).toBe(true);
-    expect(args).toEqual([
-      { minRows: 5, requireHeading: true, minCards: 8, timeoutMs: 1234 },
-      { minRows: 4, requireHeading: false, minCards: 4, timeoutMs: 1234 }
-    ]);
-  });
-
+describe("waitForContent — poll behaviour under the frozen predicate", () => {
   it("is ready as soon as a visible table has enough body rows", async () => {
     stubDocument({ tables: () => [table(5)] });
     expect(await waitForContent(domPage, 1000, "stats")).toBe(true);
@@ -89,7 +170,7 @@ describe("waitForContent", () => {
   // Pins the frozen readiness floor: a genuinely loaded three-row table never
   // counts as ready in stats mode. This is the behaviour behind the
   // readiness-gate finding in docs/PHASE2A_RESULTS.md — the pin documents it,
-  // it doesn't endorse it.
+  // it doesn't endorse it (the any-row arm above is Phase 2B's ablation of it).
   it("stats mode never reports ready for a valid table below five rows", async () => {
     vi.useFakeTimers();
     stubDocument({ tables: () => [table(3)] });
@@ -129,14 +210,5 @@ describe("waitForContent", () => {
     tables = [table(4)];
     await vi.advanceTimersByTimeAsync(300);
     expect(await pending).toBe(true);
-  });
-
-  it("returns false instead of throwing when the page evaluation fails", async () => {
-    const page: DomReadyPage = {
-      evaluate: async () => {
-        throw new Error("Execution context was destroyed");
-      }
-    };
-    expect(await waitForContent(page, 100, "stats")).toBe(false);
   });
 });

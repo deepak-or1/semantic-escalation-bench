@@ -71,7 +71,16 @@ function stubVerify(report: VerifyReport): {
   return { fn, calls };
 }
 
-const OK_REPORT: VerifyReport = { ok: true, violations: [], predictions: [], notes: [] };
+/** No records: the gate never inspects the provenance tally, only ok/violations. */
+const NO_RECORDS = { total: 0, recomputed: 0, v2NoRows: 0, attestedV1: 0 };
+
+const OK_REPORT: VerifyReport = {
+  ok: true,
+  violations: [],
+  predictions: [],
+  notes: [],
+  records: NO_RECORDS
+};
 
 /** Stub reader used when the read itself is not under test (one VerifyInput per dir). */
 const passReader = (dir: string): VerifyInput => ({ source: dir, raw: {} });
@@ -141,7 +150,8 @@ describe("keyedPhaseGate (§8 gate 3)", () => {
         { check: "grading", message: "SECOND-VIOLATION recorded outcome mismatch" }
       ],
       predictions: [],
-      notes: []
+      notes: [],
+      records: NO_RECORDS
     };
     const { fn } = stubVerify(failReport);
     expect(() => keyedPhaseGate(state, suite, passReader, fn)).toThrow(/FIRST-VIOLATION policy A got 1 trial want 5/);

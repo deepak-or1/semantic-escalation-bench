@@ -196,8 +196,8 @@ results live in [PHASE1_RESULTS.md](PHASE1_RESULTS.md).
 | Engine | Judged pass | Task success | Extraction | Validation | Mean accuracy | Mean duration | Retries | Recovery | LLM calls |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | stagehand | skipped | — | — | — | — | — | — | — | — |
-| baseline | 18/24 | 75.0% | 83.3% | 70.8% | 95.42% | 4.51s | 4 | 0/4 | n/a |
-| hybrid (deterministic tier) | 20/24 | 83.3% | 83.3% | 79.2% | 99.79% | 4.12s | 4 | 0/4 | 0 |
+| baseline | 18/24 | 75.0% | 83.3% | 70.8% | 95.42% | 4.52s | 4 | 0/4 | n/a |
+| hybrid (deterministic tier) | 20/24 | 83.3% | 83.3% | 79.2% | 99.79% | 4.18s | 4 | 0/4 | 0 |
 
 The **baseline** passes 18/24 and fails exactly where a static scraper
 is expected to: `class-drift` (its `#login-form` hook matches nothing,
@@ -230,8 +230,8 @@ inference per successful workflow. The full accounting is in
 built-in silent LLM fallback, so the deterministic tier is provably
 deterministic. Retry never healed a drift failure (0/4 recovery on both
 engines: deterministic breakage reproduces on the next attempt). The
-baseline burned 42.5s on `layout-variant` exhausting wait budgets
-before dying; the hybrid failed fast (4.2s) because its readiness poll
+baseline burned 42.6s on `layout-variant` exhausting wait budgets
+before dying; the hybrid failed fast (4.5s) because its readiness poll
 is structure-aware.
 
 **Survival curve (keyless tier):** the baseline survives through
