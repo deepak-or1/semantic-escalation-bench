@@ -71,9 +71,11 @@ accuracy; the engines only ever see `/login`, `/stats`, `/odds`.
 
 ## Why these failure modes are real
 
-Each chaos mode is modeled on a documented real-world failure, and
-[EVIDENCE.md](./EVIDENCE.md) carries 28 citations whose quotes were re-fetched
-from the live sources and machine-verified. Three anchors:
+The lab's three drift modes are modeled on documented real-world
+failures, and [EVIDENCE.md](./EVIDENCE.md) carries 28 citations whose
+quotes were re-fetched from the live sources and machine-verified; the
+remaining chaos flags model familiar mechanical obstacles that are not
+individually cited. Three anchors:
 
 - **Class drift** is not an edge case; it is how modern frontends ship.
   styled-components' own FAQ says its dynamic class "will be different for
@@ -177,8 +179,8 @@ Stagehand and the hybrid's repair path is reported separately in
 
 | Engine | Judged pass | Task success | Extraction | Validation | Mean accuracy | Mean duration | Recovery | LLM calls |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| baseline (positional) | 18/24 | 75.0% | 83.3% | 70.8% | 95.42% | 4.51s | 0/4 | n/a |
-| hybrid — **deterministic tier** (cache + header names) | 20/24 | **83.3%** | 83.3% | 79.2% | **99.79%** | 4.12s | 0/4 | **0** |
+| baseline (positional) | 18/24 | 75.0% | 83.3% | 70.8% | 95.42% | 4.52s | 0/4 | n/a |
+| hybrid — **deterministic tier** (cache + header names) | 20/24 | **83.3%** | 83.3% | 79.2% | **99.79%** | 4.18s | 0/4 | **0** |
 | stagehand (semantic) | — | *skipped: no model key* | | | | | | |
 
 To say it precisely: **the hybrid's deterministic tier passed 20/24 without
@@ -218,9 +220,9 @@ The failure sets are the story:
 - **Retries never healed drift**: 0/4 recovery across both engines.
   Deterministic breakage does not fix itself on retry; it needs either a
   human or a repair layer.
-- One incidental but honest observation: the baseline burned 42.5s of wait
+- One incidental but honest observation: the baseline burned 42.6s of wait
   budget dying on the layout variant; the hybrid's structure-aware readiness
-  poll failed the same scenario in 4.2s. Even *failing* is cheaper with
+  poll failed the same scenario in 4.5s. Even *failing* is cheaper with
   structural awareness.
 
 The hybrid's per-scenario outcomes matched the prediction table written in

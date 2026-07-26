@@ -225,8 +225,9 @@ Not supported (and not claimed):
    follow-up (a predefined perturbation-intensity ladder with held-out seeds)
    exists to locate each policy's breaking frontier.
 2. **Same-author suite.** Scenarios, lab, and engines were built together.
-   Mitigations: every failure mode is anchored to documented external
-   incidents ([EVIDENCE.md](EVIDENCE.md)); seeds and scenarios were frozen
+   Mitigations: the three drift failure modes are anchored to documented
+   external evidence ([EVIDENCE.md](EVIDENCE.md)), while the mechanical
+   obstacle modes are uncited by design; seeds and scenarios were frozen
    before keyed results existed; a pre-implementation prediction table for
    the keyless tier matched 24/24. Residual risk is real: scenario *selection*
    could still favor the implemented policies. Known omission: split/merged

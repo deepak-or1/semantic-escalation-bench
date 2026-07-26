@@ -8,6 +8,7 @@ import {
   type PipelineResult,
   type RepairMode,
   type StepResult,
+  type StepTraceEntry,
   type TokensUsage
 } from "@ssda/shared";
 import {
@@ -15,6 +16,7 @@ import {
   loadAgentEnvConfig,
   loadSessionState,
   PipelineStepError,
+  acquireChromeVersionFromCdp,
   runPipeline,
   saveScreenshot,
   saveSessionState,
@@ -236,6 +238,38 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
   // B2 records successful deterministic repairs here (PROTOCOL_2A §2), trial-scoped
   // across attempts exactly like healedSteps. B2 NEVER writes healedSteps.
   const deterministicRepairSteps = new Set<string>();
+  // Record-version-2 escalation trace (docs/RECORD_FORMAT.md): the hybrid engine
+  // is the one engine that OWNS an escalation decision, so it records the full
+  // trigger evaluation — cached-selector match, readiness-poll outcome, whether
+  // the trigger fired, whether a repair was ATTEMPTED, whether it SUCCEEDED, of
+  // which kind, what it cost in model calls, and whether the step then completed.
+  // Trial-scoped across attempts exactly like healedSteps. Every push below is
+  // pure bookkeeping: no new wait, no reordering, no page interaction.
+  const stepTrace: StepTraceEntry[] = [];
+  // Whether a repair path exists at all under this RUN's dispatch is decided by
+  // `deterministic` / `canRepair` at each trigger below: the B2 ladder is always
+  // available in deterministic mode, the LLM path only in llm mode with a key.
+  // "off" and keyless can never attempt one — which is why a fired trigger with
+  // `repairAttempted: false` is the honest keyless record, not a missing
+  // observation, and why no separate "eligible" flag is recorded: eligibility is
+  // exactly "was a repair attempted, given the trigger fired".
+  // The browser build this trial ran against, read ONCE from CDP after init and
+  // reused across attempts (metadata only; never on a page path).
+  let chromeVersion: string | null = null;
+  /**
+   * Close out a step's trace entries once the enclosing step has finished:
+   * `downstreamRecovered` answers "did the step complete after a repair
+   * succeeded here?", which is only knowable at this point. Entries with no
+   * successful repair say nothing. Pure bookkeeping.
+   */
+  const settleStepTrace = (step: string, completed: boolean): void => {
+    for (const entry of stepTrace) {
+      if (entry.step !== step) continue;
+      if (entry.repairSucceeded !== true) continue;
+      if (entry.downstreamRecovered !== undefined) continue;
+      entry.downstreamRecovered = completed;
+    }
+  };
 
   const attemptFn: AttemptFn = async (attempt): Promise<AttemptOutcome> => {
     const steps: StepResult[] = [];
@@ -287,6 +321,7 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
       try {
         const result = await fn();
         steps.push({ name, status: "passed", attempts: 1, durationMs: Date.now() - startedAt });
+        settleStepTrace(name, true);
         return result;
       } catch (error) {
         const category = failureCategoryFor(error, fallback);
@@ -298,6 +333,9 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
           category,
           error: errorMessage(error)
         });
+        // Settle BEFORE the snapshot below, so the carried trace records that the
+        // step did not complete.
+        settleStepTrace(name, false);
         await capture(`failure-a${attempt}`);
         throw new AttemptFailure(
           errorMessage(error),
@@ -312,7 +350,13 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
           [...healedSteps],
           undefined,
           { cause: error },
-          [...deterministicRepairSteps]
+          [...deterministicRepairSteps],
+          // Record-version-2 trace snapshot, so triggers evaluated on a losing
+          // attempt are still shipped with the trial.
+          stepTrace.map((e) => ({ ...e })),
+          // The build this trial ran against, so a trial that DIES still
+          // records which browser executed it.
+          ...(chromeVersion ? [chromeVersion] : [])
         );
       }
     };
@@ -344,14 +388,36 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
       placeholder?: string;
     }): Promise<void> => {
       const cached = cache.action(params.key);
-      if (await tryAct(cached, params.actOptions)) return;
+      // ONE trace entry per trigger evaluation, pushed BEFORE the decision and
+      // mutated in place as it resolves — so the branches that throw are recorded
+      // exactly like the ones that return.
+      const trace: StepTraceEntry = {
+        step: params.step,
+        cachedSelectorMatched: false,
+        escalationTriggered: false,
+        repairAttempted: false,
+        repairSucceeded: false,
+        repairKind: null,
+        modelCallsAtStep: 0
+      };
+      stepTrace.push(trace);
+      if (await tryAct(cached, params.actOptions)) {
+        trace.cachedSelectorMatched = true;
+        return;
+      }
+      // The cached selector missed: THIS is the escalation trigger firing. What
+      // happens next depends on whether a repair path exists at all.
+      trace.escalationTriggered = true;
 
       if (deterministic) {
+        trace.repairAttempted = true;
+        trace.repairKind = "deterministic";
         // B2 (§2): re-locate the control deterministically (NO model call), heal
         // the in-memory cache, and replay through the SAME credential-safe Stagehand
         // path. reveal-table is diverted to its own ladder before this point.
         const relocated = await relocateControl(page!, params.key, DISMISS_TEXT_PATTERN);
         if (!relocated) {
+          trace.note = "deterministic ladder found no candidate control";
           throw new PipelineStepError(
             `${params.step} (${cached.selector}): ${ACT_REPAIR_DETERMINISTIC_NONE}`,
             params.category,
@@ -373,6 +439,7 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
                 description: cached.description
               };
         if (!(await tryAct(healed, params.actOptions))) {
+          trace.note = "deterministic ladder relocated the control but the replay still failed";
           throw new PipelineStepError(
             `${params.step}: repaired selector still failed to act`,
             params.category,
@@ -381,11 +448,15 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
         }
         cache.heal(params.step, params.key, healed);
         deterministicRepairSteps.add(params.step);
+        trace.repairSucceeded = true;
         return;
       }
 
       if (!canRepair) {
+        // The trigger fired and NOTHING could be tried — the honest keyless /
+        // repair-off record. repairAttempted stays false; repairKind stays null.
         const detail = repairDisabled ? ACT_REPAIR_DISABLED : ACT_REPAIR_NO_KEY;
+        trace.note = detail;
         throw new PipelineStepError(
           `${params.step} (${cached.selector}): ${detail}`,
           params.category,
@@ -393,8 +464,15 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
         );
       }
 
+      trace.repairAttempted = true;
+      trace.repairKind = "llm";
+      // Counted BEFORE the await, exactly where observe() increments llmCalls, so
+      // a call that throws is still counted on both sides and the verifier's
+      // Σ modelCallsAtStep == tokens.llmCalls reconciliation holds.
+      trace.modelCallsAtStep = (trace.modelCallsAtStep ?? 0) + 1;
       const [candidate] = await observe(params.repairInstruction);
       if (!candidate) {
+        trace.note = "observe found no replacement element";
         throw new PipelineStepError(
           `${params.step}: cached selector failed and observe found no replacement element`,
           params.category,
@@ -416,6 +494,7 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
               description: cached.description
             };
       if (!(await tryAct(healed, params.actOptions))) {
+        trace.note = "observe returned a replacement but the repaired action still failed";
         throw new PipelineStepError(
           `${params.step}: repaired selector still failed to act`,
           params.category,
@@ -424,38 +503,64 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
       }
       cache.heal(params.step, params.key, healed);
       healedSteps.add(params.step);
+      trace.repairSucceeded = true;
     };
 
     /** Key-gated extraction repair: reuse the Stagehand engine's IDENTICAL instructions. */
     const extractRepair = async (
       step: "extract-stats" | "extract-odds"
     ): Promise<{ statsRows?: ExtractedStatsRow[]; oddsRows?: ExtractedOddsRow[] }> => {
+      // The structural trigger: no header-mappable table was found, so extraction
+      // escalates (or cannot). Same push-then-mutate discipline as the act path.
+      const trace: StepTraceEntry = {
+        step,
+        escalationTriggered: true,
+        repairAttempted: false,
+        repairSucceeded: false,
+        repairKind: null,
+        modelCallsAtStep: 0,
+        note: "no header-mappable table found"
+      };
+      stepTrace.push(trace);
       if (deterministic) {
+        trace.repairAttempted = true;
+        trace.repairKind = "deterministic";
         // B2 (§2): deterministic card reader — NO model call. Maps the card grid
         // through the SAME frozen synonym dictionaries the table path uses.
         const rows = await deterministicExtract(page!, step);
         if (!rows) {
+          trace.note = EXTRACT_REPAIR_DETERMINISTIC_NONE;
           throw new PipelineStepError(EXTRACT_REPAIR_DETERMINISTIC_NONE, "extraction", step);
         }
         deterministicRepairSteps.add(step);
+        trace.repairSucceeded = true;
         return rows;
       }
       if (!canRepair) {
+        // Trigger fired, no repair path exists: repairAttempted stays false.
         const detail = repairDisabled ? EXTRACT_REPAIR_DISABLED : EXTRACT_REPAIR_NO_KEY;
+        trace.note = detail;
         throw new PipelineStepError(detail, "extraction", step);
       }
+      trace.repairAttempted = true;
+      trace.repairKind = "llm";
+      // Counted alongside the llmCalls increment below, before the await, so a
+      // throwing extract is counted identically on both sides.
+      trace.modelCallsAtStep = (trace.modelCallsAtStep ?? 0) + 1;
       llmCalls += 1;
       if (step === "extract-stats") {
         const result = await stagehand!.extract(STATS_INSTRUCTION, ExtractedStatsPageSchema, {
           timeout: options.stepTimeoutMs
         });
         healedSteps.add(step);
+        trace.repairSucceeded = true;
         return { statsRows: result.rows };
       }
       const result = await stagehand!.extract(ODDS_INSTRUCTION, ExtractedOddsPageSchema, {
         timeout: options.stepTimeoutMs
       });
       healedSteps.add(step);
+      trace.repairSucceeded = true;
       return { oddsRows: result.rows };
     };
 
@@ -520,6 +625,13 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
         stagehand = new Stagehand(stagehandOptions);
         await stagehand.init();
       });
+
+      // Browser-build provenance (record version 2). Read ONCE per trial, here —
+      // OUTSIDE any runStep so no step duration absorbs it, off every page path,
+      // never per step, and null-on-any-failure so it can never fail a trial.
+      if (chromeVersion === null) {
+        chromeVersion = await acquireChromeVersionFromCdp(() => stagehand!.connectURL());
+      }
 
       if (options.session.mode === "reuse" || options.session.mode === "expired") {
         await runStep("load-session", "internal", async () => {
@@ -590,7 +702,17 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
 
       if (wantStats) {
         await runStep("reveal-table", "not_found", async () => {
-          let ready = await waitForContent(page!, CONTENT_POLL_MS, "stats");
+          let ready = await waitForContent(page!, CONTENT_POLL_MS, "stats", options.readinessMode);
+          // The readiness poll IS the reveal-table trigger: ready means no reveal
+          // was needed at all, not-ready is what sends us down the repair path.
+          stepTrace.push({
+            step: "reveal-table",
+            readinessOutcome: ready ? "ready" : "not-ready",
+            // The readiness poll IS this step's trigger: not-ready is what sends
+            // us down the repair path below.
+            escalationTriggered: !ready,
+            modelCallsAtStep: 0
+          });
           if (!ready) {
             // Content is not yet readable and did not delay-render in: try the
             // cached tab that reveals the standings (repair-gated like any act).
@@ -599,9 +721,24 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
               // candidates (<=5) running the content-ready poll after each. A
               // success heals the in-memory cache with the candidate's selector.
               const cached = cache.action("reveal-table");
+              // This rung bypasses cachedActOrRepair, so it records its own entry.
+              const trace: StepTraceEntry = {
+                step: "reveal-table",
+                cachedSelectorMatched: false,
+                escalationTriggered: false,
+                repairAttempted: false,
+                repairSucceeded: false,
+                repairKind: null,
+                modelCallsAtStep: 0
+              };
+              stepTrace.push(trace);
               if (!(await tryAct(cached, { timeout: options.stepTimeoutMs }))) {
+                trace.escalationTriggered = true;
+                trace.repairAttempted = true;
+                trace.repairKind = "deterministic";
                 const healedSel = await revealTableDeterministic(page!, CONTENT_POLL_MS);
                 if (!healedSel) {
+                  trace.note = "deterministic reveal-table ladder found no candidate";
                   throw new PipelineStepError(
                     `reveal-table (${cached.selector}): ${ACT_REPAIR_DETERMINISTIC_NONE}`,
                     "not_found",
@@ -615,6 +752,9 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
                   description: cached.description
                 });
                 deterministicRepairSteps.add("reveal-table");
+                trace.repairSucceeded = true;
+              } else {
+                trace.cachedSelectorMatched = true;
               }
             } else {
               await cachedActOrRepair({
@@ -627,7 +767,15 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
               });
             }
             await page!.waitForTimeout(400);
-            ready = await waitForContent(page!, CONTENT_POLL_MS, "stats");
+            ready = await waitForContent(page!, CONTENT_POLL_MS, "stats", options.readinessMode);
+            // Second evaluation of the same poll, AFTER the reveal attempt — the
+            // honest answer to "did escalating actually make the content readable".
+            stepTrace.push({
+              step: "reveal-table",
+              readinessOutcome: ready ? "ready" : "not-ready",
+              modelCallsAtStep: 0,
+              note: "re-polled after the reveal-table attempt"
+            });
           }
           if (!ready) {
             throw new PipelineStepError("stats content never appeared", "not_found", "reveal-table");
@@ -643,6 +791,17 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
             statsRaw = { rows: statsRows ?? [] };
             return;
           }
+          // The structural trigger did NOT fire: the deterministic reader found a
+          // header-mappable table, so no extraction repair was needed.
+          stepTrace.push({
+            step: "extract-stats",
+            escalationTriggered: false,
+            repairAttempted: false,
+            repairSucceeded: false,
+            repairKind: null,
+            modelCallsAtStep: 0,
+            note: "header-mappable table found; no extraction repair needed"
+          });
           let rows = statsRowsFrom(table);
           let info = parsePageInfo(await page!.evaluate(() => document.body?.innerText ?? ""));
           if (info && info.total > 1) {
@@ -696,7 +855,13 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
         }
 
         await runStep("extract-odds", "extraction", async () => {
-          if (!(await waitForContent(page!, CONTENT_POLL_MS, "odds"))) {
+          const oddsReady = await waitForContent(page!, CONTENT_POLL_MS, "odds", options.readinessMode);
+          stepTrace.push({
+            step: "extract-odds",
+            readinessOutcome: oddsReady ? "ready" : "not-ready",
+            modelCallsAtStep: 0
+          });
+          if (!oddsReady) {
             throw new PipelineStepError("odds content never appeared", "not_found", "extract-odds");
           }
           await capture(`odds-a${attempt}`);
@@ -706,6 +871,15 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
             oddsRaw = { rows: oddsRows ?? [] };
             return;
           }
+          stepTrace.push({
+            step: "extract-odds",
+            escalationTriggered: false,
+            repairAttempted: false,
+            repairSucceeded: false,
+            repairKind: null,
+            modelCallsAtStep: 0,
+            note: "header-mappable table found; no extraction repair needed"
+          });
           oddsRaw = { rows: oddsRowsFrom(table) };
         });
       }
@@ -731,7 +905,9 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
         ...(healedSteps.size > 0 ? { healedSteps: [...healedSteps] } : {}),
         ...(deterministicRepairSteps.size > 0
           ? { deterministicRepairSteps: [...deterministicRepairSteps] }
-          : {})
+          : {}),
+        ...(stepTrace.length > 0 ? { stepTrace: stepTrace.map((e) => ({ ...e })) } : {}),
+        ...(chromeVersion ? { chromeVersion } : {})
       };
     } finally {
       try {

@@ -160,3 +160,49 @@ describe("run-benchmark parseArgs — --only (single-cell reproduction, PROTOCOL
     expect(err.mock.calls.flat().join(" ")).toContain("valid only together with --scenario-suite");
   });
 });
+
+/**
+ * Phase-2B arm machinery on the bench CLI (docs/PROTOCOL_2B.md §Design). The
+ * default matters as much as the flag: an unflagged run must be the Phase-2A
+ * arm, and must say so, so a 2A-style run is never silently unlabelled.
+ */
+describe("run-benchmark parseArgs — --readiness-mode / --campaign-protocol-id", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("defaults readinessMode to frozen (the Phase-2A predicate)", () => {
+    expect(parseArgs([]).readinessMode).toBe("frozen");
+  });
+
+  it("--readiness-mode any-row selects arm R", () => {
+    expect(parseArgs(["--readiness-mode", "any-row"]).readinessMode).toBe("any-row");
+  });
+
+  it("--readiness-mode frozen is accepted explicitly", () => {
+    expect(parseArgs(["--readiness-mode", "frozen"]).readinessMode).toBe("frozen");
+  });
+
+  it("rejects an unknown readiness mode rather than guessing an arm", () => {
+    const exit = vi.spyOn(process, "exit").mockImplementation((() => {
+      throw new Error("exit");
+    }) as never);
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    expect(() => parseArgs(["--readiness-mode", "relaxed"])).toThrow();
+    expect(exit).toHaveBeenCalled();
+  });
+
+  it("campaignProtocolId is ABSENT unless the flag names one — never defaulted", () => {
+    expect(parseArgs([]).campaignProtocolId).toBeUndefined();
+    expect(parseArgs(["--campaign-protocol-id", "phase2b-ablation-v1"]).campaignProtocolId).toBe(
+      "phase2b-ablation-v1"
+    );
+  });
+
+  it("--campaign-protocol-id with no value is an error", () => {
+    const exit = vi.spyOn(process, "exit").mockImplementation((() => {
+      throw new Error("exit");
+    }) as never);
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    expect(() => parseArgs(["--campaign-protocol-id"])).toThrow();
+    expect(exit).toHaveBeenCalled();
+  });
+});

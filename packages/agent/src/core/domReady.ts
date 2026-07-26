@@ -9,7 +9,41 @@
  * on the exact same readiness definition (no behaviour change).
  */
 
+import type { ReadinessMode } from "@ssda/shared";
+
 export type ContentMode = "stats" | "odds";
+
+/**
+ * The thresholds each ARM applies, per content mode (docs/PROTOCOL_2B.md
+ * §Design). ONLY the counts differ between arms: `requireHeading` is
+ * structure-awareness and is a property of the content mode, not the arm, so it
+ * is identical in both columns — as are the timeout and the poll cap, which the
+ * caller owns.
+ *
+ * `frozen` reproduces Phase 2A bit-for-bit; `any-row` is ready as soon as ONE
+ * data row or card is visible, which is the single variable Phase 2B ablates.
+ */
+const READINESS_THRESHOLDS: Record<
+  ReadinessMode,
+  Record<ContentMode, { minRows: number; requireHeading: boolean; minCards: number }>
+> = {
+  frozen: {
+    stats: { minRows: 5, requireHeading: true, minCards: 8 },
+    odds: { minRows: 4, requireHeading: false, minCards: 4 }
+  },
+  "any-row": {
+    stats: { minRows: 1, requireHeading: true, minCards: 1 },
+    odds: { minRows: 1, requireHeading: false, minCards: 1 }
+  }
+};
+
+/** The thresholds a given arm applies to a given content mode. Exported for tests. */
+export function readinessThresholds(
+  mode: ContentMode,
+  readinessMode: ReadinessMode = "frozen"
+): { minRows: number; requireHeading: boolean; minCards: number } {
+  return READINESS_THRESHOLDS[readinessMode][mode];
+}
 
 /**
  * Minimal structural view of a page: just the `evaluate` used here. Matches the
@@ -32,7 +66,13 @@ export interface DomReadyPage {
 export async function waitForContent(
   page: DomReadyPage,
   timeoutMs: number,
-  mode: ContentMode
+  mode: ContentMode,
+  /**
+   * The ARM's predicate. Defaults to `frozen`, so every call site that does not
+   * pass one — and every run that passes no flag — behaves exactly as Phase 2A
+   * did, byte for byte.
+   */
+  readinessMode: ReadinessMode = "frozen"
 ): Promise<boolean> {
   try {
     // NOTE: the in-browser function below uses ONLY anonymous inline arrows and
@@ -68,9 +108,7 @@ export async function waitForContent(
           await new Promise((resolve) => setTimeout(resolve, 150));
         }
       },
-      mode === "stats"
-        ? { minRows: 5, requireHeading: true, minCards: 8, timeoutMs }
-        : { minRows: 4, requireHeading: false, minCards: 4, timeoutMs }
+      { ...readinessThresholds(mode, readinessMode), timeoutMs }
     );
   } catch {
     return false;

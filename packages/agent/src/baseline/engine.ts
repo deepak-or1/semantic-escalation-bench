@@ -75,7 +75,17 @@ async function runAttempt(options: PipelineOptions, attempt: number): Promise<At
       // baseline neither heals nor uses deterministic fallbacks.
       undefined,
       undefined,
-      cause !== undefined ? { cause } : undefined
+      cause !== undefined ? { cause } : undefined,
+      // …nor runs the B2 ladder or records a step trace.
+      undefined,
+      undefined,
+      // The build this trial ran against. Attaching it HERE is the fix for the
+      // gate-1 nulls: the success return below records it, but a trial that
+      // fails mid-attempt never reaches that return, so the version — already
+      // in hand since launch — was being discarded. `browser.version()` is the
+      // same synchronous accessor used there; undefined only when the launch
+      // itself never produced a browser.
+      browser ? browser.version() : undefined
     );
   };
   const firstLine = (err: unknown): string => {
@@ -352,7 +362,18 @@ async function runAttempt(options: PipelineOptions, attempt: number): Promise<At
       pass("save-session", start);
     }
 
-    return { steps, statsRaw, oddsRaw, screenshots, tokens: null };
+    // `browser.version()` is a synchronous accessor over the value Playwright
+    // already received on the connect handshake: reading it costs nothing, adds
+    // no wait, and never touches the page. The baseline records NO stepTrace —
+    // it has no escalation machinery to trace (docs/RECORD_FORMAT.md).
+    return {
+      steps,
+      statsRaw,
+      oddsRaw,
+      screenshots,
+      tokens: null,
+      ...(browser ? { chromeVersion: browser.version() } : {})
+    };
   } finally {
     if (browser) await browser.close().catch(() => {});
   }

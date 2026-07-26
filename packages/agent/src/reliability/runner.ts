@@ -15,9 +15,11 @@ import {
   type BenchmarkResults,
   type EngineName,
   type PipelineResult,
+  type ReadinessMode,
   type RepairMode,
   type RunPurpose,
   type ScenarioSpec,
+  type TrialOracle,
   type TrialResult
 } from "@ssda/shared";
 import {
@@ -37,6 +39,9 @@ import { FROZEN_INSTRUCTIONS } from "../instructions";
 import { hybridEngine } from "../hybrid";
 import { buildComparison, classifyOutcome, summarizeEngine } from "./metrics";
 import { renderResultsMarkdown } from "./markdown";
+// The pinned price table's date, recorded on every run so a reader knows which
+// table any derived cost figure came from (docs/RECORD_FORMAT.md).
+import { PRICES_PINNED_AT } from "./prices";
 import { prepSessionState } from "./prepSession";
 
 export interface BenchmarkRunConfig {
@@ -47,6 +52,27 @@ export interface BenchmarkRunConfig {
   /** Trials per scenario per engine (default 1). */
   trialsPerScenario: number;
   headless: boolean;
+  /**
+   * Refuse to produce evidence unless EVERY trial records a browser build
+   * (--require-chrome-version). Off by default: record version 2 legally allows
+   * a null build. Phase 2B requires non-null per-trial values, so its driver
+   * sets this and a run that cannot obtain one fails loudly instead of quietly
+   * shipping evidence that cannot satisfy the protocol.
+   */
+  requireChromeVersion?: boolean;
+  /**
+   * The ARM this run belongs to (docs/PROTOCOL_2B.md §Design). Unset resolves to
+   * `frozen`, the Phase-2A predicate — so an unflagged run is byte-for-byte what
+   * it always was — and the RESOLVED value is what gets stamped, so the record
+   * states its arm rather than staying silent about it.
+   */
+  readinessMode?: ReadinessMode;
+  /**
+   * Which CAMPAIGN this run belongs to (e.g. "phase2b-ablation-v1"), stamped
+   * verbatim. Never defaulted and never invented: unset means the record carries
+   * no such key. Distinct from `protocolId`, which names the SUITE's lineage.
+   */
+  campaignProtocolId?: string;
   /** Caller-created run directory (createRunDir({ kind: "bench" })). */
   benchDir: string;
   benchId: string;
@@ -298,6 +324,9 @@ export async function runBenchmark(
   // aggregator's B-structural label).
   const repairMode = resolveRepairMode(config);
   const disableRepairResolved = repairMode === "off";
+  // Resolved ONCE: passed to every engine and stamped on the record, so what the
+  // run did and what the record says can never drift apart.
+  const readinessMode: ReadinessMode = config.readinessMode ?? "frozen";
 
   const lab = new LabClient(config.labUrl);
   const envConfig = loadAgentEnvConfig();
@@ -312,6 +341,13 @@ export async function runBenchmark(
   );
 
   const trials: TrialResult[] = [];
+  // Record version 2 (docs/RECORD_FORMAT.md): the exact ground-truth slice used to
+  // grade each scenario, captured ONCE per scenario at the run level so it ships
+  // once rather than once per trial. Trials reference it via their scenarioId.
+  const oracles: Record<string, TrialOracle> = {};
+  // Browser builds are recorded PER TRIAL (each record carries the build that
+  // executed it) and summarised at the run level only when every trial agrees —
+  // see unanimousChromeVersion and environment.chromeVersion.
   const total =
     config.scenarios.length * runnableEngines.length * config.trialsPerScenario;
   let k = 0;
@@ -366,6 +402,11 @@ export async function runBenchmark(
         });
         // (2) Ground truth for accuracy scoring.
         const { truth, overrides } = await lab.groundTruth();
+        // Record the oracle the scorer is about to consume, once per scenario. The
+        // lab is reconfigured to the SAME seed/chaos/params for every trial of a
+        // scenario, so the first capture is the oracle every one of its trials was
+        // graded against.
+        oracles[scenario.id] ??= { truth, overrides };
 
         const runId = `${scenario.id}-${engine}-t${trial}`;
         const runDir = path.join(config.benchDir, "trials", runId);
@@ -396,7 +437,7 @@ export async function runBenchmark(
           // (5) Run the engine.
           const result = await impl.run({
             labUrl: config.labUrl,
-            pages: ["stats", "odds"],
+            pages: [...BENCH_PAGES],
             credentials: labCredentials(),
             session: {
               mode: scenario.session,
@@ -412,6 +453,7 @@ export async function runBenchmark(
             navTimeoutMs: DEFAULT_PIPELINE_TIMEOUTS.navTimeoutMs,
             stepTimeoutMs: DEFAULT_PIPELINE_TIMEOUTS.stepTimeoutMs,
             env: "local",
+            readinessMode,
             repairMode,
             ...(disableRepairResolved ? { disableRepair: true } : {}),
             ...(scenarioSeedCache ? { seedCacheFile: scenarioSeedCache } : {})
@@ -443,10 +485,33 @@ export async function runBenchmark(
             failureCategory: "internal",
             failureDetail: message,
             artifactsDir: path.relative(process.cwd(), runDir),
-            tokens: null
+            tokens: null,
+            // An engine that threw produced neither a raw payload nor a normalized
+            // dataset, so there is nothing to ship and nothing was scored —
+            // recorded as v2 with every page null, which is exactly what
+            // `accuracy: null` above already says.
+            recordVersion: 2,
+            canonical: {
+              raw: { stats: null, odds: null },
+              stats: null,
+              odds: null,
+              failures: [],
+              warnings: []
+            },
+            pagesRequested: [...BENCH_PAGES],
+            // The engine died before it could report a build.
+            chromeVersion: null
           };
         }
 
+        // STRICT MODE: abort BEFORE this run produces any evidence bundle. The
+        // check sits here, inside the trial loop, so the failure surfaces at the
+        // first offending trial and results.json is never written — a run that
+        // cannot satisfy Phase 2B's non-null requirement must not leave a
+        // half-qualified bundle behind for someone to certify later.
+        if (config.requireChromeVersion && record.chromeVersion == null) {
+          throw new MissingChromeVersionError(record.engine, record.runId);
+        }
         trials.push(record);
         // (7) Post-trial hook (PROTOCOL_2A §7): the driver prices this trial's
         // tokens here and enforces the budget. Awaited before the next iteration
@@ -501,6 +566,8 @@ export async function runBenchmark(
     // Present only on an early budget stop (PROTOCOL_2A §7). The artifacts below
     // are written regardless — an incomplete campaign is preserved evidence.
     ...(stopped ? { stopped } : {}),
+    // Record version 2: one oracle per scenario that actually ran.
+    oracles,
     environment: {
       node: process.version,
       ...(stagehandPkg.version ? { stagehandVersion: stagehandPkg.version } : {}),
@@ -512,6 +579,27 @@ export async function runBenchmark(
       runPurpose,
       protocolId,
       suiteHash,
+      // ── Record version 2 provenance (docs/RECORD_FORMAT.md) ────────────────
+      // No code path in this repo sets a temperature, so a run WITH a model ran
+      // every call at the provider's default; a keyless run had no model at all.
+      // Either way the temperature this repo chose is null, because it chose none.
+      modelConfig: envConfig.stagehandModel
+        ? { temperature: null, temperatureSource: "provider-default" as const }
+        : { temperature: null, temperatureSource: "n/a-no-model" as const },
+      // Unanimous or nothing, counted over EVERY trial: engines in one run can
+      // launch different browser builds (the Playwright baseline vs Stagehand's
+      // CDP-reported Chrome, which do not even report the same form), and naming
+      // one of several — or letting a silent engine be counted as agreeing —
+      // would be a claim the run cannot support.
+      chromeVersion: unanimousChromeVersion(trials),
+      pricesPinnedAt: PRICES_PINNED_AT,
+      // ── Phase-2B arm provenance ────────────────────────────────────────────
+      // Always stamped, never conditional: a run that passed no flag records
+      // "frozen" because that is what it ran, not because a default was assumed
+      // at read time.
+      readinessMode,
+      // Stamped only when configured — an absent campaign is an absent key.
+      ...(config.campaignProtocolId ? { campaignProtocolId: config.campaignProtocolId } : {}),
       ...provenance
     }
   });
@@ -551,6 +639,53 @@ export async function runBenchmark(
 interface GroundTruth {
   truth: Awaited<ReturnType<LabClient["groundTruth"]>>["truth"];
   overrides: Awaited<ReturnType<LabClient["groundTruth"]>>["overrides"];
+}
+
+/**
+ * Thrown by `runBenchmark` under `--require-chrome-version` when a trial records
+ * no browser build. Named so the CLI can print it plainly and a test can assert
+ * on the type rather than a message substring.
+ */
+export class MissingChromeVersionError extends Error {
+  constructor(
+    readonly engine: EngineName,
+    readonly runId: string
+  ) {
+    super(
+      `--require-chrome-version: the ${engine} engine recorded no browser build for trial ${runId} ` +
+        "(chromeVersion null after the bounded init retries). Aborting before any evidence is written."
+    );
+    this.name = "MissingChromeVersionError";
+  }
+}
+
+/**
+ * The pages every benchmark trial asks its engine to extract. Recorded on each
+ * trial as `pagesRequested` so the verifier recomputes `extractionSuccess` over
+ * exactly this set — `runPipeline` only runs the extraction check for a page it
+ * was asked for, so the set is part of the verdict's definition, not a constant
+ * the verifier may assume.
+ */
+const BENCH_PAGES = ["stats", "odds"] as const;
+
+/**
+ * The run-level browser build, or null. Emitted ONLY when every trial reported a
+ * build and all reported the same one. A trial that reported nothing is NOT a
+ * vote for its siblings' answer — the earlier "collect into a Set, emit if size
+ * is 1" rule treated silence as agreement and would label a baseline+hybrid run
+ * with the baseline's browser. Exported for direct testing.
+ */
+export function unanimousChromeVersion(
+  trials: readonly { chromeVersion?: string | null }[]
+): string | null {
+  if (trials.length === 0) return null;
+  const reported = new Set<string>();
+  for (const trial of trials) {
+    const version = trial.chromeVersion;
+    if (typeof version !== "string" || version.length === 0) return null;
+    reported.add(version);
+  }
+  return reported.size === 1 ? [...reported][0]! : null;
 }
 
 function buildTrialResult(
@@ -613,6 +748,50 @@ function buildTrialResult(
       : {}),
     ...(result.deterministicFallbacks && result.deterministicFallbacks.length > 0
       ? { deterministicFallbacks: result.deterministicFallbacks }
+      : {}),
+    // ── Evidence-complete record, version 2 (docs/RECORD_FORMAT.md) ───────────
+    recordVersion: 2,
+    // The GRADING INPUTS, shipped verbatim at BOTH pipeline stages.
+    //
+    // `raw` is the pre-normalization payload per page, taken from the
+    // PipelineResult's own `pages` — the same object runPipeline handed to
+    // checkStatsSchema/checkOddsSchema and already persisted as a per-trial
+    // artifact. Shipping it is what makes extractionSuccess, the normalized rows,
+    // and the dataset's failures/warnings RE-DERIVABLE rather than asserted: a
+    // forger cannot ship genuine rows with a stripped failures array, because
+    // normalization is re-run from raw and the result must match.
+    //
+    // The normalized rows and annotations follow. Both row pages are null when
+    // the pipeline produced no normalized dataset at all — the same condition
+    // that leaves accuracy null, and the only condition under which raw is
+    // unavailable for both pages too.
+    canonical: {
+      // VERBATIM: exactly the value runPipeline handed to the extraction
+      // checks. No reshaping — a payload this layer does not recognise is still
+      // the payload the pipeline judged, and rewriting it would change what its
+      // schema error recomputes to. A page that produced none records null.
+      raw: {
+        stats: result.pages.stats?.raw ?? null,
+        odds: result.pages.odds?.raw ?? null
+      },
+      ...(result.normalized
+        ? {
+            stats: result.normalized.teams,
+            odds: result.normalized.markets,
+            failures: result.normalized.failures,
+            warnings: result.normalized.warnings
+          }
+        : { stats: null, odds: null, failures: [], warnings: [] })
+    },
+    // What the pipeline was ASKED to extract. Recorded so the verifier
+    // recomputes the extraction verdict over exactly this set rather than
+    // assuming both pages (runPipeline only checks the pages it was asked for).
+    pagesRequested: [...BENCH_PAGES],
+    // Per-trial browser provenance: engines in one run can launch different
+    // builds, so the fact belongs to the trial that observed it.
+    chromeVersion: result.chromeVersion ?? null,
+    ...(result.stepTrace && result.stepTrace.length > 0
+      ? { stepTrace: result.stepTrace }
       : {})
   };
 }
