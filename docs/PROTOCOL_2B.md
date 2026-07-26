@@ -170,11 +170,19 @@ hypothesis.
   | C  | R,F | F,R | R,F | F,R | R,F |
   | D  | F,R | R,F | F,R | R,F | F,R |
 
-  Policy execution order is likewise frozen: the keyless phase runs
-  A, then B, then B2; the keyed phase runs C, then D. The campaign
-  state machine enforces both orders — a run entry executed out of
-  schedule order, or with the wrong arm for its slot, is refused, not
-  reordered.
+  Nesting and policy order are likewise frozen, and carried from
+  Phase 2A: the schedule is **sweep-major** — sweep 1 runs every
+  policy of the phase in the frozen order (keyless A, B, B2; keyed
+  C, D), each policy executing its two arms back-to-back in its
+  per-sweep arm order from the table; then sweep 2, and so on. A
+  policy-major nesting would cluster each policy's runs into one
+  stretch of wall-clock time, letting monotone drift (thermal,
+  network, lab state) align with *policy* exactly the way the arm
+  balancing forbids it aligning with an arm — and the expectations
+  table makes cross-policy claims, so that confound is not
+  hypothetical. The campaign state machine enforces schedule order
+  exactly — a run entry executed out of order, or with the wrong arm
+  for its slot, is refused, not reordered.
 - **Keyed smoke** (Phase-2A §8.5 carried over, `runPurpose: smoke`,
   never evidence, Arm F): one C trial that must heal a
   class-drift-broken login with its repair path and one D trial that

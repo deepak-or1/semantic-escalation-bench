@@ -20,6 +20,7 @@
     "campaign:aggregate": "tsx scripts/aggregate-campaign.ts",
     "verify:suite": "tsx scripts/verify-suite.ts",
     "campaign:2a": "tsx scripts/run-campaign-2a.ts",
+    "campaign:2b": "tsx scripts/run-campaign-2b.ts",
     "report": "tsx scripts/generate-report.ts",
     "test": "vitest run",
     "test:unit": "vitest run --project unit",
