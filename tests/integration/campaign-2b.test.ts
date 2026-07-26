@@ -5,7 +5,13 @@ import type {
   ScenarioSpec,
   TrialResult
 } from "@ssda/shared";
-import { CAMPAIGN_BUDGET_THRESHOLD_USD, type BenchmarkRunConfig } from "@ssda/agent";
+import {
+  CAMPAIGN_BUDGET_THRESHOLD_USD,
+  ChromeVersionUnavailableError,
+  MissingChromeVersionError,
+  trialCost,
+  type BenchmarkRunConfig
+} from "@ssda/agent";
 import {
   Campaign2bStateSchema,
   PHASE2B_CAMPAIGN_ID,
@@ -24,14 +30,22 @@ import {
   PHASE2B_SUITE_PROTOCOL_ID,
   assertAllowlistedScenarios,
   assertFrozenAtHead,
+  REPLICATION_FIELDS,
+  REPLICATION_POLICIES,
+  assertArmFReplicatesPhase2a,
+  assertCleanWorktree,
+  compareProjections,
   isPoisonedError,
   isPoisonedTrial,
+  projectForReplication,
+  readPhase2aCell,
   keyedPhaseGate2b,
   runKeyedSmoke,
   nextEntry2b,
   operatorVerifyHint,
   parseCampaign2bArgs,
   reconcilePendingEntry,
+  runPreflightGuards,
   renderSchedule,
   runCampaign2b,
   verifyGridFor,
@@ -287,6 +301,13 @@ const FIVE: ScenarioSpec[] = PHASE2B_SCENARIO_IDS.map((id, i) => ({
   group: "core"
 }));
 
+/** The frozen suite provenance the smoke must run under (item 3a). */
+const FROZEN_PROVENANCE = {
+  protocolId: PHASE2B_SUITE_PROTOCOL_ID,
+  suiteHash: PHASE2B_SUITE_HASH,
+  gitCommit: "0".repeat(40)
+};
+
 const okReport: VerifyReport = {
   ok: true,
   violations: [],
@@ -294,19 +315,70 @@ const okReport: VerifyReport = {
   notes: [],
   records: { total: 150, recomputed: 150, v2NoRows: 0, attestedV1: 0 }
 };
-const reader = (dir: string): VerifyInput => ({ source: dir, raw: {} });
+/**
+ * The 2B-side reader used by the gate. Arm-F entries are served the REAL
+ * Phase-2A trials for their (policy, sweep) cell — i.e. a faithful replication —
+ * so the honest path exercises the real projection comparison against real
+ * evidence rather than a hand-written stand-in. `mutate` lets a probe perturb
+ * exactly one thing.
+ */
+function replicatingReader(
+  mutate: (trials: TrialResult[], cell: string) => TrialResult[] = (t) => t
+): (dir: string) => VerifyInput {
+  const byDir = new Map<string, string>();
+  for (const e of completeKeylessState().entries) {
+    if (e.arm === "frozen") byDir.set(e.dir, `keyless-s${e.sweep}-${e.policy}`);
+  }
+  return (dir: string): VerifyInput => {
+    const cell = byDir.get(dir);
+    if (!cell) return { source: dir, raw: { trials: [] } };
+    const real = readPhase2aCell(cell).trials.filter((t) =>
+      (PHASE2B_SCENARIO_IDS as readonly string[]).includes(t.scenarioId)
+    );
+    return { source: dir, raw: { trials: mutate(structuredClone(real), cell) } };
+  };
+}
+const reader = replicatingReader();
 
 describe("Phase-2B phase gating (machine-enforced, no key needed to test)", () => {
-  it("(a) the keyless phase refuses to start while a provider key is present", () => {
-    expect(() => enforceKeyDiscipline2b("keyless", true)).toThrow(
-      /keyless refuses to run while a model provider key is present/
-    );
-    expect(() => enforceKeyDiscipline2b("keyless", false)).not.toThrow();
+  it("(a) keyless refuses a provider KEY, and names it", () => {
+    expect(() =>
+      enforceKeyDiscipline2b("keyless", { modelProvider: "anthropic", stagehandModel: null })
+    ).toThrow(/a provider key \(modelProvider "anthropic"\)/);
+  });
+
+  it("(a) keyless ALSO refuses STAGEHAND_MODEL with no key — it arms the repair path", () => {
+    // config.ts defaults stagehandModel straight from STAGEHAND_MODEL, so a
+    // "keyless" run could carry a configured model and an armed hybrid repair
+    // dispatch while the key check saw nothing.
+    expect(() =>
+      enforceKeyDiscipline2b("keyless", {
+        modelProvider: null,
+        stagehandModel: "anthropic/claude-haiku-4-5"
+      })
+    ).toThrow(/STAGEHAND_MODEL \("anthropic\/claude-haiku-4-5"\)/);
+    // Both set → the message names both.
+    expect(() =>
+      enforceKeyDiscipline2b("keyless", {
+        modelProvider: "anthropic",
+        stagehandModel: "anthropic/claude-haiku-4-5"
+      })
+    ).toThrow(/a provider key .* and STAGEHAND_MODEL/);
+  });
+
+  it("(a) keyless passes only when BOTH are null", () => {
+    expect(() =>
+      enforceKeyDiscipline2b("keyless", { modelProvider: null, stagehandModel: null })
+    ).not.toThrow();
   });
 
   it("(b) the keyed phase refuses to start without a key", () => {
-    expect(() => enforceKeyDiscipline2b("keyed", false)).toThrow(/keyed refuses to run without a model provider key/);
-    expect(() => enforceKeyDiscipline2b("keyed", true)).not.toThrow();
+    expect(() =>
+      enforceKeyDiscipline2b("keyed", { modelProvider: null, stagehandModel: null })
+    ).toThrow(/keyed refuses to run without a model provider key/);
+    expect(() =>
+      enforceKeyDiscipline2b("keyed", { modelProvider: "anthropic", stagehandModel: "m" })
+    ).not.toThrow();
   });
 
   it("(c) the keyed phase refuses an INCOMPLETE keyless ledger", () => {
@@ -491,6 +563,367 @@ describe("Phase-2B transport poisoning", () => {
   });
 });
 
+
+// ── ITEM 1: Arm-F replication of Phase 2A (§Gates items 4 and 6) ────────────
+// The 2A side of every probe below is the REAL evidence, read through the real
+// reader; the 2B side starts as a faithful copy of it and each probe perturbs
+// exactly one thing. So a passing probe proves the gate accepts genuine
+// replication, and a failing one proves it catches that specific divergence.
+
+describe("Arm-F replication gate", () => {
+  const entries = completeKeylessState().entries;
+  const run2b = (mutate: (t: TrialResult[], cell: string) => TrialResult[]) => {
+    const read = replicatingReader(mutate);
+    return (dir: string) => read(dir).raw as { trials: TrialResult[] };
+  };
+
+  it("PASS-PIN: an Arm F that faithfully reproduces Phase 2A passes, 15 cells / 75 trials", () => {
+    const outcome = assertArmFReplicatesPhase2a(entries, run2b((t) => t), readPhase2aCell);
+    expect(outcome).toEqual({ cellsCompared: 15, trialsCompared: 75 });
+  });
+
+  it("ARMF-DIVERGE: one altered projected scalar is refused, and the message names the field", () => {
+    expect(() =>
+      assertArmFReplicatesPhase2a(
+        entries,
+        run2b((trials, cell) =>
+          cell === "keyless-s3-B"
+            ? trials.map((t) =>
+                t.scenarioId === "f3-page-size-2-b" ? { ...t, retries: t.retries + 1 } : t
+              )
+            : trials
+        ),
+        readPhase2aCell
+      )
+    ).toThrow(/keyless-s3-B \/ f3-page-size-2-b \/ retries/);
+  });
+
+  it("ARMF-ACCURACY-DEEP: an accuracy object differing only in ONE NESTED counter is refused", () => {
+    // Same top-level keys, same shape — only a counter buried inside changes. A
+    // subset or key-name comparison would wave this through; deep equality does not.
+    expect(() =>
+      assertArmFReplicatesPhase2a(
+        entries,
+        run2b((trials) =>
+          trials.map((t) =>
+            t.accuracy?.stats
+              ? {
+                  ...t,
+                  accuracy: {
+                    ...t.accuracy,
+                    stats: { ...t.accuracy.stats, fieldMatches: t.accuracy.stats.fieldMatches - 1 }
+                  }
+                }
+              : t
+          )
+        ),
+        readPhase2aCell
+      )
+    ).toThrow(/\/ accuracy:/);
+  });
+
+  it("ARMF-ONE-SIDED-FIELD: a field present on exactly one side is refused (equal-absence is generic)", () => {
+    // The real keyless records carry NO healedSteps. Adding one on the 2B side
+    // must fail even though the value looks innocuous — "absent" and "empty" are
+    // different claims, and only one of them is what 2A recorded.
+    expect(() =>
+      assertArmFReplicatesPhase2a(
+        entries,
+        run2b((trials, cell) =>
+          cell === "keyless-s1-A"
+            ? trials.map((t, i) => (i === 0 ? { ...t, healedSteps: [] } : t))
+            : trials
+        ),
+        readPhase2aCell
+      )
+    ).toThrow(/\/ healedSteps:/);
+  });
+
+  it("ARMF-MISSING-SCENARIO: a scenario absent from the 2B side is a VIOLATION, not a skip", () => {
+    expect(() =>
+      assertArmFReplicatesPhase2a(
+        entries,
+        run2b((trials, cell) =>
+          cell === "keyless-s2-B2"
+            ? trials.filter((t) => t.scenarioId !== "x-class-l3-page-size-2")
+            : trials
+        ),
+        readPhase2aCell
+      )
+    ).toThrow(/keyless-s2-B2 \/ x-class-l3-page-size-2 \/ \(paired trial\)/);
+  });
+
+
+  it("FIX 4: a gate that compared NOTHING refuses, and the coverage floor is derived from the constants", () => {
+    // Empty cells are refused — the important property.
+    expect(() =>
+      assertArmFReplicatesPhase2a(
+        entries,
+        () => ({ trials: [] }),
+        () => ({ trials: [] })
+      )
+    ).toThrow(/Arm F does NOT replicate Phase 2A/);
+
+    // HONEST NOTE ON REACHABILITY: the coverage assertion added for this finding
+    // is defence in depth, not a separately reachable branch. Any shortfall in
+    // trialsCompared today coincides with a "(paired trial)" mismatch, which
+    // throws first — so the message above is what an operator sees. The
+    // assertion exists so a future refactor that stops counting (or stops
+    // comparing) cannot return a passing verdict carrying zeros. What IS
+    // independently checkable is that the floor tracks the constants rather than
+    // a hardcoded 15/75:
+    const expectedCells = REPLICATION_POLICIES.length * 5;
+    const expectedTrials = expectedCells * PHASE2B_SCENARIO_IDS.length;
+    expect({ expectedCells, expectedTrials }).toEqual({ expectedCells: 15, expectedTrials: 75 });
+    // …and the honest path reports exactly that floor.
+    expect(assertArmFReplicatesPhase2a(entries, run2b((t) => t), readPhase2aCell)).toEqual({
+      cellsCompared: expectedCells,
+      trialsCompared: expectedTrials
+    });
+  });
+
+  it("FIX 6: a DUPLICATED scenario on the 2B side is refused even when the first trial matches", () => {
+    // [good, bad, bad] used to pass on the strength of element [0].
+    expect(() =>
+      assertArmFReplicatesPhase2a(
+        entries,
+        run2b((trials, cell) => {
+          if (cell !== "keyless-s1-B") return trials;
+          const dupe = trials.find((t) => t.scenarioId === "f3-page-size-3-a")!;
+          return [...trials, { ...dupe, outcome: "fail" as const }];
+        }),
+        readPhase2aCell
+      )
+    ).toThrow(/keyless-s1-B \/ f3-page-size-3-a \/ \(paired trial\).*2 trial\(s\)/s);
+  });
+
+  it("FIX 5: EVERY frozen projection field is divergence-checked", () => {
+    // One probe per field, over REAL 2A records: perturb exactly that field on
+    // the 2B side and require the gate to name it. A field that silently stopped
+    // being compared fails here.
+    const perturb = (t: TrialResult, field: string): TrialResult => {
+      const c = structuredClone(t) as Record<string, unknown>;
+      switch (field) {
+        case "outcome":
+          c.outcome = t.outcome === "pass" ? "fail" : "pass";
+          break;
+        case "outcomeClass":
+          c.outcomeClass = "recovered";
+          break;
+        case "outcomeReason":
+          c.outcomeReason = `${t.outcomeReason} (tampered)`;
+          break;
+        case "pipelineSuccess":
+        case "extractionSuccess":
+        case "validationSuccess":
+        case "recoveredAfterFailure":
+          c[field] = !(t as unknown as Record<string, boolean>)[field];
+          break;
+        case "accuracy":
+          c.accuracy = t.accuracy === null ? { overall: 1 } : null;
+          break;
+        case "failureCategory":
+          c.failureCategory = t.failureCategory === "timeout" ? "internal" : "timeout";
+          break;
+        case "failureDetail":
+          c.failureDetail = `${t.failureDetail ?? ""} (tampered)`;
+          break;
+        case "retries":
+          c.retries = t.retries + 1;
+          break;
+        // Arrays: append an element (absent → one-sided presence, which the
+        // equal-absence rule also refuses).
+        case "healedSteps":
+        case "deterministicRepairSteps":
+        case "deterministicFallbacks":
+          c[field] = [...((t as unknown as Record<string, string[]>)[field] ?? []), "tampered-step"];
+          break;
+        case "llmCalls":
+          // Lives in the tokens block; keyless records carry tokens: null, so
+          // this is a one-sided presence.
+          c.tokens = { llmCalls: 1 };
+          break;
+        default:
+          throw new Error(`unhandled field ${field}`);
+      }
+      return c as unknown as TrialResult;
+    };
+
+    for (const field of REPLICATION_FIELDS) {
+      expect(() =>
+        assertArmFReplicatesPhase2a(
+          entries,
+          run2b((trials, cell) =>
+            cell === "keyless-s1-A"
+              ? trials.map((t) =>
+                  t.scenarioId === "f3-page-size-3-a" ? perturb(t, field) : t
+                )
+              : trials
+          ),
+          readPhase2aCell
+        ),
+        `field ${field} is not divergence-checked`
+      ).toThrow(new RegExp(`keyless-s1-A / f3-page-size-3-a / ${field}`));
+    }
+  });
+
+  it("ARMF-MISSING-RUN: an Arm-F entry missing for a (policy, sweep) is refused", () => {
+    expect(() =>
+      assertArmFReplicatesPhase2a(
+        entries.filter((e) => !(e.arm === "frozen" && e.policy === "B" && e.sweep === 4)),
+        run2b((t) => t),
+        readPhase2aCell
+      )
+    ).toThrow(/\(paired run\)/);
+  });
+
+  it("the projection is exhaustive and compared key-order-insensitively", () => {
+    const a = { outcome: "pass", accuracy: { stats: { x: 1 }, odds: { y: 2 } } } as never;
+    const b = { outcome: "pass", accuracy: { odds: { y: 2 }, stats: { x: 1 } } } as never;
+    // Same content, different key order — not a mismatch.
+    expect(compareProjections("c", "s", projectForReplication(a), projectForReplication(b))).toEqual([]);
+    // Every frozen field is projected.
+    expect(Object.keys(projectForReplication(a)).sort()).toEqual(
+      [
+        "accuracy",
+        "deterministicFallbacks",
+        "deterministicRepairSteps",
+        "extractionSuccess",
+        "failureCategory",
+        "failureDetail",
+        "healedSteps",
+        "llmCalls",
+        "outcome",
+        "outcomeClass",
+        "outcomeReason",
+        "pipelineSuccess",
+        "recoveredAfterFailure",
+        "retries",
+        "validationSuccess"
+      ].sort()
+    );
+  });
+
+
+  // ── FIX 1: the WIRING of the replication check into the gate ──────────────
+  // These go through keyedPhaseGate2b, never through assertArmFReplicatesPhase2a
+  // directly: the mutation that motivated them replaced the call with a
+  // hardcoded {cellsCompared:15, trialsCompared:75} and every existing test
+  // still passed, because nothing exercised the gate's use of it.
+
+  it("WIRING: a perturbed 2A-side reader makes the GATE throw, naming the field", () => {
+    expect(() =>
+      keyedPhaseGate2b(
+        completeKeylessState(),
+        fakeSuite(),
+        reader, // honest 2B side
+        "s.json",
+        () => okReport,
+        // …but the BASELINE is perturbed: one scalar differs.
+        (cell) => {
+          const real = readPhase2aCell(cell);
+          if (cell !== "keyless-s2-A") return real;
+          return {
+            trials: structuredClone(real.trials).map((t) =>
+              t.scenarioId === "f3-page-size-3-b" ? { ...t, retries: t.retries + 5 } : t
+            )
+          };
+        }
+      )
+    ).toThrow(/keyless-s2-A \/ f3-page-size-3-b \/ retries/);
+  });
+
+  it("WIRING: a perturbed 2B-side reader makes the GATE throw, naming the field", () => {
+    expect(() =>
+      keyedPhaseGate2b(
+        completeKeylessState(),
+        fakeSuite(),
+        replicatingReader((trials, cell) =>
+          cell === "keyless-s5-B2"
+            ? trials.map((t) =>
+                t.scenarioId === "f3-page-size-2-a" ? { ...t, outcomeClass: "recovered" } : t
+              )
+            : trials
+        ),
+        "s.json",
+        () => okReport,
+        readPhase2aCell
+      )
+    ).toThrow(/keyless-s5-B2 \/ f3-page-size-2-a \/ outcomeClass/);
+  });
+
+  it("WIRING: the gate's returned counts come from the real check, not a constant", () => {
+    // A 2B reader that serves NOTHING must make the gate throw on coverage —
+    // a hardcoded {15, 75} would sail through this.
+    expect(() =>
+      keyedPhaseGate2b(
+        completeKeylessState(),
+        fakeSuite(),
+        (dir) => ({ source: dir, raw: { trials: [] } }),
+        "s.json",
+        () => okReport,
+        readPhase2aCell
+      )
+    ).toThrow(/Arm F does NOT replicate Phase 2A/);
+  });
+
+  it("the verdict carries the replication block, and the pre-spend recheck requires it", () => {
+    const verdict = keyedPhaseGate2b(completeKeylessState(), fakeSuite(), reader, "s.json", () => okReport);
+    expect(verdict.replication).toEqual({ pass: true, cellsCompared: 15, trialsCompared: 75 });
+    expect(Campaign2bStateSchema.safeParse({ ...completeKeylessState(), verdict }).success).toBe(true);
+  });
+});
+
+// ── ITEM 2: the freeze tag alone is not enough ──────────────────────────────
+
+describe("clean-worktree guard", () => {
+
+  it("FIX 2a: the guard SEQUENCE is wired — tag first, and a missing tag short-circuits before the worktree is read", () => {
+    // The mutation that motivated this deleted the assertCleanWorktree call from
+    // main() and broke no test: the guards were covered, their wiring was not.
+    const statusSpy = vi.fn(() => "");
+    expect(() =>
+      runPreflightGuards({ readTags: () => ["some-other-tag"], readStatus: statusSpy })
+    ).toThrow(/does not point at HEAD/);
+    // Order matters: a repo at the wrong commit is refused without reading the
+    // worktree at all.
+    expect(statusSpy).not.toHaveBeenCalled();
+  });
+
+  it("FIX 2a: tag present but worktree DIRTY still refuses, through the same sequence", () => {
+    expect(() =>
+      runPreflightGuards({
+        readTags: () => [PHASE2B_FREEZE_TAG],
+        readStatus: () => " M scripts/run-campaign-2b.ts\n"
+      })
+    ).toThrow(/worktree is DIRTY/);
+  });
+
+  it("FIX 2a: tag present and worktree clean passes", () => {
+    expect(() =>
+      runPreflightGuards({ readTags: () => [PHASE2B_FREEZE_TAG], readStatus: () => "" })
+    ).not.toThrow();
+  });
+
+  it("a clean worktree passes", () => {
+    expect(() => assertCleanWorktree("")).not.toThrow();
+    expect(() => assertCleanWorktree("\n  \n")).not.toThrow();
+  });
+
+  it("modified files refuse, and the message lists them", () => {
+    expect(() => assertCleanWorktree(" M scripts/run-campaign-2b.ts\n")).toThrow(
+      /worktree is DIRTY \(1 path\(s\)/
+    );
+    expect(() => assertCleanWorktree(" M a.ts\n M b.ts\n")).toThrow(/scripts|a\.ts/);
+  });
+
+  it("UNTRACKED-only also refuses — an untracked module can still be imported", () => {
+    expect(() => assertCleanWorktree("?? scripts/sneaky-override.ts\n")).toThrow(
+      /untracked included/
+    );
+  });
+});
+
 // ── Budget stop, run config, and operator hints ──────────────────────────────
 
 describe("Phase-2B run loop", () => {
@@ -613,39 +1046,146 @@ describe("Phase-2B run loop", () => {
     expect(outcome.kind).toBe("crashed");
   });
 
-  it("F8: a crash then a rerun ACCUMULATES cost, keeping sum(entries) === spendUsd", async () => {
+
+  it("FIX 7: a pre-spend provenance abort does NOT consume the entry's rerun", async () => {
+    // ChromeVersionUnavailableError is thrown at engine init, before any spend.
+    // Recording it as a crash would spend the cell's one permitted rerun on a
+    // broken machine, so a second invocation would kill the cell for good.
+    const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash);
+    const deps = baseDeps({ trials: [], stopped: undefined } as unknown as BenchmarkResults);
+    const outcome = await runCampaign2b(state, {
+      ...deps,
+      schedule: buildSchedule2b("keyless").slice(0, 1),
+      runBenchmark: vi.fn(async () => {
+        throw new ChromeVersionUnavailableError("CDP /json/version did not answer");
+      }) as unknown as Campaign2bDeps["runBenchmark"]
+    });
+    expect(outcome.kind).toBe("provenance-abort");
+    if (outcome.kind === "provenance-abort") {
+      expect(outcome.reason).toMatch(/browser provenance unavailable/);
+      expect(outcome.reason).toMatch(/ENVIRONMENT fault, not a trial fault/);
+    }
+    // NOTHING recorded: the slot is untouched and fully runnable again.
+    expect(state.entries).toEqual([]);
+    expect(state.pendingEntry).toBeUndefined();
+    expect(nextEntry2b(state, buildSchedule2b("keyless"))).toEqual(buildSchedule2b("keyless")[0]);
+    // Ledger invariant holds trivially (nothing spent, nothing recorded).
+    expect(state.entries.reduce((sum, e) => sum + e.costUsd, 0)).toBeCloseTo(state.spendUsd, 10);
+  });
+
+  it("FIX 7: a post-attempt provenance abort that BANKED spend records it — the ledger invariant is non-negotiable", async () => {
+    // MissingChromeVersionError arrives after the runner banked the completed
+    // trial's spend (batch 13, 4b). That money is already in spendUsd, so the
+    // entry must carry it or sum(entries) and spendUsd diverge forever.
+    const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash);
+    const model = PHASE2B_MODEL;
+    const tokens = { llmCalls: 1, inputTokens: 1_000_000, outputTokens: 1_000_000 };
+    const spend = trialCost({ tokens }, "hybrid", model)!;
+    expect(spend).toBeGreaterThan(0);
+
+    const outcome = await runCampaign2b(state, {
+      ...baseDeps({ trials: [], stopped: undefined } as unknown as BenchmarkResults),
+      schedule: buildSchedule2b("keyless").slice(0, 1),
+      model,
+      runBenchmark: vi.fn(async (config: BenchmarkRunConfig) => {
+        await config.hooks!.afterTrial!({
+          engine: "hybrid",
+          runId: "t1",
+          tokens
+        } as unknown as TrialResult);
+        throw new MissingChromeVersionError("hybrid", "t1");
+      }) as unknown as Campaign2bDeps["runBenchmark"]
+    });
+    expect(outcome.kind).toBe("provenance-abort");
+    expect(state.entries).toHaveLength(1);
+    expect(state.entries[0]!.costUsd).toBeCloseTo(spend, 10);
+    expect(state.entries.reduce((sum, e) => sum + e.costUsd, 0)).toBeCloseTo(state.spendUsd, 10);
+    expect(state.stoppedReason).toMatch(/browser provenance unavailable/);
+  });
+
+  it("FIX 7: a WRAPPED provenance abort is still recognised through the cause chain", async () => {
+    const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash);
+    const outcome = await runCampaign2b(state, {
+      ...baseDeps({ trials: [], stopped: undefined } as unknown as BenchmarkResults),
+      schedule: buildSchedule2b("keyless").slice(0, 1),
+      runBenchmark: vi.fn(async () => {
+        throw new Error("engine wrapper", {
+          cause: new ChromeVersionUnavailableError("no answer")
+        });
+      }) as unknown as Campaign2bDeps["runBenchmark"]
+    });
+    expect(outcome.kind).toBe("provenance-abort");
+  });
+
+  it("FIX 7: an ORDINARY crash still records exactly as before", async () => {
+    const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash);
+    const outcome = await runCampaign2b(state, {
+      ...baseDeps({ trials: [], stopped: undefined } as unknown as BenchmarkResults),
+      schedule: buildSchedule2b("keyless").slice(0, 1),
+      runBenchmark: vi.fn(async () => {
+        throw new Error("standings table not found");
+      }) as unknown as Campaign2bDeps["runBenchmark"]
+    });
+    expect(outcome.kind).toBe("crashed");
+    expect(state.entries).toHaveLength(1);
+    expect(state.entries[0]!.status).toBe("crashed");
+    expect(state.entries[0]!.reruns).toBe(0);
+    expect(state.stoppedReason).toBeUndefined();
+  });
+
+  it("F8: a crash then a rerun ACCUMULATES cost, and sum(entries.costUsd) === spendUsd", async () => {
+    // Cost is banked through the SAME hook path production uses — afterTrial
+    // prices the record and mutates spendUsd — with a priced, nonzero cost on
+    // BOTH attempts. No out-of-band spendUsd mutation, so the invariant under
+    // test is actually exercised rather than assumed.
     const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash);
     const schedule = buildSchedule2b("keyless").slice(0, 1);
-    const deps = baseDeps({ trials: [], stopped: undefined } as unknown as BenchmarkResults);
-    // Attempt 1: bank $0.11 of spend, then crash.
-    const crashOnce = await runCampaign2b(state, {
-      ...deps,
+    // The pricing model is pinned, and a hybrid trial with these tokens prices to
+    // a definite nonzero amount under the pinned table.
+    const model = PHASE2B_MODEL;
+    const tokens = { llmCalls: 1, inputTokens: 1_000_000, outputTokens: 1_000_000 };
+    const spendPerTrial = trialCost({ tokens }, "hybrid", model)!;
+    expect(spendPerTrial).toBeGreaterThan(0);
+
+    const bankOneTrial = async (config: BenchmarkRunConfig) => {
+      await config.hooks!.afterTrial!({
+        engine: "hybrid",
+        runId: "t1",
+        tokens
+      } as unknown as TrialResult);
+    };
+
+    // Attempt 1: bank one trial's cost through the hook, then crash.
+    const crashed = await runCampaign2b(state, {
+      ...baseDeps({ trials: [], stopped: undefined } as unknown as BenchmarkResults),
       schedule,
-      runBenchmark: vi.fn(async (config) => {
-        await config.hooks!.afterTrial!({ engine: "hybrid", runId: "t1", tokens: null } as TrialResult);
-        state.spendUsd += 0.11; // stand-in for priced spend the hooks banked
-        throw new Error("engine died");
-      })
+      model,
+      runBenchmark: vi.fn(async (config: BenchmarkRunConfig) => {
+        await bankOneTrial(config);
+        throw new Error("engine died mid-entry");
+      }) as unknown as Campaign2bDeps["runBenchmark"]
     });
-    expect(crashOnce.kind).toBe("crashed");
-    const afterCrash = state.entries[0]!.costUsd;
-    // Attempt 2 (the permitted rerun): bank $0.07 more, then complete.
+    expect(crashed.kind).toBe("crashed");
+    expect(state.entries[0]!.costUsd).toBeCloseTo(spendPerTrial, 10);
+
+    // Attempt 2 (the permitted rerun): bank another trial's cost, then complete.
     await runCampaign2b(state, {
-      ...deps,
+      ...baseDeps({ trials: [], stopped: undefined } as unknown as BenchmarkResults),
       schedule,
-      runBenchmark: vi.fn(async () => {
-        state.spendUsd += 0.07;
-        state.entries[0]!.costUsd += 0; // the hooks own cost; simulate via spend only
+      model,
+      runBenchmark: vi.fn(async (config: BenchmarkRunConfig) => {
+        await bankOneTrial(config);
         return { trials: [], stopped: undefined } as unknown as BenchmarkResults;
-      })
+      }) as unknown as Campaign2bDeps["runBenchmark"]
     });
+
     const entry = state.entries[0]!;
-    expect(entry.reruns).toBe(1); // the crash consumed the one permitted rerun
-    // The rerun ACCUMULATED onto the crashed attempt rather than replacing it:
-    // the recorded cost is the sum of both attempts' banked cost, asserted as an
-    // actual value rather than re-derived from the same expression under test.
-    expect(entry.costUsd).toBeGreaterThanOrEqual(afterCrash);
-    expect(state.entries).toHaveLength(1);
+    expect(entry.reruns).toBe(1);
+    // (a) the entry's cost is the LITERAL sum of both attempts…
+    expect(entry.costUsd).toBeCloseTo(spendPerTrial * 2, 10);
+    // …and (b) the ledger invariant holds against the accumulated spend.
+    expect(state.entries.reduce((sum, e) => sum + e.costUsd, 0)).toBeCloseTo(state.spendUsd, 10);
+    expect(state.spendUsd).toBeCloseTo(spendPerTrial * 2, 10);
   });
 
   it("F10: a process killed MID-ENTRY resumes as a crash with the orphaned spend reconciled", async () => {
@@ -813,7 +1353,10 @@ describe("Phase-2B operator hints and CLI", () => {
       smoke: { cId: FIVE[0]!.id, cMustHealLogin: true, dId: FIVE[1]!.id, dMustPass: true }
     });
     const configs: Record<string, unknown>[] = [];
-    const result = await runKeyedSmoke(frozen, FIVE, {
+    const result = await runKeyedSmoke(
+      frozen,
+      FIVE,
+      {
       headless: true,
       prepareRun: async () => ({
         labUrl: "http://127.0.0.1:0",
@@ -835,7 +1378,9 @@ describe("Phase-2B operator hints and CLI", () => {
           ]
         } as unknown as BenchmarkResults;
       }) as unknown as Campaign2bDeps["runBenchmark"]
-    });
+      },
+      FROZEN_PROVENANCE
+    );
     expect(result.ok).toBe(true);
     expect(result.trials.map((t) => t.policy)).toEqual(["C", "D"]);
     expect(configs).toHaveLength(2);
@@ -851,6 +1396,130 @@ describe("Phase-2B operator hints and CLI", () => {
     expect(configs[0]!.engines).toEqual(["hybrid"]);
     expect(configs[0]!.repairMode).toBe("llm");
     expect(configs[1]!.engines).toEqual(["stagehand"]);
+  });
+
+  it("ITEM 3a: the smoke REFUSES a suite that is not the frozen one, before running anything", async () => {
+    const frozen = FrozenExpectationsSchema.parse({
+      suiteHash: PHASE2B_SUITE_HASH,
+      protocolId: PHASE2B_SUITE_PROTOCOL_ID,
+      campaignProtocolId: PHASE2B_CAMPAIGN_ID,
+      gitCommit: "0".repeat(40),
+      recordVersion: 2,
+      arms: ["frozen", "any-row"],
+      scheduleLength: 20,
+      smoke: { cId: FIVE[0]!.id, cMustHealLogin: true, dId: FIVE[1]!.id, dMustPass: true }
+    });
+    const runBenchmarkStub = vi.fn();
+    await expect(
+      runKeyedSmoke(
+        frozen,
+        FIVE,
+        {
+          headless: true,
+          prepareRun: async () => {
+            throw new Error("prepareRun must not be reached");
+          },
+          runBenchmark: runBenchmarkStub as unknown as Campaign2bDeps["runBenchmark"]
+        },
+        { protocolId: "phase2a-v1", suiteHash: "b".repeat(64), gitCommit: null }
+      )
+    ).rejects.toThrow(/keyed smoke refuses to run: suite protocolId/);
+    expect(runBenchmarkStub).not.toHaveBeenCalled();
+  });
+
+  it("ITEM 3a: the smoke record carries the suite/campaign/commit stamps", async () => {
+    const frozen = FrozenExpectationsSchema.parse({
+      suiteHash: PHASE2B_SUITE_HASH,
+      protocolId: PHASE2B_SUITE_PROTOCOL_ID,
+      campaignProtocolId: PHASE2B_CAMPAIGN_ID,
+      gitCommit: "0".repeat(40),
+      recordVersion: 2,
+      arms: ["frozen", "any-row"],
+      scheduleLength: 20,
+      smoke: { cId: FIVE[0]!.id, cMustHealLogin: true, dId: FIVE[1]!.id, dMustPass: true }
+    });
+    const result = await runKeyedSmoke(
+      frozen,
+      FIVE,
+      {
+        headless: true,
+        prepareRun: async () => ({
+          labUrl: "http://127.0.0.1:0",
+          benchDir: "runs/smoke",
+          benchId: "bench-smoke",
+          dispose: async () => undefined
+        }),
+        runBenchmark: (async () =>
+          ({
+            trials: [{ runId: "t", outcome: "pass", healedSteps: ["login"], chromeVersion: "1" }]
+          }) as unknown as BenchmarkResults) as unknown as Campaign2bDeps["runBenchmark"]
+      },
+      FROZEN_PROVENANCE
+    );
+    expect(result.protocolId).toBe(PHASE2B_SUITE_PROTOCOL_ID);
+    expect(result.suiteHash).toBe(PHASE2B_SUITE_HASH);
+    expect(result.campaignProtocolId).toBe(PHASE2B_CAMPAIGN_ID);
+    expect(result.gitCommit).toBe(FROZEN_PROVENANCE.gitCommit);
+  });
+
+  it("ITEM 3b: the frozen file cannot DISABLE either smoke criterion", () => {
+    const base = {
+      suiteHash: PHASE2B_SUITE_HASH,
+      protocolId: PHASE2B_SUITE_PROTOCOL_ID,
+      campaignProtocolId: PHASE2B_CAMPAIGN_ID,
+      gitCommit: "0".repeat(40),
+      recordVersion: 2,
+      arms: ["frozen", "any-row"],
+      scheduleLength: 20
+    };
+    for (const smoke of [
+      { cId: "c", cMustHealLogin: false, dId: "d", dMustPass: true },
+      { cId: "c", cMustHealLogin: true, dId: "d", dMustPass: false },
+      { cId: "c", dId: "d", dMustPass: true },
+      { cId: "c", cMustHealLogin: true, dId: "d" }
+    ]) {
+      expect(FrozenExpectationsSchema.safeParse({ ...base, smoke }).success, JSON.stringify(smoke)).toBe(
+        false
+      );
+    }
+  });
+
+  it("ITEM 3c: the C criterion needs the EXACT step \"login\", not a prefix match", async () => {
+    const frozen = FrozenExpectationsSchema.parse({
+      suiteHash: PHASE2B_SUITE_HASH,
+      protocolId: PHASE2B_SUITE_PROTOCOL_ID,
+      campaignProtocolId: PHASE2B_CAMPAIGN_ID,
+      gitCommit: "0".repeat(40),
+      recordVersion: 2,
+      arms: ["frozen", "any-row"],
+      scheduleLength: 20,
+      smoke: { cId: FIVE[0]!.id, cMustHealLogin: true, dId: FIVE[1]!.id, dMustPass: true }
+    });
+    const withHealed = async (healed: string[]) =>
+      (
+        await runKeyedSmoke(
+          frozen,
+          FIVE,
+          {
+            headless: true,
+            prepareRun: async () => ({
+              labUrl: "http://127.0.0.1:0",
+              benchDir: "runs/smoke",
+              benchId: "bench-smoke",
+              dispose: async () => undefined
+            }),
+            runBenchmark: (async () =>
+              ({
+                trials: [{ runId: "t", outcome: "pass", healedSteps: healed, chromeVersion: "1" }]
+              }) as unknown as BenchmarkResults) as unknown as Campaign2bDeps["runBenchmark"]
+          },
+          FROZEN_PROVENANCE
+        )
+      ).trials.find((t) => t.policy === "C")!.passedCriteria;
+    expect(await withHealed(["relogin"])).toBe(false);
+    expect(await withHealed(["login-retry"])).toBe(false);
+    expect(await withHealed(["login"])).toBe(true);
+    expect(await withHealed(["reveal-table", "login"])).toBe(true);
   });
 
   it("F2: either smoke trial failing its frozen criterion blocks the keyed phase", async () => {
@@ -879,11 +1548,11 @@ describe("Phase-2B operator hints and CLI", () => {
         }) as unknown as BenchmarkResults) as unknown as Campaign2bDeps["runBenchmark"]
     });
     // C did not heal the login → the C criterion fails.
-    const noHeal = await runKeyedSmoke(frozen, FIVE, deps([], "pass"));
+    const noHeal = await runKeyedSmoke(frozen, FIVE, deps([], "pass"), FROZEN_PROVENANCE);
     expect(noHeal.ok).toBe(false);
     expect(noHeal.trials.find((t) => t.policy === "C")!.passedCriteria).toBe(false);
     // D did not complete the flow → the D criterion fails.
-    const dFailed = await runKeyedSmoke(frozen, FIVE, deps(["login"], "fail"));
+    const dFailed = await runKeyedSmoke(frozen, FIVE, deps(["login"], "fail"), FROZEN_PROVENANCE);
     expect(dFailed.ok).toBe(false);
     expect(dFailed.trials.find((t) => t.policy === "D")!.passedCriteria).toBe(false);
   });

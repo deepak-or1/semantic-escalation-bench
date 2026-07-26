@@ -23,6 +23,7 @@ import {
   type TrialResult
 } from "@ssda/shared";
 import {
+  ChromeVersionUnavailableError,
   DEFAULT_PIPELINE_TIMEOUTS,
   loadAgentEnvConfig,
   overallAccuracy,
@@ -454,6 +455,9 @@ export async function runBenchmark(
             stepTimeoutMs: DEFAULT_PIPELINE_TIMEOUTS.stepTimeoutMs,
             env: "local",
             readinessMode,
+            // Item 4a — strictness reaches the ENGINE, so a run that demands
+            // provenance aborts at init rather than after a completed attempt.
+            ...(config.requireChromeVersion ? { requireChromeVersion: true } : {}),
             repairMode,
             ...(disableRepairResolved ? { disableRepair: true } : {}),
             ...(scenarioSeedCache ? { seedCacheFile: scenarioSeedCache } : {})
@@ -463,6 +467,11 @@ export async function runBenchmark(
             overrides
           });
         } catch (error) {
+          // A PROVENANCE abort is not an engine failure: recording it as a
+          // crashed trial would bury the reason the run must stop and leave a
+          // record claiming the engine broke. Rethrow it untouched so the run
+          // ends without producing any evidence bundle.
+          if (error instanceof ChromeVersionUnavailableError) throw error;
           // A thrown engine (not a pre-checked setup error) is an internal
           // failure — record it, never fabricate a clean result.
           const message = error instanceof Error ? error.message : String(error);
@@ -510,6 +519,13 @@ export async function runBenchmark(
         // cannot satisfy Phase 2B's non-null requirement must not leave a
         // half-qualified bundle behind for someone to certify later.
         if (config.requireChromeVersion && record.chromeVersion == null) {
+          // ACCOUNTING BEFORE THROWING (defence in depth). This trial already
+          // completed, so it may have spent tokens; throwing without pricing it
+          // would drop that spend out of the campaign ledger entirely — the
+          // budget would then be enforced against an understated total. Bank it
+          // first, THEN abort. results.json is still never written on this path:
+          // the throw escapes before the bundle is assembled.
+          if (config.hooks?.afterTrial) await config.hooks.afterTrial(record);
           throw new MissingChromeVersionError(record.engine, record.runId);
         }
         trials.push(record);

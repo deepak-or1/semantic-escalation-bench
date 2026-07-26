@@ -32,17 +32,18 @@ One variable: the readiness predicate, selected by a new CLI flag.
 
 - **Arm F (frozen)** — `--readiness-mode frozen`: the Phase-2A
   predicate, bit-identical behaviour. Exact thresholds, both content
-  modes: stats mode ≥ 5 visible rows (table, heading required) or
-  ≥ 8 cards; odds mode ≥ 4 rows (no heading requirement) or ≥ 4
-  cards. This arm is the replication control and is expected to
+  modes: stats mode ≥ 5 visible table rows or ≥ 8 card blocks (each
+  counted card must bear a heading — the heading requirement applies
+  to card blocks, never to tables); odds mode ≥ 4 rows or ≥ 4 cards
+  (no card-heading requirement). This arm is the replication control and is expected to
   reproduce Phase 2A's gate failures exactly.
 - **Arm R (relaxed)** — `--readiness-mode any-row`: every count
   threshold becomes ≥ 1, in **both** content modes (stats and odds) —
   relaxing only the stats gate would let a small page clear it and
   then fail the odds mode's own ≥ 4, an artifact rather than the
   mechanism under test. Everything else in the poll — the
-  structure-awareness flags (heading required for stats, not for
-  odds), class-freedom, timeout, poll cap — is unchanged. The
+  structure-awareness flags (a heading on each counted card block in
+  stats mode, none in odds mode), class-freedom, timeout, poll cap — is unchanged. The
   existence proof for this choice is policy A, which waits for any
   row, walks the pager, and passed the pure small-page scenarios.
 
@@ -291,7 +292,15 @@ hypothesis.
    the recomputed cost projection frozen; code and protocol tagged
    **together** at `phase2b-ablation-freeze-v1`.
 6. Keyless sweeps run and verify under the frozen *keyless* command
-   before any keyed trial; the keyed phase uses a fresh key, revoked
+   before any keyed trial, AND the Arm-F replication comparison of
+   item 4 runs and passes — machine-enforced inside the keyed-phase
+   gate, so keyed access is impossible without it. Each 2B Arm-F
+   keyless trial is paired by (scenario, policy, sweep) against
+   Phase 2A's `keyless-s{sweep}-{policy}` record for the same
+   scenario. (Probed 2026-07-25: all fifteen 2A keyless cells are
+   projection-identical across their five sweeps on the five
+   allowlisted scenarios, so the sweep pairing is exact, not a
+   modeling choice.) The keyed phase uses a fresh key, revoked
    after the campaign.
 7. Campaign acceptance: the keyed bundle passes the frozen *keyed*
    command; the complete 250-trial bundle passes the frozen *final

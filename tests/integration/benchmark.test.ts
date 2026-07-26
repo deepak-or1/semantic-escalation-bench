@@ -21,7 +21,11 @@ import { fileExists, startLab, stopLab, tmpDir, type Lab } from "./helpers";
  */
 
 const SCENARIO_IDS = ["clean-extraction", "class-drift", "schema-violation"];
-const hasKey = Boolean(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY);
+// A key alone is NOT enough to take the keyed branch: RUN_LIVE_KEYED_TESTS=1 is
+// required too, so ambient credentials can never change what this suite does.
+const hasKey =
+  Boolean(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY) &&
+  process.env.RUN_LIVE_KEYED_TESTS === "1";
 
 let lab: Lab;
 let tempRunsDir: string;

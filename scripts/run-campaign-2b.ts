@@ -43,6 +43,8 @@ import {
 } from "@ssda/shared";
 import {
   CAMPAIGN_BUDGET_THRESHOLD_USD,
+  ChromeVersionUnavailableError,
+  MissingChromeVersionError,
   PINNED_PRICES,
   loadAgentEnvConfig,
   makeBudgetHooks,
@@ -100,6 +102,15 @@ export const PHASE2B_SUITE_HASH =
 
 /** The tag gate 5 places at the campaign commit; no entry may run without it. */
 export const PHASE2B_FREEZE_TAG = "phase2b-ablation-freeze-v1";
+
+/**
+ * The Phase-2A keyless evidence Arm F must REPLICATE (§Gates items 4 and 6).
+ * Cells are `keyless-s{sweep}-{policy}`; each results.json carries exactly one
+ * trial per scenario per sweep.
+ */
+export const PHASE2A_KEYLESS_RUNS_DIR = "evidence/phase2a/runs";
+/** The policies whose Arm-F trials are replication-checked. */
+export const REPLICATION_POLICIES = ["A", "B", "B2"] as const;
 
 /** The arms, in the protocol's notation. */
 const F: ReadinessMode = "frozen";
@@ -216,7 +227,19 @@ export const KeylessVerdictSchema = z.object({
   at: z.string(),
   violations: z.number().int().nonnegative(),
   /** The bundle the verdict covers, so a verdict cannot be reused for another. */
-  entryCount: z.number().int().nonnegative()
+  entryCount: z.number().int().nonnegative(),
+  /**
+   * The Arm-F replication result (§Gates item 6). Recorded so the pre-spend
+   * recheck can require it: a verdict that verified the bundle internally but
+   * never replicated Phase 2A does not authorise keyed spend.
+   */
+  replication: z
+    .object({
+      pass: z.literal(true),
+      cellsCompared: z.number().int().nonnegative(),
+      trialsCompared: z.number().int().nonnegative()
+    })
+    .optional()
 });
 export type KeylessVerdict = z.infer<typeof KeylessVerdictSchema>;
 
@@ -278,9 +301,14 @@ export const FrozenExpectationsSchema = z.object({
    */
   smoke: z.object({
     cId: z.string().min(1),
-    cMustHealLogin: z.boolean(),
+    /**
+     * Pinned to `true`: the frozen file states the criterion, it cannot switch it
+     * off. A gate that an operator can disable in the file it is checked against
+     * is not a gate.
+     */
+    cMustHealLogin: z.literal(true),
     dId: z.string().min(1),
-    dMustPass: z.boolean()
+    dMustPass: z.literal(true)
   })
 });
 export type FrozenExpectations = z.infer<typeof FrozenExpectationsSchema>;
@@ -519,13 +547,31 @@ export function operatorVerifyHint(phase: CampaignPhase | "pooled", dirs: string
 
 // ── Gating (§Schedule: machine-enforced phase gating) ────────────────────────
 
-/** Enforce key discipline for the phase (throws; the shell maps to a usage bail). */
-export function enforceKeyDiscipline2b(phase: CampaignPhase, hasKey: boolean): void {
-  if (phase === "keyless" && hasKey) {
-    throw new Error(
-      "--phase keyless refuses to run while a model provider key is present: the keyless " +
-        "grid must complete before any key exists (PROTOCOL_2B §Schedule)."
-    );
+/**
+ * Enforce key discipline for the phase (throws; the shell maps to a usage bail).
+ *
+ * The keyless phase refuses unless BOTH the provider key and the model config are
+ * absent. Checking the key alone was not enough: `STAGEHAND_MODEL` set without a
+ * key still yields a non-null `stagehandModel` (config.ts:29-30 defaults from it
+ * directly), which arms the hybrid engine's repair dispatch — so a "keyless" run
+ * could carry a configured model. The error names exactly which variable is set,
+ * because "a key is present" is unhelpful when the culprit is the model.
+ */
+export function enforceKeyDiscipline2b(
+  phase: CampaignPhase,
+  env: { modelProvider: string | null; stagehandModel: string | null }
+): void {
+  const hasKey = env.modelProvider !== null;
+  if (phase === "keyless") {
+    const set: string[] = [];
+    if (hasKey) set.push(`a provider key (modelProvider "${env.modelProvider}")`);
+    if (env.stagehandModel !== null) set.push(`STAGEHAND_MODEL ("${env.stagehandModel}")`);
+    if (set.length > 0) {
+      throw new Error(
+        `--phase keyless refuses to run while ${set.join(" and ")} is set: the keyless grid must ` +
+          `complete with no model configured at all (PROTOCOL_2B §Schedule).`
+      );
+    }
   }
   if (phase === "keyed" && !hasKey) {
     throw new Error(
@@ -549,7 +595,9 @@ export function keyedPhaseGate2b(
   suite: LoadedScenarioSuite,
   readRunInput: (dir: string) => VerifyInput,
   suiteFile: string,
-  verify: typeof verifySuite = verifySuite
+  verify: typeof verifySuite = verifySuite,
+  /** The Phase-2A baseline reader — injectable exactly like `verify` above. */
+  readPhase2aCellFn: Phase2aCellReader = readPhase2aCell
 ): KeylessVerdict {
   const parsed = Campaign2bStateSchema.safeParse(keylessStateRaw);
   if (!parsed.success) {
@@ -600,6 +648,16 @@ export function keyedPhaseGate2b(
         `The keyed phase refuses to start (PROTOCOL_2B §Schedule).`
     );
   }
+  // ARM-F REPLICATION (§Gates item 6): the 2B keyless bundle verifying against
+  // ITSELF is not enough — Arm F must reproduce Phase 2A trial-for-trial, or
+  // there is no baseline for the ablation to measure against. Checked AFTER the
+  // frozen keyless verification and BEFORE the verdict is returned.
+  const replication = assertArmFReplicatesPhase2a(
+    state.entries,
+    (dir) => readRunInput(dir).raw as { trials: TrialResult[] },
+    readPhase2aCellFn
+  );
+
   // The PASS verdict is RETURNED so the shell can record it against the keyless
   // state file (§Schedule) — the pre-spend recheck reads it from there, so the
   // verdict is ledger evidence rather than a line in a scrolled-away terminal.
@@ -607,8 +665,276 @@ export function keyedPhaseGate2b(
     pass: true,
     at: new Date().toISOString(),
     violations: 0,
-    entryCount: state.entries.length
+    entryCount: state.entries.length,
+    replication: { pass: true, ...replication }
   };
+}
+
+// ── Arm-F replication of Phase 2A (§Gates items 4 and 6) ─────────────────────
+
+/**
+ * The FROZEN PROJECTION (§Gates item 4), verbatim and exhaustive. Arm F is the
+ * replication control: if it does not reproduce Phase 2A trial-for-trial on these
+ * fields, the ablation has no baseline and the keyed phase must not start.
+ *
+ * `accuracy` is compared as a WHOLE OBJECT by deep equality — never by
+ * enumerating its keys — so a counter nested inside it cannot drift unnoticed.
+ * `llmCalls` lives in the tokens block (keyless records carry `tokens: null`, so
+ * it is legitimately absent on both sides).
+ */
+export const REPLICATION_FIELDS = [
+  "outcome",
+  "outcomeClass",
+  "outcomeReason",
+  "pipelineSuccess",
+  "extractionSuccess",
+  "validationSuccess",
+  "accuracy",
+  "failureCategory",
+  "failureDetail",
+  "retries",
+  "recoveredAfterFailure",
+  "healedSteps",
+  "deterministicRepairSteps",
+  "deterministicFallbacks",
+  "llmCalls"
+] as const;
+
+export type ReplicationProjection = Record<(typeof REPLICATION_FIELDS)[number], unknown>;
+
+/** Project a trial onto the frozen fields. Absent stays absent (undefined). */
+export function projectForReplication(
+  t: Pick<
+    TrialResult,
+    | "outcome"
+    | "outcomeClass"
+    | "outcomeReason"
+    | "pipelineSuccess"
+    | "extractionSuccess"
+    | "validationSuccess"
+    | "accuracy"
+    | "failureCategory"
+    | "failureDetail"
+    | "retries"
+    | "recoveredAfterFailure"
+    | "healedSteps"
+    | "deterministicRepairSteps"
+    | "deterministicFallbacks"
+    | "tokens"
+  >
+): ReplicationProjection {
+  return {
+    outcome: t.outcome,
+    outcomeClass: t.outcomeClass,
+    outcomeReason: t.outcomeReason,
+    pipelineSuccess: t.pipelineSuccess,
+    extractionSuccess: t.extractionSuccess,
+    validationSuccess: t.validationSuccess,
+    accuracy: t.accuracy,
+    failureCategory: t.failureCategory,
+    failureDetail: t.failureDetail,
+    retries: t.retries,
+    recoveredAfterFailure: t.recoveredAfterFailure,
+    healedSteps: t.healedSteps,
+    deterministicRepairSteps: t.deterministicRepairSteps,
+    deterministicFallbacks: t.deterministicFallbacks,
+    // Keyless records have `tokens: null`, so this is absent on both sides —
+    // which the equal-absence rule accepts.
+    llmCalls: t.tokens == null ? undefined : t.tokens.llmCalls
+  };
+}
+
+/**
+ * Deep, KEY-ORDER-INSENSITIVE equality. `JSON.stringify` of raw objects would
+ * make two identical records differ on key order alone, so structures are
+ * canonicalised (keys sorted, undefined-valued keys dropped) before comparison.
+ */
+function canonicalise(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonicalise);
+  if (value !== null && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const key of Object.keys(value as Record<string, unknown>).sort()) {
+      const v = (value as Record<string, unknown>)[key];
+      if (v !== undefined) out[key] = canonicalise(v);
+    }
+    return out;
+  }
+  return value;
+}
+function deepEqual(a: unknown, b: unknown): boolean {
+  return JSON.stringify(canonicalise(a)) === JSON.stringify(canonicalise(b));
+}
+
+export interface ReplicationMismatch {
+  cell: string;
+  scenarioId: string;
+  field: string;
+  phase2b: unknown;
+  phase2a: unknown;
+}
+
+/**
+ * Compare one paired trial across the frozen projection. The EQUAL-ABSENCE rule
+ * is generic, not per-field: a field undefined on BOTH sides matches; present on
+ * exactly one side is a mismatch — so neither side can quietly gain or drop a
+ * field (a dropped `healedSteps` would otherwise read as "no repairs" and match
+ * an honest run that genuinely had none).
+ */
+export function compareProjections(
+  cell: string,
+  scenarioId: string,
+  b: ReplicationProjection,
+  a: ReplicationProjection
+): ReplicationMismatch[] {
+  const out: ReplicationMismatch[] = [];
+  for (const field of REPLICATION_FIELDS) {
+    const bv = b[field];
+    const av = a[field];
+    if (bv === undefined && av === undefined) continue; // equal absence
+    if (bv === undefined || av === undefined || !deepEqual(bv, av)) {
+      out.push({ cell, scenarioId, field, phase2b: bv, phase2a: av });
+    }
+  }
+  return out;
+}
+
+/** How the gate reads a Phase-2A cell. Injectable so tests need no filesystem. */
+export type Phase2aCellReader = (cell: string) => { trials: TrialResult[] };
+
+/**
+ * The repository root, derived from THIS script's own location (scripts/ → ..).
+ * The Phase-2A baseline must resolve identically from any working directory —
+ * resolving it against process.cwd() made the gate silently unfindable whenever
+ * the driver was invoked from anywhere but the repo root.
+ */
+const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+/** The real reader: <repo>/evidence/phase2a/runs/<cell>/results.json. */
+export function readPhase2aCell(cell: string): { trials: TrialResult[] } {
+  const file = path.join(REPO_ROOT, PHASE2A_KEYLESS_RUNS_DIR, cell, "results.json");
+  if (!existsSync(file)) {
+    throw new Error(`Phase-2A replication baseline missing: no results.json at ${file}`);
+  }
+  return JSON.parse(readFileSync(file, "utf8")) as { trials: TrialResult[] };
+}
+
+export interface ReplicationOutcome {
+  cellsCompared: number;
+  trialsCompared: number;
+}
+
+/**
+ * ARM-F REPLICATION (§Gates item 6). Each 2B Arm-F keyless trial is paired by
+ * (scenario, policy, sweep) with the trial of the same scenarioId in
+ * `evidence/phase2a/runs/keyless-s{sweep}-{policy}/results.json`, restricted to
+ * the five allowlisted scenarios, policies A/B/B2, sweeps 1–5 → 75 paired trials.
+ *
+ * A MISSING PAIR IS A VIOLATION, NOT A SKIP: a scenario absent from either side
+ * means the replication claim is unproven for that cell, and silently comparing
+ * fewer trials is exactly how a gate stops gating. Likewise EXACTLY ONE trial is
+ * required per scenario per side: comparing only the first element would let a
+ * side ship [good, bad, bad] and pass on the strength of its first row.
+ *
+ * HONEST SCOPE: duplicate or collapsed runs are rejected by the frozen keyless
+ * verification that `keyedPhaseGate2b` runs immediately BEFORE this check; this
+ * gate's counts are not 75 independent measurements.
+ */
+export function assertArmFReplicatesPhase2a(
+  /**
+   * The keyless ledger's entries — they carry the (policy, sweep, arm) identity
+   * the pairing rule is written in, so the pairing is read off the schedule
+   * rather than inferred from run contents.
+   */
+  entries: readonly Campaign2bEntryState[],
+  /** Reads a 2B run's trials from its recorded dir. */
+  read2bRun: (dir: string) => { trials: TrialResult[] },
+  readCell: Phase2aCellReader = readPhase2aCell
+): ReplicationOutcome {
+  const mismatches: ReplicationMismatch[] = [];
+  let cellsCompared = 0;
+  let trialsCompared = 0;
+
+  for (const policy of REPLICATION_POLICIES) {
+    for (const sweep of [1, 2, 3, 4, 5] as const) {
+      const cell = `keyless-s${sweep}-${policy}`;
+      // The 2B side: the Arm-F entry for exactly this (policy, sweep).
+      const entry = entries.find(
+        (e) => e.arm === "frozen" && e.policy === policy && e.sweep === sweep
+      );
+      if (!entry) {
+        mismatches.push({
+          cell,
+          scenarioId: "(all)",
+          field: "(paired run)",
+          phase2b: "no Arm-F entry for this policy and sweep",
+          phase2a: cell
+        });
+        cellsCompared += 1;
+        continue;
+      }
+      const twoB = read2bRun(entry.dir).trials;
+      const twoA = readCell(cell).trials;
+      cellsCompared += 1;
+
+      for (const scenarioId of PHASE2B_SCENARIO_IDS) {
+        const bTrials = twoB.filter((t) => t.scenarioId === scenarioId);
+        const aTrials = twoA.filter((t) => t.scenarioId === scenarioId);
+        // EXACTLY one per side. Zero means the pair does not exist; more than one
+        // means the pairing is ambiguous and comparing [0] would let the extras
+        // ride along unchecked.
+        if (bTrials.length !== 1 || aTrials.length !== 1) {
+          mismatches.push({
+            cell,
+            scenarioId,
+            field: "(paired trial)",
+            phase2b: `${bTrials.length} trial(s)`,
+            phase2a: `${aTrials.length} trial(s)`
+          });
+          continue;
+        }
+        trialsCompared += 1;
+        mismatches.push(
+          ...compareProjections(
+            cell,
+            scenarioId,
+            projectForReplication(bTrials[0]!),
+            projectForReplication(aTrials[0]!)
+          )
+        );
+      }
+    }
+  }
+
+  if (mismatches.length > 0) {
+    const shown = mismatches
+      .slice(0, 5)
+      .map(
+        (m) =>
+          `    ${m.cell} / ${m.scenarioId} / ${m.field}: 2B ${JSON.stringify(m.phase2b)} ≠ 2A ${JSON.stringify(m.phase2a)}`
+      )
+      .join("\n");
+    throw new Error(
+      `Arm F does NOT replicate Phase 2A (${mismatches.length} mismatch(es) over ${trialsCompared} ` +
+        `paired trial(s) in ${cellsCompared} cell(s)):\n${shown}` +
+        (mismatches.length > 5 ? `\n    …and ${mismatches.length - 5} more` : "") +
+        `\nArm F is the replication control; without it the ablation has no baseline and the keyed ` +
+        `phase refuses to start (PROTOCOL_2B §Gates items 4 and 6).`
+    );
+  }
+  // FIX 4 — the counts are the gate's own report of how much it checked, and
+  // every consumer trusts them. Assert them against the frozen expectation
+  // DERIVED FROM THE CONSTANTS, so a reader that quietly compared nothing cannot
+  // return a passing verdict carrying zeros.
+  const expectedCells = REPLICATION_POLICIES.length * 5;
+  const expectedTrials = expectedCells * PHASE2B_SCENARIO_IDS.length;
+  if (cellsCompared !== expectedCells || trialsCompared !== expectedTrials) {
+    throw new Error(
+      `Arm-F replication did not cover the frozen grid: compared ${cellsCompared}/${expectedCells} ` +
+        `cell(s) and ${trialsCompared}/${expectedTrials} trial(s). A replication gate that checked ` +
+        `less than the whole grid has not replicated it (PROTOCOL_2B §Gates item 6).`
+    );
+  }
+  return { cellsCompared, trialsCompared };
 }
 
 // ── The keyed smoke (§Schedule) ──────────────────────────────────────────────
@@ -628,6 +954,15 @@ export interface SmokeTrialOutcome {
 export interface SmokeResult {
   at: string;
   arm: ReadinessMode;
+  /**
+   * WHAT THIS SMOKE RAN UNDER. Without these the record cannot be tied to a
+   * suite, a campaign or a commit — a smoke.json from any run would look like a
+   * smoke.json for this one.
+   */
+  protocolId: string;
+  suiteHash: string;
+  campaignProtocolId: string;
+  gitCommit: string | null;
   trials: SmokeTrialOutcome[];
   ok: boolean;
 }
@@ -645,8 +980,26 @@ export interface SmokeResult {
 export async function runKeyedSmoke(
   frozen: FrozenExpectations,
   suiteScenarios: readonly ScenarioSpec[],
-  deps: Pick<Campaign2bDeps, "runBenchmark" | "prepareRun" | "headless" | "log">
+  deps: Pick<Campaign2bDeps, "runBenchmark" | "prepareRun" | "headless" | "log">,
+  /** The loaded suite's provenance, plus the commit, for the stamps and the refusal. */
+  provenance: { protocolId: string; suiteHash: string; gitCommit: string | null }
 ): Promise<SmokeResult> {
+  // REFUSE BEFORE RUNNING ANYTHING: a smoke against the wrong suite proves
+  // nothing about the campaign it is supposed to gate.
+  //
+  // DEFENCE IN DEPTH, not an independent barrier: main() pins the suite against
+  // these same constants before calling this, so in production this refusal is a
+  // second copy of an earlier check.
+  if (
+    provenance.protocolId !== PHASE2B_SUITE_PROTOCOL_ID ||
+    provenance.suiteHash !== PHASE2B_SUITE_HASH
+  ) {
+    throw new Error(
+      `keyed smoke refuses to run: suite protocolId "${provenance.protocolId}" / suiteHash ` +
+        `${provenance.suiteHash.slice(0, 16)}… ≠ the frozen "${PHASE2B_SUITE_PROTOCOL_ID}" / ` +
+        `${PHASE2B_SUITE_HASH.slice(0, 16)}…`
+    );
+  }
   const byId = new Map(suiteScenarios.map((s) => [s.id, s]));
   const plan: { policy: "C" | "D"; id: string }[] = [
     { policy: "C", id: frozen.smoke.cId },
@@ -692,18 +1045,20 @@ export async function runKeyedSmoke(
     }
     const t = results.trials[0];
     const healedSteps = t?.healedSteps ?? [];
+    // Both criteria are pinned true by the schema, so there is no "disabled"
+    // branch to take.
     const criterion =
       policy === "C"
-        ? frozen.smoke.cMustHealLogin
-          ? "must heal the login step via its repair path"
-          : "(no criterion)"
-        : frozen.smoke.dMustPass
-          ? "must complete the full flow (outcome pass)"
-          : "(no criterion)";
+        ? "must heal the login step via its repair path"
+        : "must complete the full flow (outcome pass)";
     const passedCriteria =
       policy === "C"
-        ? !frozen.smoke.cMustHealLogin || healedSteps.some((step) => step.includes("login"))
-        : !frozen.smoke.dMustPass || t?.outcome === "pass";
+        ? // EXACT step name. `includes("login")` also accepted "relogin" and
+          // "login-retry"; the canonical healed-step vocabulary in the real
+          // Phase-2A evidence is login / reveal-table / extract-stats /
+          // extract-odds, so the criterion names the step it means.
+          healedSteps.some((step) => step === "login")
+        : t?.outcome === "pass";
     trials.push({
       scenarioId: id,
       policy,
@@ -723,6 +1078,10 @@ export async function runKeyedSmoke(
   return {
     at: new Date().toISOString(),
     arm: "frozen",
+    protocolId: provenance.protocolId,
+    suiteHash: provenance.suiteHash,
+    campaignProtocolId: PHASE2B_CAMPAIGN_ID,
+    gitCommit: provenance.gitCommit,
     trials,
     ok: trials.every((t) => t.passedCriteria)
   };
@@ -736,6 +1095,45 @@ export async function runKeyedSmoke(
  * code executing the campaign is the code the protocol was frozen against.
  * `--print-schedule` is exempt — it runs nothing.
  */
+/**
+ * The freeze tag pinning HEAD is not enough: uncommitted edits would execute
+ * under it, so the code that ran would not be the code the protocol was frozen
+ * against. Untracked files count as dirty — the same standard as gate 1, and for
+ * the same reason (an untracked module can be imported).
+ */
+/**
+ * The pre-flight guards, in order, over INJECTED readers. Extracted so the
+ * sequence itself is testable: with the checks inlined in main(), deleting one
+ * of them broke no test at all — the guards were covered but their WIRING was
+ * not. The order matters: the freeze tag is checked first, so a repo at the
+ * wrong commit is refused without the worktree ever being read.
+ */
+export function runPreflightGuards(deps: {
+  readTags: () => string[];
+  readStatus: () => string;
+}): void {
+  assertFrozenAtHead(deps.readTags());
+  // …and nothing uncommitted: the freeze tag is only meaningful if the code at
+  // HEAD is the code that runs.
+  assertCleanWorktree(deps.readStatus());
+}
+
+export function assertCleanWorktree(porcelain: string): void {
+  const lines = porcelain
+    .split("\n")
+    .map((l) => l.trimEnd())
+    .filter((l) => l.trim().length > 0);
+  if (lines.length > 0) {
+    const shown = lines.slice(0, 5).map((l) => `    ${l}`).join("\n");
+    throw new Error(
+      `refusing to execute any campaign entry: the worktree is DIRTY (${lines.length} path(s), ` +
+        `untracked included — an untracked module can still be imported):\n${shown}` +
+        (lines.length > 5 ? `\n    …and ${lines.length - 5} more` : "") +
+        `\nPhase 2B runs only at its frozen commit with nothing uncommitted (PROTOCOL_2B §Gates).`
+    );
+  }
+}
+
 export function assertFrozenAtHead(tagsAtHead: readonly string[]): void {
   if (!tagsAtHead.includes(PHASE2B_FREEZE_TAG)) {
     throw new Error(
@@ -780,7 +1178,10 @@ export function assertPreSpendExpectations(
   check("arms", observed.arms, frozen.arms);
   check("scheduleLength", observed.scheduleLength, frozen.scheduleLength);
   if (!observed.keylessVerdictPass) {
-    mismatches.push("keylessVerdictPass: the keyless bundle has not recorded a PASS verdict");
+    mismatches.push(
+      "keylessVerdictPass: the keyless bundle has not recorded a PASS verdict WITH a passing " +
+        "Arm-F replication block (§Gates item 6)"
+    );
   }
   if (mismatches.length > 0) {
     throw new Error(
@@ -809,10 +1210,32 @@ export type Campaign2bOutcome =
   | { kind: "complete" }
   | { kind: "stopped"; reason: string; entry: Campaign2bEntry }
   | { kind: "crashed"; entry: Campaign2bEntry; error: Error }
-  | { kind: "poisoned"; reason: string; entry: Campaign2bEntry };
+  | { kind: "poisoned"; reason: string; entry: Campaign2bEntry }
+  /** The machine could not report its browser build — an environment fault. */
+  | { kind: "provenance-abort"; reason: string; entry: Campaign2bEntry };
 
 function asError(e: unknown): Error {
   return e instanceof Error ? e : new Error(String(e));
+}
+
+/**
+ * Is this throw a BROWSER-PROVENANCE abort rather than a trial failure? Either
+ * class counts: the engine's acquisition-time abort, and the runner's
+ * post-attempt strict check. The cause chain is walked because both can arrive
+ * wrapped by an intermediate layer.
+ */
+export function isProvenanceAbortError(error: unknown): boolean {
+  let current: unknown = error;
+  for (let depth = 0; depth < 10 && current instanceof Error; depth++) {
+    if (
+      current instanceof ChromeVersionUnavailableError ||
+      current instanceof MissingChromeVersionError
+    ) {
+      return true;
+    }
+    current = (current as { cause?: unknown }).cause;
+  }
+  return false;
 }
 
 /**
@@ -934,6 +1357,45 @@ export async function runCampaign2b(
       });
     } catch (error) {
       if (ctx) await ctx.dispose();
+
+      // ── PROVENANCE ABORT ≠ TRIAL CRASH ──────────────────────────────────
+      // A browser-provenance abort says the MACHINE could not report its Chrome
+      // build; it says nothing about the trial. Recording it as a crash spends
+      // the entry's one permitted rerun on an environment fault, so a second
+      // invocation while Chrome is still broken kills the cell permanently and
+      // the operator has to hand-edit the ledger. Both classes are caught: the
+      // engine-init abort (ChromeVersionUnavailableError) and the runner's
+      // post-attempt strict check (MissingChromeVersionError). The cause chain
+      // is walked, since either can arrive wrapped.
+      if (isProvenanceAbortError(error)) {
+        const spent = budget.entryCostUsd();
+        const reason =
+          `browser provenance unavailable at ${entryLabel(entry)}: ${asError(error).message} ` +
+          `This is an ENVIRONMENT fault, not a trial fault — fix the browser and re-run; ` +
+          (spent > 0
+            ? `the completed attempt banked $${spent.toFixed(4)}, so the entry is recorded as ` +
+              `crashed carrying that cost (the ledger invariant is non-negotiable).`
+            : `the entry is not marked crashed and keeps its rerun allowance.`);
+        if (spent > 0) {
+          // The runner's strict check banks a completed attempt's spend before
+          // throwing (batch 13, 4b). That spend is already in state.spendUsd, so
+          // the entry MUST be recorded carrying it — the ledger invariant
+          // sum(entries.costUsd) === spendUsd is non-negotiable, and it is the
+          // only reason this path records anything at all.
+          recordEntry(state, entry, {
+            status: "crashed",
+            benchId: ctx?.benchId ?? "",
+            dir: ctx?.benchDir ?? "",
+            costUsd: spent,
+            completedTrials: budget.entryTrials()
+          });
+        }
+        delete state.pendingEntry;
+        state.stoppedReason = reason;
+        await deps.persist(state);
+        return { kind: "provenance-abort", reason, entry };
+      }
+
       recordEntry(state, entry, {
         status: "crashed",
         benchId: ctx?.benchId ?? "",
@@ -1022,6 +1484,15 @@ function readTagsAtHead(): string[] {
   const out = spawnSync("git", ["tag", "--points-at", "HEAD"], { encoding: "utf8" });
   if (out.status !== 0 || typeof out.stdout !== "string") return [];
   return out.stdout.split("\n").map((t) => t.trim()).filter(Boolean);
+}
+
+/** `git status --porcelain`, for the clean-worktree guard. Dirty on git failure. */
+function readWorktreeStatus(): string {
+  const out = spawnSync("git", ["status", "--porcelain"], { encoding: "utf8" });
+  if (out.status !== 0 || typeof out.stdout !== "string") {
+    return "?? (git status unavailable — treating the worktree as dirty)";
+  }
+  return out.stdout;
 }
 
 /** The commit HEAD points at, for the pre-spend recheck. */
@@ -1244,13 +1715,17 @@ async function main(): Promise<void> {
   // points at HEAD. Checked before key discipline so the refusal is the same
   // whichever phase was requested.
   try {
-    assertFrozenAtHead(readTagsAtHead());
+    runPreflightGuards({ readTags: readTagsAtHead, readStatus: readWorktreeStatus });
   } catch (error) {
     bail(error instanceof Error ? error.message : String(error));
   }
 
   try {
-    enforceKeyDiscipline2b(args.phase, loadAgentEnvConfig().modelProvider !== null);
+    const envConfig = loadAgentEnvConfig();
+    enforceKeyDiscipline2b(args.phase, {
+      modelProvider: envConfig.modelProvider,
+      stagehandModel: envConfig.stagehandModel
+    });
   } catch (error) {
     bail(error instanceof Error ? error.message : String(error));
   }
@@ -1335,12 +1810,32 @@ async function main(): Promise<void> {
     } catch (error) {
       bail(error instanceof Error ? error.message : String(error));
     }
-    // F1(a) — RECORD the PASS verdict against the keyless state file (§Schedule),
-    // so the pre-spend recheck below reads ledger evidence rather than a fact that
-    // existed only in this process.
+    // F1(a) — RECORD the PASS verdict against the keyless state file (§Schedule).
+    //
+    // WHAT ENFORCES WHAT, stated plainly: the control that REFUSES a keyless
+    // bundle which does not replicate Phase 2A is keyedPhaseGate2b's throw,
+    // above — by the time execution reaches here the gate has already passed.
+    // Writing and re-reading the verdict is a CROSS-CHECK that the recorded
+    // evidence actually persisted to disk, nothing more. It is not a second
+    // opinion on the replication itself.
     const keylessState = Campaign2bStateSchema.parse(keylessRaw);
     keylessState.verdict = verdict!;
     await writeStateAtomic(args.keylessStateFile, keylessState);
+    // Re-read from DISK. Reading back the same in-memory object would make the
+    // conjunct below tautological — its `replication.pass` is a literal `true`
+    // assigned three lines earlier, so it could never be false and the on-disk
+    // ledger would never be consulted at all.
+    let persistedVerdict: KeylessVerdict | undefined;
+    try {
+      const reread = Campaign2bStateSchema.parse(
+        JSON.parse(readFileSync(args.keylessStateFile, "utf8"))
+      );
+      persistedVerdict = reread.verdict;
+    } catch (error) {
+      bail(
+        `keyless verdict did not persist to ${args.keylessStateFile}: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
     console.log(
       `Keyed-phase gate PASSED: the ${verdict!.entryCount}-entry keyless ledger is complete and the ` +
         `keyless bundle re-verified with the frozen keyless command; verdict recorded at ` +
@@ -1357,7 +1852,11 @@ async function main(): Promise<void> {
           gitCommit: readGitCommit(),
           recordVersion: 2,
           arms: ["frozen", "any-row"],
-          keylessVerdictPass: keylessState.verdict?.pass === true,
+          // Read from the DISK copy: this conjunct cross-checks that the
+          // verdict — including its Arm-F replication block — actually reached
+          // the ledger. The replication itself was enforced by the gate above.
+          keylessVerdictPass:
+            persistedVerdict?.pass === true && persistedVerdict.replication?.pass === true,
           scheduleLength: buildSchedule2b("keyed").length
         },
         {
@@ -1378,12 +1877,16 @@ async function main(): Promise<void> {
 
     // F2 — the KEYED SMOKE runs before any evidence entry.
     try {
-      smoke = await runKeyedSmoke(frozen, allowlistedSuiteScenarios(suite!), {
-        runBenchmark,
-        prepareRun,
-        headless: true,
-        log: (line) => console.log(line)
-      });
+      smoke = await runKeyedSmoke(
+        frozen,
+        allowlistedSuiteScenarios(suite!),
+        { runBenchmark, prepareRun, headless: true, log: (line) => console.log(line) },
+        {
+          protocolId: suite!.protocolId,
+          suiteHash: suite!.suiteHash,
+          gitCommit: readGitCommit()
+        }
+      );
     } catch (error) {
       bail(`keyed smoke failed to run: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -1432,6 +1935,14 @@ async function main(): Promise<void> {
   }
 
   const dirs = state.entries.map((e) => e.dir).filter(Boolean);
+  if (outcome.kind === "provenance-abort") {
+    console.error(
+      `\nCampaign ABORTED (browser provenance): ${outcome.reason}\n` +
+        `State preserved at ${args.stateFile}. The entry was NOT marked crashed and keeps its ` +
+        `rerun allowance — re-run this command once the browser can report its build.`
+    );
+    process.exit(1);
+  }
   if (outcome.kind === "poisoned") {
     console.error(
       `\nCampaign POISONED at ${entryLabel(outcome.entry)}: ${outcome.reason}\n` +

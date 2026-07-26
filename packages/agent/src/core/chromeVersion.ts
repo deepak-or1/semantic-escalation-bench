@@ -15,6 +15,29 @@
  *    build can never turn a passing trial into an engine error.
  */
 
+/**
+ * Thrown when a run demands browser provenance (`requireChromeVersion`) and the
+ * build could not be acquired. Distinguished from every other failure on
+ * purpose: it is a PROVENANCE abort, not an engine failure, so the runner must
+ * rethrow it rather than record it as a crashed trial — a run that cannot meet
+ * Phase 2B's non-null requirement must stop, not produce a trial record saying
+ * the engine broke.
+ *
+ * Raised at ACQUISITION time, i.e. immediately after browser init and before any
+ * navigation or semantic step, so a strict run spends nothing on a trial whose
+ * provenance can never satisfy the protocol.
+ */
+export class ChromeVersionUnavailableError extends Error {
+  constructor(readonly detail: string) {
+    super(
+      `requireChromeVersion: the browser build could not be acquired (${detail}). ` +
+        "Aborting before any navigation or semantic step — this run cannot produce " +
+        "evidence that satisfies the non-null browser-provenance requirement."
+    );
+    this.name = "ChromeVersionUnavailableError";
+  }
+}
+
 /** Upper bound on a SINGLE metadata read. */
 export const CHROME_VERSION_TIMEOUT_MS = 1_500;
 
@@ -100,7 +123,18 @@ export async function readChromeVersionFromCdp(
  */
 export async function acquireChromeVersionFromCdp(
   connectUrl: () => string,
-  options: { budgetMs?: number; retryMs?: number; timeoutMs?: number } = {}
+  options: {
+    budgetMs?: number;
+    retryMs?: number;
+    timeoutMs?: number;
+    /**
+     * When true, an exhausted budget THROWS ChromeVersionUnavailableError instead
+     * of returning null. Callers pass the run's `requireChromeVersion`, so the
+     * abort happens here — at init, before any page work — rather than after a
+     * whole attempt has already run.
+     */
+    required?: boolean;
+  } = {}
 ): Promise<string | null> {
   const budgetMs = options.budgetMs ?? CHROME_VERSION_BUDGET_MS;
   const retryMs = options.retryMs ?? CHROME_VERSION_RETRY_MS;
@@ -109,7 +143,14 @@ export async function acquireChromeVersionFromCdp(
   for (;;) {
     const version = await readChromeVersionFromCdp(connectUrl, timeoutMs);
     if (version !== null) return version;
-    if (Date.now() + retryMs >= deadline) return null;
+    if (Date.now() + retryMs >= deadline) {
+      if (options.required === true) {
+        throw new ChromeVersionUnavailableError(
+          `CDP /json/version did not answer within the ${budgetMs}ms init budget`
+        );
+      }
+      return null;
+    }
     await new Promise((resolve) => setTimeout(resolve, retryMs));
   }
 }

@@ -8,6 +8,7 @@ import {
   type TokensUsage
 } from "@ssda/shared";
 import { persistNormalized, persistRaw } from "./artifacts";
+import { ChromeVersionUnavailableError } from "./chromeVersion";
 import { categorizeError } from "./errors";
 import { buildDataset, checkOddsSchema, checkStatsSchema, normalizeOdds, normalizeStats } from "./normalize";
 import { AttemptFailure, type AttemptOutcome, type PipelineOptions } from "./types";
@@ -110,6 +111,23 @@ export async function runPipeline(
       log.info("attempt:success", { attempt });
       break;
     } catch (error) {
+      // A PROVENANCE abort is not an attempt failure and must NOT be retried.
+      // Without this the acquisition-time throw is swallowed into a failed
+      // attempt, retried maxAttempts times, and finally surfaces as an ordinary
+      // failed PipelineResult — i.e. the whole point of aborting at init (before
+      // any navigation or semantic work) would be lost one layer above the
+      // engine. Rethrow it so it reaches the runner untouched.
+      if (error instanceof ChromeVersionUnavailableError) {
+        // Flush first: the abort escapes the whole pipeline, so without this the
+        // events written up to the acquisition point never reach events.jsonl
+        // and the one artifact explaining WHY the run stopped is lost.
+        try {
+          await options.logger.flush();
+        } catch {
+          /* the abort must still propagate even if flushing fails */
+        }
+        throw error;
+      }
       const failure =
         error instanceof AttemptFailure
           ? {

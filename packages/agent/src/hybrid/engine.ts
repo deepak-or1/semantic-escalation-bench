@@ -630,7 +630,13 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
       // OUTSIDE any runStep so no step duration absorbs it, off every page path,
       // never per step, and null-on-any-failure so it can never fail a trial.
       if (chromeVersion === null) {
-        chromeVersion = await acquireChromeVersionFromCdp(() => stagehand!.connectURL());
+        // `required` makes an unobtainable build an ABORT right here — after
+        // init, before load-session/goto and before any semantic step — instead
+        // of running a whole attempt whose record could never satisfy the
+        // non-null requirement. Absent/false, this is byte-identical to before.
+        chromeVersion = await acquireChromeVersionFromCdp(() => stagehand!.connectURL(), {
+          ...(options.requireChromeVersion ? { required: true } : {})
+        });
       }
 
       if (options.session.mode === "reuse" || options.session.mode === "expired") {

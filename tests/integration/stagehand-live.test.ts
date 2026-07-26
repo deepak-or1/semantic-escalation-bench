@@ -17,9 +17,14 @@ import { startLab, stopLab, tmpDir, type Lab } from "./helpers";
  * OPENAI_API_KEY. Kept to a single clean scenario to bound token cost.
  */
 
+// A key alone is NOT enough to spend money: the operator must also opt in
+// explicitly with RUN_LIVE_KEYED_TESTS=1. The global setup file scrubs ambient
+// credentials, and this second condition means an ordering regression there can
+// never on its own start a paid run.
 const hasKey = Boolean(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY);
+const liveRequested = process.env.RUN_LIVE_KEYED_TESTS === "1";
 
-describe.skipIf(!hasKey)("stagehand engine (live, requires a model key)", () => {
+describe.skipIf(!hasKey || !liveRequested)("stagehand engine (live, requires a model key)", () => {
   let lab: Lab;
 
   beforeAll(async () => {

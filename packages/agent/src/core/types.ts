@@ -52,6 +52,13 @@ export interface PipelineOptions {
    * content poll and ignores this.
    */
   readinessMode?: ReadinessMode;
+  /**
+   * Demand browser provenance: when true the engine must abort at INIT if it
+   * cannot acquire a build, before any navigation or semantic step, rather than
+   * running a whole attempt whose record can never satisfy Phase 2B's non-null
+   * requirement. Threaded from BenchmarkRunConfig.requireChromeVersion.
+   */
+  requireChromeVersion?: boolean;
   /** When set, persist the session cookies here after a successful run. */
   saveSessionStateTo?: string;
   /**
