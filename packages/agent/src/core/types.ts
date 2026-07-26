@@ -157,7 +157,16 @@ export class AttemptFailure extends Error {
      * `deterministicRepairSteps` was: every existing positional call site stays
      * unchanged.
      */
-    readonly stepTrace?: StepTraceEntry[]
+    readonly stepTrace?: StepTraceEntry[],
+    /**
+     * The browser build this attempt ran against, carried on the failure so a
+     * trial that DIES still records which browser executed it. Without this the
+     * version is attached only to a completed attempt's outcome, and every
+     * trial whose attempts all threw records `chromeVersion: null` — the
+     * diagnosed cause of the gate-1 smoke's nulls. Appended LAST for the same
+     * reason `stepTrace` was: every existing positional call site is unchanged.
+     */
+    readonly chromeVersion?: string
   ) {
     super(message, options);
     this.name = "AttemptFailure";

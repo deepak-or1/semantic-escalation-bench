@@ -94,6 +94,7 @@ export async function runPipeline(
         deterministicRepairSteps?: string[];
         deterministicFallbacks?: string[];
         stepTrace?: StepTraceEntry[];
+        chromeVersion?: string;
       }
     | undefined;
   let attempts = 0;
@@ -125,7 +126,10 @@ export async function runPipeline(
               deterministicRepairSteps: error.deterministicRepairSteps,
               deterministicFallbacks: error.deterministicFallbacks,
               // Record-version-2 escalation trace gathered before the attempt died.
-              stepTrace: error.stepTrace
+              stepTrace: error.stepTrace,
+              // …and the browser build it ran against, so a trial that never
+              // completed an attempt still records which browser executed it.
+              chromeVersion: error.chromeVersion
             }
           : (() => {
               const cat = categorizeError(error, "unknown");
@@ -138,7 +142,8 @@ export async function runPipeline(
                 healedSteps: undefined as string[] | undefined,
                 deterministicRepairSteps: undefined as string[] | undefined,
                 deterministicFallbacks: undefined as string[] | undefined,
-                stepTrace: undefined as StepTraceEntry[] | undefined
+                stepTrace: undefined as StepTraceEntry[] | undefined,
+                chromeVersion: undefined as string | undefined
               };
             })();
       lastFailure = failure;
@@ -161,7 +166,8 @@ export async function runPipeline(
       detail: "no attempts executed",
       steps: [],
       screenshots: [],
-      tokens: null
+      tokens: null,
+      chromeVersion: undefined as string | undefined
     };
     await options.logger.flush();
     const failed: PipelineResultOut = {
@@ -202,7 +208,9 @@ export async function runPipeline(
       // ...and the escalation trace it gathered (record version 2).
       ...(failure.stepTrace && failure.stepTrace.length > 0
         ? { stepTrace: failure.stepTrace }
-        : {})
+        : {}),
+      // The build that executed this trial, even though no attempt completed.
+      ...(failure.chromeVersion ? { chromeVersion: failure.chromeVersion } : {})
     };
     return failed;
   }

@@ -16,7 +16,7 @@ import {
   loadAgentEnvConfig,
   loadSessionState,
   PipelineStepError,
-  readChromeVersionFromCdp,
+  acquireChromeVersionFromCdp,
   runPipeline,
   saveScreenshot,
   saveSessionState,
@@ -353,7 +353,10 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
           [...deterministicRepairSteps],
           // Record-version-2 trace snapshot, so triggers evaluated on a losing
           // attempt are still shipped with the trial.
-          stepTrace.map((e) => ({ ...e }))
+          stepTrace.map((e) => ({ ...e })),
+          // The build this trial ran against, so a trial that DIES still
+          // records which browser executed it.
+          ...(chromeVersion ? [chromeVersion] : [])
         );
       }
     };
@@ -627,7 +630,7 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
       // OUTSIDE any runStep so no step duration absorbs it, off every page path,
       // never per step, and null-on-any-failure so it can never fail a trial.
       if (chromeVersion === null) {
-        chromeVersion = await readChromeVersionFromCdp(() => stagehand!.connectURL());
+        chromeVersion = await acquireChromeVersionFromCdp(() => stagehand!.connectURL());
       }
 
       if (options.session.mode === "reuse" || options.session.mode === "expired") {

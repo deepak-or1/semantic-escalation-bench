@@ -102,10 +102,12 @@ Per-run (`BenchmarkResults`):
   statement of what Phase 1 and 2A actually did.
 - Chrome provenance is **per-trial** (`TrialResult.chromeVersion`): the
   browser build that executed that trial, acquired at engine init only
-  (Playwright's version accessor on the baseline; a one-time,
-  timeout-guarded read of the CDP `/json/version` endpoint on
-  Stagehand-backed engines — metadata only, never on any page path,
-  never per-step); null when unavailable. `environment.chromeVersion`
+  (Playwright's version accessor on the baseline; a timeout-guarded
+  read of the CDP `/json/version` endpoint on Stagehand-backed
+  engines, retried within a bounded init budget — metadata only,
+  never on any page path, never per-step); null when unavailable. The
+  build is recorded whether or not the attempt completed: a trial
+  whose attempts all threw still names the browser that executed it. `environment.chromeVersion`
   is emitted only when every executed engine in the run reported a
   version and all reported the same one; otherwise it is null — a run
   is never labelled with one engine's browser. Values are recorded

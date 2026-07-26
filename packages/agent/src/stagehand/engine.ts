@@ -15,7 +15,7 @@ import {
   loadAgentEnvConfig,
   loadSessionState,
   PipelineStepError,
-  readChromeVersionFromCdp,
+  acquireChromeVersionFromCdp,
   requireStagehandReady,
   runPipeline,
   saveScreenshot,
@@ -389,7 +389,10 @@ async function runStagehandEngine(options: PipelineOptions): Promise<PipelineRes
           // stagehand never runs the B2 ladder, so deterministicRepairSteps stays
           // unset; the record-version-2 trace snapshot follows it.
           undefined,
-          stepTrace.map((e) => ({ ...e }))
+          stepTrace.map((e) => ({ ...e })),
+          // The build this trial ran against, so a trial that DIES still
+          // records which browser executed it.
+          ...(chromeVersion ? [chromeVersion] : [])
         );
       }
     };
@@ -465,7 +468,7 @@ async function runStagehandEngine(options: PipelineOptions): Promise<PipelineRes
       // OUTSIDE any runStep so no step duration absorbs it, off every page path,
       // never per step, and null-on-any-failure so it can never fail a trial.
       if (chromeVersion === null) {
-        chromeVersion = await readChromeVersionFromCdp(() => stagehand!.connectURL());
+        chromeVersion = await acquireChromeVersionFromCdp(() => stagehand!.connectURL());
       }
 
       if (options.session.mode === "reuse" || options.session.mode === "expired") {

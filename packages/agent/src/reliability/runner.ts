@@ -51,6 +51,14 @@ export interface BenchmarkRunConfig {
   /** Trials per scenario per engine (default 1). */
   trialsPerScenario: number;
   headless: boolean;
+  /**
+   * Refuse to produce evidence unless EVERY trial records a browser build
+   * (--require-chrome-version). Off by default: record version 2 legally allows
+   * a null build. Phase 2B requires non-null per-trial values, so its driver
+   * sets this and a run that cannot obtain one fails loudly instead of quietly
+   * shipping evidence that cannot satisfy the protocol.
+   */
+  requireChromeVersion?: boolean;
   /** Caller-created run directory (createRunDir({ kind: "bench" })). */
   benchDir: string;
   benchId: string;
@@ -478,6 +486,14 @@ export async function runBenchmark(
           };
         }
 
+        // STRICT MODE: abort BEFORE this run produces any evidence bundle. The
+        // check sits here, inside the trial loop, so the failure surfaces at the
+        // first offending trial and results.json is never written — a run that
+        // cannot satisfy Phase 2B's non-null requirement must not leave a
+        // half-qualified bundle behind for someone to certify later.
+        if (config.requireChromeVersion && record.chromeVersion == null) {
+          throw new MissingChromeVersionError(record.engine, record.runId);
+        }
         trials.push(record);
         // (7) Post-trial hook (PROTOCOL_2A §7): the driver prices this trial's
         // tokens here and enforces the budget. Awaited before the next iteration
@@ -598,6 +614,24 @@ export async function runBenchmark(
 interface GroundTruth {
   truth: Awaited<ReturnType<LabClient["groundTruth"]>>["truth"];
   overrides: Awaited<ReturnType<LabClient["groundTruth"]>>["overrides"];
+}
+
+/**
+ * Thrown by `runBenchmark` under `--require-chrome-version` when a trial records
+ * no browser build. Named so the CLI can print it plainly and a test can assert
+ * on the type rather than a message substring.
+ */
+export class MissingChromeVersionError extends Error {
+  constructor(
+    readonly engine: EngineName,
+    readonly runId: string
+  ) {
+    super(
+      `--require-chrome-version: the ${engine} engine recorded no browser build for trial ${runId} ` +
+        "(chromeVersion null after the bounded init retries). Aborting before any evidence is written."
+    );
+    this.name = "MissingChromeVersionError";
+  }
 }
 
 /**
