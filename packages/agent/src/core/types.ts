@@ -2,6 +2,7 @@ import type {
   EngineName,
   FailureCategory,
   PipelineResult,
+  ReadinessMode,
   RepairMode,
   RunLogger,
   SessionMode,
@@ -44,6 +45,13 @@ export interface PipelineOptions {
   stepTimeoutMs: number;
   /** Stagehand engine only; the baseline always runs a local browser. */
   env: "local" | "browserbase";
+  /**
+   * Which readiness predicate the content poll applies (docs/PROTOCOL_2B.md
+   * §Design). Unset means `frozen` — the Phase-2A predicate, bit-identical — so
+   * every existing caller keeps its exact behaviour. The baseline engine has no
+   * content poll and ignores this.
+   */
+  readinessMode?: ReadinessMode;
   /** When set, persist the session cookies here after a successful run. */
   saveSessionStateTo?: string;
   /**

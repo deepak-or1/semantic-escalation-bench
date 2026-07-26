@@ -555,7 +555,7 @@ async function runStagehandEngine(options: PipelineOptions): Promise<PipelineRes
 
       if (wantStats) {
         await runStep("reveal-table", "not_found", async () => {
-          let ready = await waitForContent(page!, CONTENT_POLL_MS, "stats");
+          let ready = await waitForContent(page!, CONTENT_POLL_MS, "stats", options.readinessMode);
           if (!ready) {
             const [action] = await observe(REVEAL_STANDINGS_INSTRUCTION);
             if (action) {
@@ -568,7 +568,7 @@ async function runStagehandEngine(options: PipelineOptions): Promise<PipelineRes
               });
             }
             await page!.waitForTimeout(400);
-            ready = await waitForContent(page!, CONTENT_POLL_MS, "stats");
+            ready = await waitForContent(page!, CONTENT_POLL_MS, "stats", options.readinessMode);
           }
           if (!ready) {
             throw new PipelineStepError(
@@ -631,7 +631,7 @@ async function runStagehandEngine(options: PipelineOptions): Promise<PipelineRes
         }
 
         await runStep("extract-odds", "extraction", async () => {
-          if (!(await waitForContent(page!, CONTENT_POLL_MS, "odds"))) {
+          if (!(await waitForContent(page!, CONTENT_POLL_MS, "odds", options.readinessMode))) {
             throw new PipelineStepError(
               "odds content never appeared",
               "not_found",

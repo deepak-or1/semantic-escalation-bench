@@ -702,7 +702,7 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
 
       if (wantStats) {
         await runStep("reveal-table", "not_found", async () => {
-          let ready = await waitForContent(page!, CONTENT_POLL_MS, "stats");
+          let ready = await waitForContent(page!, CONTENT_POLL_MS, "stats", options.readinessMode);
           // The readiness poll IS the reveal-table trigger: ready means no reveal
           // was needed at all, not-ready is what sends us down the repair path.
           stepTrace.push({
@@ -767,7 +767,7 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
               });
             }
             await page!.waitForTimeout(400);
-            ready = await waitForContent(page!, CONTENT_POLL_MS, "stats");
+            ready = await waitForContent(page!, CONTENT_POLL_MS, "stats", options.readinessMode);
             // Second evaluation of the same poll, AFTER the reveal attempt — the
             // honest answer to "did escalating actually make the content readable".
             stepTrace.push({
@@ -855,7 +855,7 @@ async function runHybridEngine(options: PipelineOptions): Promise<PipelineResult
         }
 
         await runStep("extract-odds", "extraction", async () => {
-          const oddsReady = await waitForContent(page!, CONTENT_POLL_MS, "odds");
+          const oddsReady = await waitForContent(page!, CONTENT_POLL_MS, "odds", options.readinessMode);
           stepTrace.push({
             step: "extract-odds",
             readinessOutcome: oddsReady ? "ready" : "not-ready",

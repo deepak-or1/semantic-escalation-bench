@@ -76,6 +76,18 @@ export const RunPurposeSchema = z.enum(["smoke", "cold", "persistence", "warm"])
 export type RunPurpose = z.infer<typeof RunPurposeSchema>;
 
 /**
+ * The readiness predicate a run used — the ONE variable of the Phase-2B
+ * ablation (docs/PROTOCOL_2B.md §Design).
+ *  - `frozen`: the Phase-2A predicate, bit-identical (≥5 rows / ≥8 cards for
+ *    stats, ≥4 / ≥4 for odds). The replication control.
+ *  - `any-row`: ready as soon as ONE data row or card is visible. Everything
+ *    else in the poll — structure-awareness, class-freedom, timeout, poll cap —
+ *    is unchanged.
+ */
+export const ReadinessModeSchema = z.enum(["frozen", "any-row"]);
+export type ReadinessMode = z.infer<typeof ReadinessModeSchema>;
+
+/**
  * Behaviour classification of a trial, ORTHOGONAL to the judged pass/fail.
  * Derived from what the pipeline actually did (not from whether it met the
  * scenario's expectation):
@@ -454,7 +466,25 @@ export const BenchmarkResultsSchema = z.object({
      * results; they are derived at analysis time from that table, so the record
      * names which table applies.
      */
-    pricesPinnedAt: z.string().nullable().optional()
+    pricesPinnedAt: z.string().nullable().optional(),
+    // ── Phase-2B arm provenance (docs/PROTOCOL_2B.md §Design) ────────────────
+    /**
+     * The ARM this run belongs to: the readiness predicate it actually used,
+     * always the RESOLVED value, so a run that passed no flag honestly records
+     * "frozen" rather than staying silent. Optional in the schema because
+     * records written before the arm machinery existed have no stamp at all —
+     * absent means "pre-arm", never "frozen by default". The Phase-2B verifier
+     * requires it, behind its own flag, so nothing existing breaks.
+     */
+    readinessMode: ReadinessModeSchema.optional(),
+    /**
+     * Which CAMPAIGN this run belongs to, verbatim as configured (e.g.
+     * "phase2b-ablation-v1"). Distinct from `protocolId`, which names the
+     * SUITE's lineage and must equal the supplied suite's — so it cannot also
+     * name the campaign. Never defaulted and never invented: absent config
+     * means an absent key.
+     */
+    campaignProtocolId: z.string().min(1).optional()
   })
 });
 export type BenchmarkResults = z.infer<typeof BenchmarkResultsSchema>;

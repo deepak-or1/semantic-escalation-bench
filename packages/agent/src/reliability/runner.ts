@@ -15,6 +15,7 @@ import {
   type BenchmarkResults,
   type EngineName,
   type PipelineResult,
+  type ReadinessMode,
   type RepairMode,
   type RunPurpose,
   type ScenarioSpec,
@@ -59,6 +60,19 @@ export interface BenchmarkRunConfig {
    * shipping evidence that cannot satisfy the protocol.
    */
   requireChromeVersion?: boolean;
+  /**
+   * The ARM this run belongs to (docs/PROTOCOL_2B.md §Design). Unset resolves to
+   * `frozen`, the Phase-2A predicate — so an unflagged run is byte-for-byte what
+   * it always was — and the RESOLVED value is what gets stamped, so the record
+   * states its arm rather than staying silent about it.
+   */
+  readinessMode?: ReadinessMode;
+  /**
+   * Which CAMPAIGN this run belongs to (e.g. "phase2b-ablation-v1"), stamped
+   * verbatim. Never defaulted and never invented: unset means the record carries
+   * no such key. Distinct from `protocolId`, which names the SUITE's lineage.
+   */
+  campaignProtocolId?: string;
   /** Caller-created run directory (createRunDir({ kind: "bench" })). */
   benchDir: string;
   benchId: string;
@@ -310,6 +324,9 @@ export async function runBenchmark(
   // aggregator's B-structural label).
   const repairMode = resolveRepairMode(config);
   const disableRepairResolved = repairMode === "off";
+  // Resolved ONCE: passed to every engine and stamped on the record, so what the
+  // run did and what the record says can never drift apart.
+  const readinessMode: ReadinessMode = config.readinessMode ?? "frozen";
 
   const lab = new LabClient(config.labUrl);
   const envConfig = loadAgentEnvConfig();
@@ -436,6 +453,7 @@ export async function runBenchmark(
             navTimeoutMs: DEFAULT_PIPELINE_TIMEOUTS.navTimeoutMs,
             stepTimeoutMs: DEFAULT_PIPELINE_TIMEOUTS.stepTimeoutMs,
             env: "local",
+            readinessMode,
             repairMode,
             ...(disableRepairResolved ? { disableRepair: true } : {}),
             ...(scenarioSeedCache ? { seedCacheFile: scenarioSeedCache } : {})
@@ -575,6 +593,13 @@ export async function runBenchmark(
       // would be a claim the run cannot support.
       chromeVersion: unanimousChromeVersion(trials),
       pricesPinnedAt: PRICES_PINNED_AT,
+      // ── Phase-2B arm provenance ────────────────────────────────────────────
+      // Always stamped, never conditional: a run that passed no flag records
+      // "frozen" because that is what it ran, not because a default was assumed
+      // at read time.
+      readinessMode,
+      // Stamped only when configured — an absent campaign is an absent key.
+      ...(config.campaignProtocolId ? { campaignProtocolId: config.campaignProtocolId } : {}),
       ...provenance
     }
   });

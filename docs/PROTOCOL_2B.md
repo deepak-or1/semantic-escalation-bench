@@ -31,14 +31,20 @@ It cannot support "the model is never the ceiling in general."
 One variable: the readiness predicate, selected by a new CLI flag.
 
 - **Arm F (frozen)** — `--readiness-mode frozen`: the Phase-2A
-  predicate, bit-identical behaviour (≥ 5 rows / ≥ 8 cards). This arm
-  is the replication control and is expected to reproduce Phase 2A's
-  gate failures exactly.
-- **Arm R (relaxed)** — `--readiness-mode any-row`: content is ready
-  when at least one data row (or card) is visible; everything else in
-  the poll (structure-awareness, class-freedom, timeout) unchanged. The
-  existence proof for this choice is policy A, which waits for any row,
-  walks the pager, and passed the pure small-page scenarios.
+  predicate, bit-identical behaviour. Exact thresholds, both content
+  modes: stats mode ≥ 5 visible rows (table, heading required) or
+  ≥ 8 cards; odds mode ≥ 4 rows (no heading requirement) or ≥ 4
+  cards. This arm is the replication control and is expected to
+  reproduce Phase 2A's gate failures exactly.
+- **Arm R (relaxed)** — `--readiness-mode any-row`: every count
+  threshold becomes ≥ 1, in **both** content modes (stats and odds) —
+  relaxing only the stats gate would let a small page clear it and
+  then fail the odds mode's own ≥ 4, an artifact rather than the
+  mechanism under test. Everything else in the poll — the
+  structure-awareness flags (heading required for stats, not for
+  odds), class-freedom, timeout, poll cap — is unchanged. The
+  existence proof for this choice is policy A, which waits for any
+  row, walks the pager, and passed the pure small-page scenarios.
 
 Held fixed: the five frozen policies at their Phase-2A tags' behaviour,
 the suite bytes for the five scenarios, seeds, model
