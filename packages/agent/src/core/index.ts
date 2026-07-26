@@ -5,5 +5,6 @@ export * from "./session";
 export * from "./normalize";
 export * from "./score";
 export * from "./artifacts";
+export * from "./chromeVersion";
 export * from "./domReady";
 export * from "./runPipeline";

@@ -2,8 +2,35 @@ import { z } from "zod";
 import { ChaosFlagSchema } from "../chaos";
 import { ChaosParamsSchema } from "../chaosParams";
 import {
+  DisplayOverrideSchema,
+  GroundTruthSchema,
+  NormalizedMarketSchema,
+  NormalizedTeamStatsSchema
+} from "./domain";
+/**
+ * The verbatim pre-normalization payloads (record version 2). Both keys are
+ * `unknown`, so ANY value the extractor produced round-trips unchanged — but
+ * both must be PRESENT: "this page produced nothing" is said with `null`, never
+ * by leaving the key out, because an absent key and a null one would otherwise
+ * recompute to different schema-check errors.
+ */
+const RawPayloadsSchema = z
+  .object({ stats: z.unknown(), odds: z.unknown() })
+  .superRefine((value, ctx) => {
+    for (const page of ["stats", "odds"] as const) {
+      if (!Object.hasOwn(value, page)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [page],
+          message: `canonical.raw.${page} must be present (null when the page produced no payload)`
+        });
+      }
+    }
+  });
+import {
   EngineNameSchema,
   FailureCategorySchema,
+  StepTraceEntrySchema,
   TokensUsageSchema
 } from "./run";
 
@@ -158,9 +185,111 @@ export const TrialResultSchema = z.object({
    * failed to clear a session blocker (stagehand engine only). Disclosed so
    * full-semantic results never silently lean on hand-written code.
    */
-  deterministicFallbacks: z.array(z.string()).optional()
+  deterministicFallbacks: z.array(z.string()).optional(),
+  // ── Evidence-complete record, version 2 (docs/RECORD_FORMAT.md) ────────────
+  /**
+   * Record format version. ABSENT means version 1 (counters attested, raw rows
+   * not shipped), and an EXPLICIT `1` says the same thing — v1 records predate
+   * the field and normally omit it, but a producer that states it is accepted
+   * (docs/RECORD_FORMAT.md). `2` means this record embeds the grading INPUTS, so
+   * a third party can recompute the accuracy counters instead of trusting them.
+   * Every v2 addition is optional, so every v1 bundle keeps parsing
+   * byte-for-byte.
+   */
+  recordVersion: z.union([z.literal(1), z.literal(2)]).optional(),
+  /**
+   * The grading inputs, shipped at BOTH stages of the pipeline.
+   *
+   * `raw` is the pre-normalization extraction payload per page, recorded
+   * VERBATIM as `unknown`: exactly the value `runPipeline` handed to
+   * `checkStatsSchema` / `checkOddsSchema`, with no shape imposed and no
+   * reshaping of any kind. Two reasons, and both are load-bearing: validating it
+   * here would make the extraction checks pass by construction and turn
+   * `extractionSuccess` back into an attestation; and rewriting a payload the
+   * record layer found unfamiliar (an earlier draft mapped anything that was not
+   * `{ rows: [...] }` to null) would change what an honestly MALFORMED payload's
+   * schema-error detail recomputes to, breaking the attribution recompute on a
+   * record that did nothing wrong. A page that produced no payload records null —
+   * never omission. It is the root of the chain: because it ships,
+   * everything downstream of it is RE-DERIVABLE, so the normalized rows,
+   * failures and warnings below are cross-checks rather than assertions — a
+   * shipped value that does not follow from `raw` fails verification. A page is
+   * null when the engine produced no payload for it at all.
+   *
+   * `stats`/`odds` are the normalized rows the scorer consumed; `failures`/
+   * `warnings` are the dataset annotations normalization produced (what
+   * `assessDataset` seeds its verdict from). All four are null/empty together
+   * only in the one case the pipeline can produce them that way: both row pages
+   * are null exactly when NO normalized dataset was built at all — the same
+   * condition that records `accuracy: null`. A page that WAS normalized but
+   * yielded nothing records an empty array, never null.
+   *
+   * Note the two nullabilities are independent in the honest direction only:
+   * `raw.<page>` may be null while the rows are present (that page extracted
+   * nothing, and normalization still built a dataset from the other page), but
+   * rows cannot be null while raw is present — no dataset is built without a
+   * completed attempt.
+   */
+  canonical: z
+    .object({
+      raw: RawPayloadsSchema,
+      stats: z.array(NormalizedTeamStatsSchema).nullable(),
+      odds: z.array(NormalizedMarketSchema).nullable(),
+      failures: z.array(z.string()),
+      warnings: z.array(z.string())
+    })
+    .optional(),
+  /**
+   * Which pages the pipeline was ASKED to extract (record version 2). Absent
+   * means both — every bench run to date requests both, so the field changes no
+   * existing record; it exists so the verifier recomputes the extraction verdict
+   * over exactly the requested set instead of assuming it, and a future
+   * single-page run cannot false-positive on `extractionSuccess`.
+   */
+  pagesRequested: z.array(z.enum(["stats", "odds"])).min(1).optional(),
+  /**
+   * The browser build that executed THIS trial (record version 2). Per-trial
+   * because it is a per-trial fact: engines in one run can launch different
+   * browsers, and their version sources report different forms. null when no
+   * source could supply one. `BenchmarkResults.environment.chromeVersion`
+   * summarises these and is emitted only when every trial reported the same one.
+   */
+  chromeVersion: z.string().nullable().optional(),
+  /**
+   * Why escalation did or did not fire, step by step (see StepTraceEntrySchema).
+   * Best-effort per engine; absent for the baseline, which has no escalation
+   * machinery to trace.
+   */
+  stepTrace: z.array(StepTraceEntrySchema).optional()
 });
 export type TrialResult = z.infer<typeof TrialResultSchema>;
+
+/**
+ * The exact ground-truth slice the scorer compared a scenario's extractions
+ * against: the lab's seeded truth plus the display overrides that tell the
+ * scorer which cells to expect as missing and which to exclude. Recorded once
+ * per scenario at the RUN level (see BenchmarkResults.oracles) rather than once
+ * per trial; trials reference it through their existing `scenarioId`.
+ */
+export const TrialOracleSchema = z.object({
+  truth: GroundTruthSchema,
+  overrides: z.array(DisplayOverrideSchema)
+});
+export type TrialOracle = z.infer<typeof TrialOracleSchema>;
+
+/**
+ * What the model was configured to do, for runs that used one (record version
+ * 2). No code path in this repo sets a temperature, so a run with a model
+ * records `provider-default` with a null temperature — the honest statement of
+ * what Phase 1 and Phase 2A actually did. `n/a-no-model` is a keyless run, where
+ * the question does not arise; `explicit` is reserved for a future run that sets
+ * a temperature deliberately.
+ */
+export const ModelConfigSchema = z.object({
+  temperature: z.number().nullable(),
+  temperatureSource: z.enum(["explicit", "provider-default", "n/a-no-model"])
+});
+export type ModelConfig = z.infer<typeof ModelConfigSchema>;
 
 export const EngineSummarySchema = z.object({
   engine: EngineNameSchema,
@@ -242,6 +371,13 @@ export const BenchmarkResultsSchema = z.object({
       plannedTrials: z.number().int().nonnegative()
     })
     .optional(),
+  /**
+   * Record version 2 (docs/RECORD_FORMAT.md): the exact ground-truth slice used
+   * to grade each scenario, keyed by `scenarioId`. Run-level so each oracle ships
+   * ONCE rather than once per trial. Absent on v1 runs, whose trials therefore
+   * cannot be re-graded from raw output.
+   */
+  oracles: z.record(TrialOracleSchema).optional(),
   environment: z.object({
     node: z.string(),
     stagehandVersion: z.string().optional(),
@@ -297,7 +433,28 @@ export const BenchmarkResultsSchema = z.object({
      * serialization) for this run (PROTOCOL_2A §5 item 4). Optional for backward
      * compatibility with Phase-1 files; populated by a later stage-1 deliverable.
      */
-    suiteHash: z.string().optional()
+    suiteHash: z.string().optional(),
+    // ── Record version 2 provenance (docs/RECORD_FORMAT.md) ─────────────────
+    /**
+     * The model configuration in effect for this run (see ModelConfigSchema).
+     * Optional so v1 files keep parsing.
+     */
+    modelConfig: ModelConfigSchema.optional(),
+    /**
+     * Run-level SUMMARY of the per-trial `TrialResult.chromeVersion` values.
+     * Emitted only when EVERY trial in the run reported a build and all reported
+     * the SAME one; null otherwise — including when only some trials reported.
+     * A trial that reported nothing is not a vote for its siblings' answer, so a
+     * baseline+hybrid run is never labelled with the baseline's browser.
+     */
+    chromeVersion: z.string().nullable().optional(),
+    /**
+     * The pinned price-table date used for cost derivation
+     * (packages/agent/src/reliability/prices.ts). Costs are never summed into
+     * results; they are derived at analysis time from that table, so the record
+     * names which table applies.
+     */
+    pricesPinnedAt: z.string().nullable().optional()
   })
 });
 export type BenchmarkResults = z.infer<typeof BenchmarkResultsSchema>;

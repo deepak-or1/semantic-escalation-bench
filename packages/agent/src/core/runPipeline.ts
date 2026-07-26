@@ -4,6 +4,7 @@ import {
   type PageExtraction,
   type PipelineResult,
   type StepResult,
+  type StepTraceEntry,
   type TokensUsage
 } from "@ssda/shared";
 import { persistNormalized, persistRaw } from "./artifacts";
@@ -92,6 +93,7 @@ export async function runPipeline(
         healedSteps?: string[];
         deterministicRepairSteps?: string[];
         deterministicFallbacks?: string[];
+        stepTrace?: StepTraceEntry[];
       }
     | undefined;
   let attempts = 0;
@@ -121,7 +123,9 @@ export async function runPipeline(
               // entirely still records it (below).
               healedSteps: error.healedSteps,
               deterministicRepairSteps: error.deterministicRepairSteps,
-              deterministicFallbacks: error.deterministicFallbacks
+              deterministicFallbacks: error.deterministicFallbacks,
+              // Record-version-2 escalation trace gathered before the attempt died.
+              stepTrace: error.stepTrace
             }
           : (() => {
               const cat = categorizeError(error, "unknown");
@@ -133,7 +137,8 @@ export async function runPipeline(
                 tokens: null,
                 healedSteps: undefined as string[] | undefined,
                 deterministicRepairSteps: undefined as string[] | undefined,
-                deterministicFallbacks: undefined as string[] | undefined
+                deterministicFallbacks: undefined as string[] | undefined,
+                stepTrace: undefined as StepTraceEntry[] | undefined
               };
             })();
       lastFailure = failure;
@@ -193,6 +198,10 @@ export async function runPipeline(
         : {}),
       ...(failure.deterministicFallbacks && failure.deterministicFallbacks.length > 0
         ? { deterministicFallbacks: failure.deterministicFallbacks }
+        : {}),
+      // ...and the escalation trace it gathered (record version 2).
+      ...(failure.stepTrace && failure.stepTrace.length > 0
+        ? { stepTrace: failure.stepTrace }
         : {})
     };
     return failed;
@@ -307,7 +316,13 @@ export async function runPipeline(
     // included.
     ...(outcome.deterministicFallbacks && outcome.deterministicFallbacks.length > 0
       ? { deterministicFallbacks: outcome.deterministicFallbacks }
-      : {})
+      : {}),
+    // Record-version-2 evidence: the per-step escalation trace (engines that
+    // record one) and the browser build (engines that can read it for free).
+    ...(outcome.stepTrace && outcome.stepTrace.length > 0
+      ? { stepTrace: outcome.stepTrace }
+      : {}),
+    ...(outcome.chromeVersion ? { chromeVersion: outcome.chromeVersion } : {})
   };
   return result;
 }

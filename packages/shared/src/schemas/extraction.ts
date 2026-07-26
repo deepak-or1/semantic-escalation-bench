@@ -44,3 +44,12 @@ export const ExtractedOddsPageSchema = z.object({
   rows: z.array(ExtractedOddsRowSchema)
 });
 export type ExtractedOddsPage = z.infer<typeof ExtractedOddsPageSchema>;
+
+/**
+ * NOTE (record version 2): a page's pre-normalization payload is recorded
+ * VERBATIM as `unknown` — see `TrialResult.canonical.raw`. The record layer
+ * imposes no shape on it at all, deliberately, so there is no schema here to
+ * describe it: any validation would make the extraction checks pass by
+ * construction, and any reshaping would change what an honestly malformed
+ * payload's schema-error detail recomputes to.
+ */

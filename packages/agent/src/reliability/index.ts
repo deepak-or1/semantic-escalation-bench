@@ -5,6 +5,9 @@ export {
   runBenchmark,
   judge,
   resolveSuiteProvenance,
+  // Exported so the verifier RE-DERIVES environment.chromeVersion with the exact
+  // rule the recorder used, rather than trusting the recorded summary.
+  unanimousChromeVersion,
   validateRunPurpose,
   type BenchmarkRunConfig,
   type SeedCacheManifest
