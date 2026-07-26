@@ -263,6 +263,21 @@ export type PendingEntry = z.infer<typeof PendingEntrySchema>;
 
 export const Campaign2bStateSchema = z.object({
   version: z.literal(1),
+  /**
+   * WHICH PHASE THIS LEDGER IS — identity, not inference. The protocol's "never
+   * shared between phases" rule (§State files) is only enforceable if the file
+   * itself says which phase it belongs to. Deriving it from `entries` fails on
+   * exactly the state where it matters most: an ENTRY-LESS one. Since the smoke
+   * moved into the ledger, an entry-less KEYED state can already carry paid
+   * smoke spend and a recorded smoke pass, and an auditor fed precisely that to
+   * `--phase keyless` and had it accepted.
+   *
+   * REQUIRED, deliberately not optional: no legitimate Phase-2B state can
+   * predate the freeze tag, which has never been created, so there is nothing to
+   * migrate — and a file that does not say which phase it is, is not a
+   * Phase-2B ledger.
+   */
+  phase: z.enum(["keyless", "keyed"]),
   protocolId: z.string(),
   suiteHash: z.string(),
   /** The campaign this ledger belongs to — refused if it is not this one. */
@@ -349,9 +364,14 @@ export const FrozenExpectationsSchema = z.object({
 });
 export type FrozenExpectations = z.infer<typeof FrozenExpectationsSchema>;
 
-export function initCampaign2bState(protocolId: string, suiteHash: string): Campaign2bState {
+export function initCampaign2bState(
+  protocolId: string,
+  suiteHash: string,
+  phase: CampaignPhase
+): Campaign2bState {
   return {
     version: 1,
+    phase,
     protocolId,
     suiteHash,
     campaignProtocolId: PHASE2B_CAMPAIGN_ID,
@@ -380,13 +400,40 @@ export function entryLabel(e: {
 /**
  * Validate a loaded state against the suite, the phase, and the campaign. Same
  * three refusals as 2A plus the campaign identity — a ledger from another
- * campaign must never be resumed into this one.
+ * campaign must never be resumed into this one — plus the phase stamp and the
+ * keyless-purity rule the phase stamp makes checkable.
  */
 export function assertState2bMatches(
   state: Campaign2bState,
   provenance: { protocolId: string; suiteHash: string },
   phase: CampaignPhase
 ): void {
+  // THE FILE'S OWN PHASE CLAIM, checked FIRST and by exact match. Every check
+  // below this one was previously the whole story, and none of them could see a
+  // cross-phase state that had not yet recorded an entry — which, since the
+  // keyed smoke banks into the ledger before the first entry, is a state that
+  // can already hold real money and a recorded go-ahead.
+  if (state.phase !== phase) {
+    throw new Error(
+      `is a "${state.phase}"-phase ledger but --phase is "${phase}": the keyless and keyed ` +
+        `phases have different schedules and MUST NOT share a state file, and an entry-less ` +
+        `keyed ledger can already carry paid smoke spend and a recorded smoke pass. Use ` +
+        `${defaultStateFile(phase)} for the "${phase}" phase.`
+    );
+  }
+  // KEYLESS PURITY. The keyless phase makes no provider calls at all, so the
+  // protocol pins its smoke spend to zero (§Operational machinery) and no smoke
+  // marker can honestly exist in it. A keyless ledger carrying either is a keyed
+  // ledger wearing the wrong label, or a hand-edit.
+  if (phase === "keyless" && (state.smoke !== undefined || (state.smokeSpendUsd ?? 0) > 0)) {
+    throw new Error(
+      `is labelled "keyless" but carries keyed-smoke accounting (smokeSpendUsd=$${(
+        state.smokeSpendUsd ?? 0
+      ).toFixed(6)}, smoke marker ${state.smoke ? "PRESENT" : "absent"}): the keyless phase makes ` +
+        `no paid calls, so its smoke spend is zero and no smoke pass can exist in it ` +
+        `(PROTOCOL_2B §Operational machinery).`
+    );
+  }
   if (state.protocolId !== provenance.protocolId || state.suiteHash !== provenance.suiteHash) {
     throw new Error(
       `belongs to a different suite (state protocolId=${state.protocolId} ` +
@@ -399,12 +446,98 @@ export function assertState2bMatches(
       `belongs to campaign "${state.campaignProtocolId}", not "${PHASE2B_CAMPAIGN_ID}"`
     );
   }
+  // The entries-derived check is KEPT, now as an internal-consistency backstop
+  // rather than the phase rule itself: with the stamp checked above, an entry
+  // whose phase differs from its own ledger's is corruption, not a mix-up.
   const foreign = state.entries.find((e) => e.phase !== phase);
   if (foreign) {
     throw new Error(
       `records a "${foreign.phase}"-phase entry but --phase is "${phase}": the keyless and ` +
         `keyed phases have different schedules and MUST NOT share a state file. Use ` +
         `${defaultStateFile(phase)} for the "${phase}" phase.`
+    );
+  }
+  // …and the IN-FLIGHT marker is phase-bearing too. It was the one such field
+  // nothing validated: a state stamped for one phase carrying a pending marker
+  // for the other passes every check above (the marker is not an entry yet), and
+  // `reconcilePendingEntry` then mints a foreign-phase entry INTO this ledger —
+  // which the very next load refuses, permanently bricking the file.
+  if (state.pendingEntry && state.pendingEntry.phase !== phase) {
+    throw new Error(
+      `records an in-flight "${state.pendingEntry.phase}"-phase entry but --phase is "${phase}": ` +
+        `the keyless and keyed phases have different schedules and MUST NOT share a state file, ` +
+        `and reconciling this marker would mint a foreign-phase entry into the ledger. Use ` +
+        `${defaultStateFile(phase)} for the "${phase}" phase.`
+    );
+  }
+}
+
+/**
+ * Floating-point tolerance for the ledger invariant. Costs are sums of priced
+ * per-trial amounts, so exact equality is not available; a micro-dollar is far
+ * below any real trial's cost and far above accumulated float drift.
+ */
+export const LEDGER_EPSILON_USD = 1e-6;
+
+/**
+ * THE LEDGER INVARIANT, VALIDATED — not merely advertised.
+ *
+ * `sum(entries.costUsd) + smokeSpendUsd === spendUsd` was documented, maintained
+ * on every write path, and asserted by tests, but never checked on LOAD. An
+ * auditor handed the driver a schema-valid state claiming `spendUsd: 1` with no
+ * entries and no smoke spend and it was accepted — which is the shape of the
+ * attack that matters: an edited or corrupted ledger can UNDERSTATE recorded
+ * spend, and the $39.90 stop rule is enforced against exactly that number.
+ *
+ * FAILS CLOSED. The one tolerated discrepancy is the documented mid-entry
+ * orphan: with `pendingEntry` set, spend banked before the entry could be
+ * recorded shows up as a POSITIVE gap that `reconcilePendingEntry` assigns to
+ * the crashed slot. A NEGATIVE gap has no honest explanation on any path —
+ * recorded spend below what the accounting already claims — so it is refused
+ * even mid-entry.
+ *
+ * A CONSISTENT rewrite — every field lowered together so the ledger still
+ * reconciles — is invisible to any in-file check; that class belongs to the
+ * freeze tag and the frozen verification commands, not to this function.
+ */
+export function assertLedgerReconciles(state: Campaign2bState): void {
+  const entrySum = state.entries.reduce((sum, e) => sum + e.costUsd, 0);
+  const smokeSpend = state.smokeSpendUsd ?? 0;
+  const gap = state.spendUsd - entrySum - smokeSpend;
+  const numbers =
+    `spendUsd=$${state.spendUsd.toFixed(6)}, sum(entries.costUsd)=$${entrySum.toFixed(6)}, ` +
+    `smokeSpendUsd=$${smokeSpend.toFixed(6)}, gap=$${gap.toFixed(6)}`;
+  const failsClosed =
+    `The ledger fails CLOSED: a hand-edited or corrupted state could otherwise understate ` +
+    `recorded spend, slip back under the $${CAMPAIGN_BUDGET_THRESHOLD_USD.toFixed(2)} stop ` +
+    `threshold, and keep spending.`;
+
+  // A recorded pass cannot claim more than the cumulative smoke bank it came out
+  // of — that would be a receipt for money the ledger never saw.
+  if (state.smoke && state.smoke.spendUsd > smokeSpend + LEDGER_EPSILON_USD) {
+    throw new Error(
+      `ledger does not reconcile: the recorded smoke pass claims $${state.smoke.spendUsd.toFixed(
+        6
+      )} but the cumulative smoke bank is only $${smokeSpend.toFixed(6)} (${numbers}). ` +
+        `${failsClosed}`
+    );
+  }
+
+  if (state.pendingEntry) {
+    if (gap < -LEDGER_EPSILON_USD) {
+      throw new Error(
+        `ledger does not reconcile: recorded spend is LOWER than the accounted total while an ` +
+          `entry is in flight (${numbers}). A pending entry may leave a POSITIVE orphan — spend ` +
+          `banked before the entry could be recorded — never a negative one. ${failsClosed}`
+      );
+    }
+    return;
+  }
+
+  if (Math.abs(gap) > LEDGER_EPSILON_USD) {
+    throw new Error(
+      `ledger does not reconcile: sum(entries.costUsd) + smokeSpendUsd ≠ spendUsd (${numbers}). ` +
+        `With no entry in flight there is no orphan to explain a gap. ${failsClosed}`
     );
   }
 }
@@ -649,8 +782,21 @@ export function keyedPhaseGate2b(
     );
   }
   const state = parsed.data;
+  // IDENTITY FIRST, THEN ARITHMETIC — the same order as loadOrInitState, so both
+  // load paths refuse a state that fails both for the same stated reason. "This
+  // is not the ledger you asked for" is the more useful answer than "its sums do
+  // not add up", and an operator comparing the two paths' output should never
+  // have to wonder which check they hit.
   try {
     assertState2bMatches(state, suite, "keyless");
+  } catch (error) {
+    throw new Error(`keyless campaign state ${error instanceof Error ? error.message : String(error)}`);
+  }
+  // The keyless ledger the KEYED phase gates on must itself reconcile: this gate
+  // is the last read of that file before any paid call, and a bundle whose
+  // spend accounting does not add up is not evidence of a completed grid.
+  try {
+    assertLedgerReconciles(state);
   } catch (error) {
     throw new Error(`keyless campaign state ${error instanceof Error ? error.message : String(error)}`);
   }
@@ -1191,6 +1337,12 @@ export type EnsureKeyedSmokeOutcome =
   | { kind: "passed"; smoke: SmokeResult }
   /** The stop threshold was already reached — no smoke call was made. */
   | { kind: "budget-stopped"; reason: string }
+  /**
+   * The machine could not report its browser build during the smoke. An
+   * ENVIRONMENT fault, routed through the same state channel as the entry
+   * loop's — never a smoke verdict.
+   */
+  | { kind: "provenance-abort"; reason: string }
   | { kind: "failed"; smoke: SmokeResult };
 
 /**
@@ -1225,6 +1377,29 @@ export async function ensureKeyedSmoke(
   // "skipped" for a campaign pointed at the wrong suite.
   assertFrozenSmokeSuite(provenance);
 
+  // THE LEDGER MUST ADD UP BEFORE THE KEYED PHASE'S FIRST PAID CALL — which is
+  // the smoke, not the first entry. runCampaign2b guards its own loop for
+  // exactly this reason; applying it there and not here left the earlier of the
+  // two spend sites unguarded.
+  assertLedgerReconciles(state);
+
+  /**
+   * A NEW INVOCATION SUPERSEDES A STALE ABORT NOTE — the same rule, rationale
+   * and only-write-when-present pattern as the entry loop's.
+   *
+   * Called only on paths that actually proceed. It used to run before the
+   * recorded-pass check, which meant a different-freeze REFUSAL — a path that
+   * runs nothing and changes nothing — first erased the previous run's
+   * provenance note from disk, destroying the evidence of why that run stopped
+   * while refusing to do any work of its own.
+   */
+  const clearStaleAbortNote = async (): Promise<void> => {
+    if (state.provenanceAbort !== undefined) {
+      delete state.provenanceAbort;
+      await deps.persist(state);
+    }
+  };
+
   // (1) A RECORDED PASS IS NOT REPEATED — but only if it is THIS freeze's. A
   // recorded smoke naming other scenario ids, another suite or another COMMIT is
   // a go-ahead earned somewhere else; honouring it would let a re-frozen
@@ -1254,9 +1429,13 @@ export async function ensureKeyedSmoke(
           `(PROTOCOL_2B §Schedule).`
       );
     }
+    // A matching recorded pass IS a proceeding path: the campaign goes on to its
+    // entries, so a note from the previous invocation is superseded here too.
+    await clearStaleAbortNote();
     deps.log?.("keyed smoke already PASSED (recorded in state) — not repeated");
     return { kind: "skipped" };
   }
+  await clearStaleAbortNote();
 
   /**
    * Stop the campaign at the smoke gate, LEAVING A TRACE. The CLI tells the
@@ -1312,6 +1491,22 @@ export async function ensureKeyedSmoke(
     // `state.smoke` is written, and the interrupted smoke is never graded. Every
     // other error still propagates.
     if (error instanceof SmokeBudgetStopError) return budgetStopped(error.reason);
+    // A BROWSER-PROVENANCE FAULT IS NOT A SMOKE VERDICT EITHER, and it now uses
+    // the same state channel the entry loop does. It previously escaped to
+    // main()'s generic bail: exit 2 (usage), no channel, and a state file that
+    // said nothing about why the campaign stopped. `recordedCrashed` is false
+    // because there is no entry to record — the smoke banks into
+    // `smokeSpendUsd`, so whatever was spent is already accounted for and the
+    // ledger reconciles without any crash entry.
+    if (isProvenanceAbortError(error)) {
+      const reason =
+        `browser provenance unavailable during the keyed smoke: ${asError(error).message} ` +
+        `This is an ENVIRONMENT fault, not a smoke verdict — fix the browser and re-run; ` +
+        `any banked smoke spend is already in the ledger and no pass was recorded.`;
+      state.provenanceAbort = { reason, recordedCrashed: false };
+      await deps.persist(state);
+      return { kind: "provenance-abort", reason };
+    }
     throw error;
   }
 
@@ -1554,6 +1749,12 @@ export async function runCampaign2b(
   // scenario outside the campaign's declared scope into its evidence; a missing
   // one would silently shrink the grid while every count still looked right.
   assertAllowlistedScenarios(deps.scenarios);
+  // THE LEDGER MUST ADD UP BEFORE ANYTHING IS SPENT AGAINST IT — checked here as
+  // well as on load, so no caller of this loop (test or shell) can drive a
+  // campaign from a ledger whose recorded spend the stop rule cannot trust.
+  // Before reconcilePendingEntry, which is the one operation licensed to consume
+  // a gap: checking afterwards would validate its own output.
+  assertLedgerReconciles(state);
   // A resumed state whose process died mid-entry is reconciled before the first
   // schedule decision, so the ledger the loop reads is already consistent.
   reconcilePendingEntry(state);
@@ -1960,12 +2161,27 @@ async function writeStateAtomic(stateFile: string, state: Campaign2bState): Prom
   await rename(tmp, stateFile);
 }
 
-function loadOrInitState(
+/**
+ * Load a state file, or initialise a fresh one stamped with THIS phase.
+ *
+ * EXPORTED FOR TESTS. The CLI path is unchanged — main() is its only production
+ * caller. The fresh-init half is the WRITE side of the phase stamp, and it was
+ * untestable while private: a mutant passing a literal phase here would stamp a
+ * first keyed run's state "keyless", bank real smoke spend into it, and lock the
+ * operator out on the next resume.
+ *
+ * NOTE FOR CALLERS: every refusal below goes through `bail`, which calls
+ * `process.exit`. Only the fresh-init and happy-load paths are exercisable
+ * in-process.
+ */
+export function loadOrInitState(
   stateFile: string,
   suite: LoadedScenarioSuite,
   phase: CampaignPhase
 ): Campaign2bState {
-  if (!existsSync(stateFile)) return initCampaign2bState(suite.protocolId, suite.suiteHash);
+  if (!existsSync(stateFile)) {
+    return initCampaign2bState(suite.protocolId, suite.suiteHash, phase);
+  }
   let raw: unknown;
   try {
     raw = JSON.parse(readFileSync(stateFile, "utf8"));
@@ -1989,6 +2205,11 @@ function loadOrInitState(
   }
   try {
     assertState2bMatches(parsed.data, suite, phase);
+  } catch (error) {
+    bail(`campaign state at ${stateFile} ${error instanceof Error ? error.message : String(error)}`);
+  }
+  try {
+    assertLedgerReconciles(parsed.data);
   } catch (error) {
     bail(`campaign state at ${stateFile} ${error instanceof Error ? error.message : String(error)}`);
   }
@@ -2274,6 +2495,17 @@ async function main(): Promise<void> {
           )}`
       );
       process.exit(3);
+    }
+    if (smokeOutcome!.kind === "provenance-abort") {
+      // Same shape as the campaign-loop abort, and deliberately NO smoke.json:
+      // the machine could not report its browser build, so there is no smoke
+      // verdict to record.
+      console.error(
+        `\nCampaign ABORTED (browser provenance) during the keyed smoke: ${smokeOutcome!.reason}\n` +
+          `State preserved at ${args.stateFile} — fix the browser and re-run this command.` +
+          ` Any existing ${SMOKE_RECORD_FILE} describes an EARLIER attempt, not this one.`
+      );
+      process.exit(1);
     }
     if (smokeOutcome!.kind !== "skipped") {
       const smoke = smokeOutcome!.smoke;

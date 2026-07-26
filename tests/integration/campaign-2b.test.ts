@@ -1,3 +1,6 @@
+import { mkdtempSync, writeFileSync } from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type {
   BenchmarkResults,
@@ -18,9 +21,11 @@ import {
   PHASE2B_MODEL,
   PHASE2B_PRICES_PINNED_AT,
   PHASE2B_SCENARIO_IDS,
+  assertLedgerReconciles,
   assertPreSpendExpectations,
   assertState2bMatches,
   buildSchedule2b,
+  LEDGER_EPSILON_USD,
   enforceKeyDiscipline2b,
   entryLabel,
   initCampaign2bState,
@@ -41,6 +46,7 @@ import {
   projectForReplication,
   readPhase2aCell,
   keyedPhaseGate2b,
+  loadOrInitState,
   runKeyedSmoke,
   nextEntry2b,
   operatorVerifyHint,
@@ -199,7 +205,7 @@ describe("Phase-2B frozen schedule", () => {
 const SUITE = { protocolId: "phase2a-v1", suiteHash: "a".repeat(64) };
 
 function stateWith(entries: Partial<Campaign2bEntryState>[]): Campaign2bState {
-  const base = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash);
+  const base = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash, "keyless");
   base.entries = entries.map((e) => ({
     phase: "keyless",
     sweep: 1,
@@ -243,11 +249,422 @@ describe("Phase-2B resume state machine", () => {
   });
 
   it("refuses a state from another campaign or another phase", () => {
-    const foreign = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash);
+    const foreign = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash, "keyless");
     foreign.campaignProtocolId = "phase2c-something";
     expect(() => assertState2bMatches(foreign, SUITE, "keyless")).toThrow(/belongs to campaign/);
     const mixed = stateWith([{ phase: "keyed", policy: "C" }]);
     expect(() => assertState2bMatches(mixed, SUITE, "keyless")).toThrow(/MUST NOT share a state file/);
+  });
+});
+
+// ── State identity: the phase is stamped, not inferred ───────────────────────
+//
+// The finding: the state file carried no phase of its own, so the "never shared
+// between phases" rule was enforced by scanning `entries` — which says nothing
+// at all before the first entry is recorded. And since the keyed smoke moved
+// into the ledger, an ENTRY-LESS keyed state can already hold real paid spend
+// and a recorded go-ahead. An auditor fed exactly that to `--phase keyless` and
+// it was accepted.
+
+describe("Phase-2B state phase identity", () => {
+  /** The auditor's artifact: keyed money and a keyed go-ahead, but NO entries. */
+  const auditorsKeyedState = (): Campaign2bState => {
+    const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash, "keyed");
+    state.smokeSpendUsd = 0.25;
+    state.spendUsd = 0.25;
+    state.smoke = {
+      pass: true,
+      protocolId: SUITE.protocolId,
+      suiteHash: SUITE.suiteHash,
+      cId: "f3-page-size-3-a",
+      dId: "f3-page-size-3-b",
+      gitCommit: "0".repeat(40),
+      spendUsd: 0.25
+    };
+    return state;
+  };
+
+  it("THE REPRO: an entry-less KEYED ledger carrying smoke spend is refused by --phase keyless", () => {
+    const state = auditorsKeyedState();
+    // Nothing about it is malformed — it is a perfectly valid keyed ledger…
+    expect(Campaign2bStateSchema.safeParse(state).success).toBe(true);
+    expect(state.entries).toHaveLength(0);
+    // …and the entries-derived check could never have seen it.
+    expect(state.entries.some((e) => e.phase !== "keyless")).toBe(false);
+    expect(() => assertState2bMatches(state, SUITE, "keyless")).toThrow(
+      /is a "keyed"-phase ledger but --phase is "keyless"/
+    );
+    expect(() => assertState2bMatches(state, SUITE, "keyless")).toThrow(
+      /MUST NOT share a state file/
+    );
+  });
+
+  it("THE REPRO, through a real load path: keyedPhaseGate2b refuses it as the keyless ledger", () => {
+    expect(() =>
+      keyedPhaseGate2b(auditorsKeyedState(), fakeSuite(), reader, "s.json", () => okReport)
+    ).toThrow(/is a "keyed"-phase ledger but --phase is "keyless"/);
+  });
+
+  it("an empty KEYLESS ledger is refused by --phase keyed", () => {
+    const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash, "keyless");
+    expect(() => assertState2bMatches(state, SUITE, "keyed")).toThrow(
+      /is a "keyless"-phase ledger but --phase is "keyed"/
+    );
+  });
+
+  it("ITEM 1: the IN-FLIGHT pendingEntry marker is phase-bound too, in both directions", () => {
+    // The one phase-bearing field nothing validated. The marker is not an entry
+    // yet, so every other check passes — and reconcilePendingEntry would then
+    // mint a foreign-phase entry INTO this ledger, which the very next load
+    // refuses, permanently bricking the file.
+    const keyedWithKeylessMarker = initCampaign2bState(
+      SUITE.protocolId,
+      SUITE.suiteHash,
+      "keyed"
+    );
+    keyedWithKeylessMarker.pendingEntry = {
+      phase: "keyless",
+      sweep: 1,
+      policy: "A",
+      arm: "frozen",
+      benchId: "bench-x",
+      benchDir: "runs/x"
+    };
+    // It is schema-valid, entry-less, and its ledger reconciles — nothing else
+    // in the driver can see the problem.
+    expect(Campaign2bStateSchema.safeParse(keyedWithKeylessMarker).success).toBe(true);
+    expect(keyedWithKeylessMarker.entries).toHaveLength(0);
+    expect(() => assertLedgerReconciles(keyedWithKeylessMarker)).not.toThrow();
+    expect(() => assertState2bMatches(keyedWithKeylessMarker, SUITE, "keyed")).toThrow(
+      /records an in-flight "keyless"-phase entry but --phase is "keyed"/
+    );
+
+    // …and the mirror image, which is the direction that reaches disk: a
+    // keyless CLI run reconciling a keyed marker into a keyless file.
+    const keylessWithKeyedMarker = initCampaign2bState(
+      SUITE.protocolId,
+      SUITE.suiteHash,
+      "keyless"
+    );
+    keylessWithKeyedMarker.pendingEntry = {
+      phase: "keyed",
+      sweep: 1,
+      policy: "C",
+      arm: "any-row",
+      benchId: "bench-y",
+      benchDir: "runs/y"
+    };
+    expect(() => assertState2bMatches(keylessWithKeyedMarker, SUITE, "keyless")).toThrow(
+      /records an in-flight "keyed"-phase entry but --phase is "keyless"/
+    );
+    expect(() => assertState2bMatches(keylessWithKeyedMarker, SUITE, "keyless")).toThrow(
+      /MUST NOT share a state file/
+    );
+  });
+
+  it("ITEM 1: an HONEST matching pendingEntry is still accepted", () => {
+    const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash, "keyless");
+    state.pendingEntry = {
+      phase: "keyless",
+      sweep: 1,
+      policy: "A",
+      arm: "frozen",
+      benchId: "bench-x",
+      benchDir: "runs/x"
+    };
+    expect(() => assertState2bMatches(state, SUITE, "keyless")).not.toThrow();
+  });
+
+  it("KEYLESS PURITY: a ledger labelled keyless carrying smoke accounting is refused", () => {
+    // The keyless phase makes no provider calls at all, so neither field can
+    // honestly exist in it — this is a keyed ledger wearing the wrong label, or
+    // a hand-edit.
+    const withMarker = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash, "keyless");
+    withMarker.smoke = auditorsKeyedState().smoke;
+    withMarker.smokeSpendUsd = 0.25;
+    withMarker.spendUsd = 0.25;
+    expect(() => assertState2bMatches(withMarker, SUITE, "keyless")).toThrow(
+      /labelled "keyless" but carries keyed-smoke accounting/
+    );
+
+    // …and spend alone, with no marker, is refused for the same reason.
+    const spendOnly = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash, "keyless");
+    spendOnly.smokeSpendUsd = 0.25;
+    spendOnly.spendUsd = 0.25;
+    expect(() => assertState2bMatches(spendOnly, SUITE, "keyless")).toThrow(
+      /smoke marker absent/
+    );
+  });
+
+  it("ITEM 2: the smoke MARKER alone is enough to fail keyless purity — no spend required", () => {
+    // Every other purity case pairs the marker with nonzero smokeSpendUsd, so
+    // the `state.smoke !== undefined` half of the predicate was carrying no
+    // weight: dropping it left the suite green. A recorded go-ahead with no
+    // spend attached is exactly the artifact a zero-cost or hand-written smoke
+    // marker produces, and it must not ride into a keyless ledger.
+    const markerOnly = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash, "keyless");
+    markerOnly.smoke = {
+      pass: true,
+      protocolId: SUITE.protocolId,
+      suiteHash: SUITE.suiteHash,
+      cId: "f3-page-size-3-a",
+      dId: "f3-page-size-3-b",
+      gitCommit: "0".repeat(40),
+      spendUsd: 0
+    };
+    // No smoke spend at all, and the ledger reconciles perfectly.
+    expect(markerOnly.smokeSpendUsd).toBeUndefined();
+    expect(markerOnly.spendUsd).toBe(0);
+    expect(markerOnly.entries).toHaveLength(0);
+    expect(() => assertLedgerReconciles(markerOnly)).not.toThrow();
+
+    expect(() => assertState2bMatches(markerOnly, SUITE, "keyless")).toThrow(
+      /labelled "keyless" but carries keyed-smoke accounting/
+    );
+    expect(() => assertState2bMatches(markerOnly, SUITE, "keyless")).toThrow(
+      /smoke marker PRESENT/
+    );
+  });
+
+  it("honest states of BOTH phases still pass", () => {
+    expect(() =>
+      assertState2bMatches(
+        initCampaign2bState(SUITE.protocolId, SUITE.suiteHash, "keyless"),
+        SUITE,
+        "keyless"
+      )
+    ).not.toThrow();
+    expect(() => assertState2bMatches(auditorsKeyedState(), SUITE, "keyed")).not.toThrow();
+    expect(() => assertState2bMatches(completeKeylessState(), SUITE, "keyless")).not.toThrow();
+  });
+
+  it("ITEM 3: loadOrInitState STAMPS the requested phase onto a fresh state, for both phases", () => {
+    // The WRITE half of the phase rule, and the half nothing exercised: a mutant
+    // passing a literal phase here would stamp a first KEYED run's state
+    // "keyless", bank real smoke spend into it, and lock the operator out on the
+    // next resume — after the money was already gone.
+    const dir = mkdtempSync(path.join(os.tmpdir(), "ssda-2b-state-"));
+    for (const phase of ["keyless", "keyed"] as const) {
+      const file = path.join(dir, `fresh-${phase}.json`);
+      const state = loadOrInitState(file, fakeSuite(), phase);
+      expect(state.phase, `fresh ${phase} init`).toBe(phase);
+      // …and the stamp it wrote is the one the matching load accepts.
+      expect(() => assertState2bMatches(state, SUITE, phase)).not.toThrow();
+      const other = phase === "keyless" ? "keyed" : "keyless";
+      expect(() => assertState2bMatches(state, SUITE, other)).toThrow(
+        /-phase ledger but --phase is/
+      );
+    }
+  });
+
+  it("ITEM 3: an honest keyed state file round-trips through loadOrInitState", () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), "ssda-2b-state-"));
+    const file = path.join(dir, "campaign-state.keyed.json");
+    const written = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash, "keyed");
+    written.smokeSpendUsd = 0.25;
+    written.spendUsd = 0.25;
+    writeFileSync(file, JSON.stringify(written, null, 2) + "\n", "utf8");
+
+    const loaded = loadOrInitState(file, fakeSuite(), "keyed");
+    expect(loaded.phase).toBe("keyed");
+    expect(loaded.smokeSpendUsd).toBeCloseTo(0.25, 10);
+    expect(loaded.spendUsd).toBeCloseTo(0.25, 10);
+    // (The mismatched-phase direction bails via process.exit and cannot be
+    // driven in-process; assertState2bMatches covers that refusal directly.)
+  });
+
+  it("the phase is REQUIRED: a state file without it is not a Phase-2B ledger", () => {
+    // No migration path is owed — no legitimate Phase-2B state can predate the
+    // freeze tag, which has never been created.
+    const { phase: _dropped, ...noPhase } = initCampaign2bState(
+      SUITE.protocolId,
+      SUITE.suiteHash,
+      "keyless"
+    );
+    const parsed = Campaign2bStateSchema.safeParse(noPhase);
+    expect(parsed.success).toBe(false);
+    if (!parsed.success) {
+      expect(parsed.error.issues.some((iss) => iss.path.join(".") === "phase")).toBe(true);
+    }
+    // …and an unknown phase value is refused too.
+    expect(
+      Campaign2bStateSchema.safeParse({ ...noPhase, phase: "pooled" }).success
+    ).toBe(false);
+  });
+});
+
+// ── The ledger invariant is VALIDATED, not merely advertised ─────────────────
+//
+// It was documented, maintained on every write path and asserted by tests — but
+// never checked on LOAD. The auditor handed the driver a schema-valid state
+// claiming `spendUsd: 1` with no entries and no smoke spend, and it was
+// accepted. That is the attack that matters: an edited ledger can UNDERSTATE
+// recorded spend, and the $39.90 stop rule is enforced against exactly that
+// number.
+
+describe("Phase-2B ledger reconciliation", () => {
+  const honest = (): Campaign2bState =>
+    initCampaign2bState(SUITE.protocolId, SUITE.suiteHash, "keyless");
+
+  it("THE REPRO: spendUsd with nothing to account for it is refused, and the message shows the gap", () => {
+    const state = honest();
+    state.spendUsd = 1;
+    expect(() => assertLedgerReconciles(state)).toThrow(/ledger does not reconcile/);
+    expect(() => assertLedgerReconciles(state)).toThrow(/gap=\$1\.000000/);
+    // The message states WHY it fails closed rather than tolerating the drift.
+    expect(() => assertLedgerReconciles(state)).toThrow(/fails CLOSED/);
+    expect(() => assertLedgerReconciles(state)).toThrow(/stop threshold/);
+  });
+
+  it("an honest ledger reconciles: entries, smoke spend, and both together", () => {
+    expect(() => assertLedgerReconciles(honest())).not.toThrow();
+
+    const withEntries = stateWith([{ costUsd: 1.5 }]);
+    withEntries.spendUsd = 1.5;
+    expect(() => assertLedgerReconciles(withEntries)).not.toThrow();
+
+    const withSmoke = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash, "keyed");
+    withSmoke.smokeSpendUsd = 0.25;
+    withSmoke.spendUsd = 0.25;
+    expect(() => assertLedgerReconciles(withSmoke)).not.toThrow();
+
+    const both = stateWith([{ costUsd: 1.5 }]);
+    both.smokeSpendUsd = 0.25;
+    both.spendUsd = 1.75;
+    expect(() => assertLedgerReconciles(both)).not.toThrow();
+  });
+
+  it("a PENDING entry may leave a POSITIVE orphan — that is the documented mid-entry window", () => {
+    // Slot 0 completed and is banked; slot 1 was IN FLIGHT when the process
+    // died, having banked $0.40 that no entry accounts for yet.
+    const state = stateWith([{ costUsd: 1 }]);
+    state.spendUsd = 1.4;
+    state.pendingEntry = {
+      phase: "keyless",
+      sweep: 1,
+      policy: "A",
+      arm: "any-row", // schedule[1] — the slot that was running, not the recorded one
+      benchId: "bench-orphan",
+      benchDir: "runs/phase2b/orphan"
+    };
+    expect(() => assertLedgerReconciles(state)).not.toThrow();
+    // …and reconcilePendingEntry is the operation licensed to consume it,
+    // after which the ledger is exact again.
+    reconcilePendingEntry(state);
+    expect(() => assertLedgerReconciles(state)).not.toThrow();
+  });
+
+  it("a NEGATIVE gap is refused even mid-entry — recorded spend below the accounting has no honest cause", () => {
+    const state = stateWith([{ costUsd: 1 }]);
+    state.spendUsd = 0.6; // LOWER than what the entries already claim
+    state.pendingEntry = {
+      phase: "keyless",
+      sweep: 1,
+      policy: "A",
+      arm: "any-row",
+      benchId: "bench-orphan",
+      benchDir: "runs/phase2b/orphan"
+    };
+    expect(() => assertLedgerReconciles(state)).toThrow(/recorded spend is LOWER/);
+    expect(() => assertLedgerReconciles(state)).toThrow(/never a negative one/);
+  });
+
+  it("float drift within the tolerance is accepted; a real discrepancy is not", () => {
+    const drifting = stateWith([{ costUsd: 1 }]);
+    drifting.spendUsd = 1 + 1e-9;
+    expect(() => assertLedgerReconciles(drifting)).not.toThrow();
+    expect(LEDGER_EPSILON_USD).toBe(1e-6);
+
+    const real = stateWith([{ costUsd: 1 }]);
+    real.spendUsd = 1 + 1e-4;
+    expect(() => assertLedgerReconciles(real)).toThrow(/ledger does not reconcile/);
+  });
+
+  it("a recorded smoke pass cannot claim more spend than the cumulative smoke bank", () => {
+    const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash, "keyed");
+    state.smokeSpendUsd = 0.25;
+    state.spendUsd = 0.25;
+    state.smoke = {
+      pass: true,
+      protocolId: SUITE.protocolId,
+      suiteHash: SUITE.suiteHash,
+      cId: "c",
+      dId: "d",
+      gitCommit: null,
+      spendUsd: 0.9 // ← a receipt for money the ledger never saw
+    };
+    expect(() => assertLedgerReconciles(state)).toThrow(/recorded smoke pass claims/);
+    // The honest case — a pass costing no more than the bank — is fine.
+    state.smoke.spendUsd = 0.25;
+    expect(() => assertLedgerReconciles(state)).not.toThrow();
+  });
+
+  it("WIRING: keyedPhaseGate2b refuses a keyless ledger that does not reconcile", () => {
+    // The gate is the last read of the keyless file before any paid call.
+    const broken = { ...completeKeylessState(), spendUsd: 5 };
+    expect(() =>
+      keyedPhaseGate2b(broken, fakeSuite(), reader, "s.json", () => okReport)
+    ).toThrow(/ledger does not reconcile/);
+  });
+
+  it("ITEM 9: the reconcile check runs BEFORE reconcilePendingEntry, not after its own output", async () => {
+    // Order matters and was unpinned. Swapped, reconcilePendingEntry would run
+    // first — minting a crashed entry out of a corrupt gap and, on a NEGATIVE
+    // gap, clamping the orphan to $0 so the ledger "reconciles" and the check
+    // then passes. The corruption would be laundered into a recorded entry.
+    const state = stateWith([{ costUsd: 1 }]);
+    state.spendUsd = 0.6; // recorded spend BELOW what the entries already claim
+    state.pendingEntry = {
+      phase: "keyless",
+      sweep: 1,
+      policy: "A",
+      arm: "any-row",
+      benchId: "bench-orphan",
+      benchDir: "runs/phase2b/orphan"
+    };
+    const deps = {
+      schedule: buildSchedule2b("keyless"),
+      scenarios: FIVE,
+      model: null,
+      headless: true,
+      runBenchmark: vi.fn(async () => ({ trials: [] }) as unknown as BenchmarkResults),
+      prepareRun: async (e: Campaign2bEntry) => ({
+        labUrl: "http://127.0.0.1:0",
+        benchDir: `runs/${e.ordinal}`,
+        benchId: `bench-${e.ordinal}`,
+        dispose: async () => undefined
+      }),
+      persist: async () => undefined
+    };
+
+    await expect(runCampaign2b(state, deps)).rejects.toThrow(/recorded spend is LOWER/);
+    // THE PROOF OF ORDER: the marker is untouched and no entry was minted from
+    // it. A swapped order would have consumed the marker and added an entry.
+    expect(state.entries).toHaveLength(1);
+    expect(state.entries[0]!.status).toBe("complete");
+    expect(state.pendingEntry).toBeDefined();
+    expect(deps.runBenchmark).not.toHaveBeenCalled();
+  });
+
+  it("WIRING: runCampaign2b refuses to drive a campaign from a ledger that does not reconcile", async () => {
+    const state = honest();
+    state.spendUsd = 1;
+    const deps = {
+      schedule: buildSchedule2b("keyless"),
+      scenarios: FIVE,
+      model: null,
+      headless: true,
+      runBenchmark: vi.fn(async () => ({ trials: [] }) as unknown as BenchmarkResults),
+      prepareRun: async (e: Campaign2bEntry) => ({
+        labUrl: "http://127.0.0.1:0",
+        benchDir: `runs/${e.ordinal}`,
+        benchId: `bench-${e.ordinal}`,
+        dispose: async () => undefined
+      }),
+      persist: async () => undefined
+    };
+    await expect(runCampaign2b(state, deps)).rejects.toThrow(/ledger does not reconcile/);
+    expect(deps.runBenchmark).not.toHaveBeenCalled();
   });
 });
 
@@ -274,7 +691,7 @@ function fakeSuite(): LoadedScenarioSuite {
 
 /** A COMPLETE 30-entry keyless ledger, exactly matching the frozen schedule. */
 function completeKeylessState(): Campaign2bState {
-  const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash);
+  const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash, "keyless");
   state.entries = buildSchedule2b("keyless").map((e) => ({
     phase: e.phase,
     sweep: e.sweep,
@@ -533,7 +950,7 @@ describe("Phase-2B transport poisoning", () => {
 
   it("a poisoned entry invalidates the FULL grid and halts the campaign", async () => {
     const schedule = buildSchedule2b("keyless");
-    const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash);
+    const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash, "keyless");
     const persisted: Campaign2bState[] = [];
     const outcome = await runCampaign2b(state, {
       schedule,
@@ -947,19 +1364,27 @@ describe("Phase-2B run loop", () => {
   });
 
   it("stops at the frozen threshold BEFORE preparing anything", async () => {
-    const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash);
+    // The threshold is reached by a RECORDED entry rather than an out-of-band
+    // poke at spendUsd. The ledger is validated on entry to the loop now, and in
+    // the KEYLESS phase spend can only come from entries — there is no honest
+    // keyless state with $39.90 recorded and nothing to account for it.
+    const state = stateWith([{ costUsd: CAMPAIGN_BUDGET_THRESHOLD_USD }]);
     state.spendUsd = CAMPAIGN_BUDGET_THRESHOLD_USD;
     const deps = baseDeps({ trials: [], stopped: undefined } as unknown as BenchmarkResults);
     const outcome = await runCampaign2b(state, deps);
     expect(outcome.kind).toBe("stopped");
-    if (outcome.kind === "stopped") expect(outcome.reason).toMatch(/budget stop/);
+    if (outcome.kind === "stopped") {
+      expect(outcome.reason).toMatch(/budget stop/);
+      // It stopped AT the next slot, without touching it.
+      expect(outcome.entry).toEqual(buildSchedule2b("keyless")[1]);
+    }
     // Nothing was run: the short-circuit precedes prepareRun.
     expect(deps.runBenchmark).not.toHaveBeenCalled();
-    expect(state.entries).toHaveLength(0);
+    expect(state.entries).toHaveLength(1); // nothing new recorded
   });
 
   it("passes every Phase-2B flag into each entry's bench invocation, including a NON-frozen slot", async () => {
-    const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash);
+    const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash, "keyless");
     const deps = baseDeps({ trials: [], stopped: undefined } as unknown as BenchmarkResults);
     // The first TWO slots: sweep-1 A frozen, then sweep-1 A any-row. Covering the
     // second is what makes a literal "frozen" — or a dropped field — fail here.
@@ -991,7 +1416,7 @@ describe("Phase-2B run loop", () => {
   });
 
   it("F4: refuses a smuggled sixth scenario, and a missing one", async () => {
-    const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash);
+    const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash, "keyless");
     const deps = baseDeps({ trials: [], stopped: undefined } as unknown as BenchmarkResults);
     const sixth: ScenarioSpec = { ...FIVE[0]!, id: "f1-class-l0-a" };
     await expect(runCampaign2b(state, { ...deps, scenarios: [...FIVE, sixth] })).rejects.toThrow(
@@ -1004,7 +1429,7 @@ describe("Phase-2B run loop", () => {
   });
 
   it("F7: a THROWN transport error poisons the keyed grid instead of laundering into a crash-rerun", async () => {
-    const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash);
+    const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash, "keyed");
     const deps = baseDeps({ trials: [], stopped: undefined } as unknown as BenchmarkResults);
     const outcome = await runCampaign2b(state, {
       ...deps,
@@ -1020,7 +1445,7 @@ describe("Phase-2B run loop", () => {
   });
 
   it("F7: a NON-transport throw is still an ordinary crash-rerun", async () => {
-    const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash);
+    const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash, "keyed");
     const deps = baseDeps({ trials: [], stopped: undefined } as unknown as BenchmarkResults);
     const outcome = await runCampaign2b(state, {
       ...deps,
@@ -1036,7 +1461,7 @@ describe("Phase-2B run loop", () => {
   });
 
   it("F7: the keyless phase cannot be transport-poisoned — it makes no provider calls", async () => {
-    const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash);
+    const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash, "keyless");
     const deps = baseDeps({ trials: [], stopped: undefined } as unknown as BenchmarkResults);
     const outcome = await runCampaign2b(state, {
       ...deps,
@@ -1052,7 +1477,7 @@ describe("Phase-2B run loop", () => {
     // ChromeVersionUnavailableError is thrown at engine init, before any spend.
     // Recording it as a crash would spend the cell's one permitted rerun on a
     // broken machine, so a second invocation would kill the cell for good.
-    const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash);
+    const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash, "keyless");
     const deps = baseDeps({ trials: [], stopped: undefined } as unknown as BenchmarkResults);
     const outcome = await runCampaign2b(state, {
       ...deps,
@@ -1086,7 +1511,7 @@ describe("Phase-2B run loop", () => {
     // MissingChromeVersionError arrives after the runner banked the completed
     // trial's spend (batch 13, 4b). That money is already in spendUsd, so the
     // entry must carry it or sum(entries) and spendUsd diverge forever.
-    const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash);
+    const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash, "keyless");
     const model = PHASE2B_MODEL;
     const tokens = { llmCalls: 1, inputTokens: 1_000_000, outputTokens: 1_000_000 };
     const spend = trialCost({ tokens }, "hybrid", model)!;
@@ -1121,7 +1546,7 @@ describe("Phase-2B run loop", () => {
   });
 
   it("FIX 7: a WRAPPED provenance abort is still recognised through the cause chain", async () => {
-    const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash);
+    const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash, "keyless");
     const outcome = await runCampaign2b(state, {
       ...baseDeps({ trials: [], stopped: undefined } as unknown as BenchmarkResults),
       schedule: buildSchedule2b("keyless").slice(0, 1),
@@ -1135,7 +1560,7 @@ describe("Phase-2B run loop", () => {
   });
 
   it("FIX 7: an ORDINARY crash still records exactly as before", async () => {
-    const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash);
+    const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash, "keyless");
     const outcome = await runCampaign2b(state, {
       ...baseDeps({ trials: [], stopped: undefined } as unknown as BenchmarkResults),
       schedule: buildSchedule2b("keyless").slice(0, 1),
@@ -1155,7 +1580,7 @@ describe("Phase-2B run loop", () => {
     // prices the record and mutates spendUsd — with a priced, nonzero cost on
     // BOTH attempts. No out-of-band spendUsd mutation, so the invariant under
     // test is actually exercised rather than assumed.
-    const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash);
+    const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash, "keyless");
     const schedule = buildSchedule2b("keyless").slice(0, 1);
     // The pricing model is pinned, and a hybrid trial with these tokens prices to
     // a definite nonzero amount under the pinned table.
@@ -1206,7 +1631,7 @@ describe("Phase-2B run loop", () => {
   });
 
   it("F10: a process killed MID-ENTRY resumes as a crash with the orphaned spend reconciled", async () => {
-    const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash);
+    const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash, "keyless");
     const schedule = buildSchedule2b("keyless");
     // Simulate the kill: the pre-entry marker was persisted and $0.42 of spend was
     // banked, but the process died before the entry could be recorded.
@@ -1253,7 +1678,7 @@ describe("Phase-2B run loop", () => {
     // explanation into `stoppedReason`, nothing ever cleared it, and the budget
     // path preferred whatever was already there — so this exact run finished by
     // telling the operator a $39.90 budget stop was a broken browser.
-    const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash);
+    const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash, "keyless");
     const model = PHASE2B_MODEL;
     const tokens = { llmCalls: 1, inputTokens: 1_000_000, outputTokens: 1_000_000 };
     const perTrial = trialCost({ tokens }, "hybrid", model)!;
@@ -1344,7 +1769,7 @@ describe("Phase-2B run loop", () => {
   });
 
   it("F10: the run loop writes a pendingEntry marker BEFORE the entry and clears it after", async () => {
-    const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash);
+    const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash, "keyless");
     const seen: (boolean | undefined)[] = [];
     await runCampaign2b(state, {
       ...baseDeps({ trials: [], stopped: undefined } as unknown as BenchmarkResults),
@@ -1737,7 +2162,7 @@ describe("keyed smoke: frozen stamps and ledger accounting", () => {
     });
 
   const keyedState = (): Campaign2bState =>
-    initCampaign2bState(PHASE2B_SUITE_PROTOCOL_ID, PHASE2B_SUITE_HASH);
+    initCampaign2bState(PHASE2B_SUITE_PROTOCOL_ID, PHASE2B_SUITE_HASH, "keyed");
 
   const prepareRun = async () => ({
     labUrl: "http://127.0.0.1:0",
@@ -2221,6 +2646,239 @@ describe("keyed smoke: frozen stamps and ledger accounting", () => {
     expect(state.smokeSpendUsd).toBeCloseTo(perTrial * 2, 10);
     expect(state.smoke).toBeUndefined();
     expect(invariantGap(persisted[persisted.length - 1]!)).toBeCloseTo(0, 10);
+  });
+
+  // ── FIX 3: smoke provenance failures use the provenanceAbort channel ──────
+  //
+  // ensureKeyedSmoke caught only SmokeBudgetStopError, so a browser-provenance
+  // fault during the smoke escaped to main()'s generic bail: exit 2 (usage),
+  // no state channel, and a preserved state file that said nothing about why.
+  // It is an ENVIRONMENT fault exactly as it is in the entry loop, and it now
+  // reports through the same channel.
+
+  /** A smoke runner that banks `banks` priced trials per call, then may throw. */
+  const throwingSmokeRunner = (plan: (call: number) => { banks: number; throw?: unknown }) => {
+    let call = 0;
+    return vi.fn(async (config: BenchmarkRunConfig) => {
+      call += 1;
+      const step = plan(call);
+      for (let i = 0; i < step.banks; i++) {
+        await config.hooks!.afterTrial!({
+          engine: "hybrid",
+          runId: `smoke-t${call}-${i}`,
+          tokens: SMOKE_TOKENS
+        } as unknown as TrialResult);
+      }
+      if (step.throw) throw step.throw;
+      return {
+        trials: [
+          {
+            runId: `smoke-t${call}`,
+            outcome: "pass",
+            healedSteps: call === 1 ? ["login"] : [],
+            chromeVersion: "149.0.0.1"
+          }
+        ]
+      } as unknown as BenchmarkResults;
+    });
+  };
+
+  const runSmokeWith = async (
+    state: Campaign2bState,
+    runBenchmark: ReturnType<typeof throwingSmokeRunner>,
+    persisted: Campaign2bState[]
+  ) =>
+    ensureKeyedSmoke(
+      state,
+      frozenFor(),
+      FIVE,
+      {
+        runBenchmark: runBenchmark as unknown as Campaign2bDeps["runBenchmark"],
+        prepareRun,
+        headless: true,
+        persist: async (s) => {
+          persisted.push(JSON.parse(JSON.stringify(s)) as Campaign2bState);
+        }
+      },
+      FROZEN_PROVENANCE
+    );
+
+  it("FIX 3: a provenance fault DURING the smoke reports through the provenanceAbort channel", async () => {
+    const state = keyedState();
+    const persisted: Campaign2bState[] = [];
+    // C banks and completes; D cannot report its browser build.
+    const runner = throwingSmokeRunner((call) =>
+      call === 1 ? { banks: 1 } : { banks: 0, throw: new MissingChromeVersionError("stagehand", "d") }
+    );
+
+    const out = await runSmokeWith(state, runner, persisted);
+
+    expect(out.kind).toBe("provenance-abort");
+    if (out.kind === "provenance-abort") {
+      expect(out.reason).toMatch(/browser provenance unavailable during the keyed smoke/);
+      expect(out.reason).toMatch(/ENVIRONMENT fault, not a smoke verdict/);
+    }
+    // The channel, on disk — and NOT the budget's field.
+    expect(state.provenanceAbort).toEqual({
+      reason: expect.stringMatching(
+        /browser provenance unavailable during the keyed smoke/
+      ) as unknown as string,
+      // No entry exists to mark crashed: the smoke banks into smokeSpendUsd.
+      recordedCrashed: false
+    });
+    expect(state.stoppedReason).toBeUndefined();
+    // No verdict was reached, so no pass is recorded and the smoke re-runs.
+    expect(state.smoke).toBeUndefined();
+    // C's money was really spent and stays banked, inside the invariant.
+    expect(state.smokeSpendUsd).toBeCloseTo(perTrial, 10);
+    expect(state.spendUsd).toBeCloseTo(perTrial, 10);
+    expect(persisted.length).toBeGreaterThan(0);
+    for (const [i, snapshot] of persisted.entries()) {
+      expect(invariantGap(snapshot), `snapshot ${i}`).toBeCloseTo(0, 10);
+    }
+    expect(persisted[persisted.length - 1]!.provenanceAbort?.recordedCrashed).toBe(false);
+  });
+
+  it("FIX 3: a WRAPPED provenance abort is recognised through the cause chain", async () => {
+    const state = keyedState();
+    const persisted: Campaign2bState[] = [];
+    const runner = throwingSmokeRunner((call) =>
+      call === 1
+        ? { banks: 1 }
+        : {
+            banks: 0,
+            throw: new Error("engine wrapper", {
+              cause: new ChromeVersionUnavailableError("CDP /json/version did not answer")
+            })
+          }
+    );
+
+    const out = await runSmokeWith(state, runner, persisted);
+    expect(out.kind).toBe("provenance-abort");
+    expect(state.provenanceAbort?.recordedCrashed).toBe(false);
+    expect(state.smoke).toBeUndefined();
+  });
+
+  it("FIX 3: a ZERO-SPEND provenance abort leaves the smoke bank untouched", async () => {
+    const state = keyedState();
+    const persisted: Campaign2bState[] = [];
+    // The very first call dies before banking anything.
+    const runner = throwingSmokeRunner(() => ({
+      banks: 0,
+      throw: new ChromeVersionUnavailableError("CDP /json/version did not answer")
+    }));
+
+    const out = await runSmokeWith(state, runner, persisted);
+    expect(out.kind).toBe("provenance-abort");
+    expect(runner).toHaveBeenCalledTimes(1);
+    expect(state.smokeSpendUsd ?? 0).toBe(0);
+    expect(state.spendUsd).toBe(0);
+    expect(state.smoke).toBeUndefined();
+    expect(state.provenanceAbort?.recordedCrashed).toBe(false);
+    expect(invariantGap(state)).toBeCloseTo(0, 10);
+  });
+
+  it("FIX 3: a stale abort note is cleared and persisted even on the SKIPPED path", async () => {
+    // Same rule as the entry loop's: a new invocation supersedes the note. The
+    // skip path returns early, so the clear has to happen before it.
+    const frozen = frozenFor();
+    const state = keyedState();
+    state.smoke = {
+      pass: true,
+      protocolId: frozen.protocolId,
+      suiteHash: frozen.suiteHash,
+      cId: frozen.smoke.cId,
+      dId: frozen.smoke.dId,
+      gitCommit: frozen.gitCommit,
+      spendUsd: 0
+    };
+    state.provenanceAbort = { reason: "a fault from the previous invocation", recordedCrashed: false };
+    const persisted: Campaign2bState[] = [];
+    const runner = throwingSmokeRunner(() => ({ banks: 0 }));
+
+    const out = await runSmokeWith(state, runner, persisted);
+
+    expect(out.kind).toBe("skipped");
+    expect(runner).not.toHaveBeenCalled();
+    expect(state.provenanceAbort).toBeUndefined();
+    // …and a snapshot WITHOUT the note actually reached disk.
+    expect(persisted.length).toBeGreaterThan(0);
+    expect(persisted[persisted.length - 1]!.provenanceAbort).toBeUndefined();
+  });
+
+  it("ITEM 5: a DIFFERENT-FREEZE refusal leaves the previous run's abort note INTACT", async () => {
+    // The clear used to run before the recorded-pass check, so a refusal — a
+    // path that runs nothing and changes nothing — first erased the previous
+    // run's provenance note from disk, destroying the record of why THAT run
+    // stopped while declining to do any work of its own.
+    const frozen = frozenFor();
+    const state = keyedState();
+    const note = { reason: "a fault from the previous invocation", recordedCrashed: false };
+    state.provenanceAbort = { ...note };
+    state.smoke = {
+      pass: true,
+      protocolId: frozen.protocolId,
+      suiteHash: frozen.suiteHash,
+      cId: frozen.smoke.cId,
+      dId: frozen.smoke.dId,
+      gitCommit: "1".repeat(40), // ← a DIFFERENT freeze
+      spendUsd: 0
+    };
+    const persisted: Campaign2bState[] = [];
+    const runner = throwingSmokeRunner(() => ({ banks: 0 }));
+
+    await expect(runSmokeWith(state, runner, persisted)).rejects.toThrow(
+      /belongs to a DIFFERENT freeze/
+    );
+    expect(runner).not.toHaveBeenCalled();
+    // The note SURVIVES — in memory, and in every snapshot that reached disk.
+    expect(state.provenanceAbort).toEqual(note);
+    for (const [i, snapshot] of persisted.entries()) {
+      expect(snapshot.provenanceAbort, `snapshot ${i}`).toEqual(note);
+    }
+  });
+
+  it("ITEM 7: the smoke is the keyed phase's FIRST paid call, so it guards the ledger too", async () => {
+    // runCampaign2b guards its own loop for exactly this reason. Applying it
+    // there and not here left the EARLIER of the two spend sites unguarded.
+    const state = keyedState();
+    state.entries = [
+      {
+        phase: "keyed",
+        sweep: 1,
+        policy: "C",
+        arm: "any-row",
+        status: "complete",
+        benchId: "bench-0",
+        dir: "runs/phase2b/0",
+        costUsd: 1,
+        completedTrials: 5,
+        reruns: 0
+      }
+    ];
+    state.spendUsd = 0.5; // understated against the entry it already records
+    const persisted: Campaign2bState[] = [];
+    const runner = throwingSmokeRunner(() => ({ banks: 1 }));
+
+    await expect(runSmokeWith(state, runner, persisted)).rejects.toThrow(
+      /ledger does not reconcile/
+    );
+    expect(runner).not.toHaveBeenCalled();
+    expect(state.smoke).toBeUndefined();
+  });
+
+  it("FIX 3: a GENERIC error is still not converted — it propagates", async () => {
+    const state = keyedState();
+    const persisted: Campaign2bState[] = [];
+    const runner = throwingSmokeRunner((call) =>
+      call === 1 ? { banks: 1 } : { banks: 0, throw: new Error("standings table not found") }
+    );
+
+    await expect(runSmokeWith(state, runner, persisted)).rejects.toThrow(
+      /standings table not found/
+    );
+    expect(state.provenanceAbort).toBeUndefined();
+    expect(state.smoke).toBeUndefined();
   });
 
   it("reconcilePendingEntry does NOT charge the smoke's spend to the crashed slot", async () => {

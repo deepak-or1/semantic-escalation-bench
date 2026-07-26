@@ -137,7 +137,16 @@ hypothesis.
   never shared between phases); crash-rerun-once with an accumulating
   ledger (`sum(entries.costUsd) + smokeSpendUsd == spendUsd`, where
   `smokeSpendUsd` — zero in the keyless phase — banks the keyed
-  smoke's recorded spend; see the keyed-smoke bullet below).
+  smoke's recorded spend; see the keyed-smoke bullet below). The
+  invariant is VALIDATED on every state load and fails closed: a state
+  whose ledger does not reconcile — allowing only the documented
+  positive pending-entry orphan — is refused, since an edited ledger
+  could otherwise lower recorded spend below the stop threshold. Every
+  state file carries a required `phase` stamp, checked by exact match on
+  every load — an entry-less ledger is still phase-bound, and the
+  in-flight `pendingEntry` marker must match it — and a keyless state
+  carrying a smoke marker or nonzero `smokeSpendUsd` is refused (keyless
+  purity).
 - The frozen **$39.90** pre-trial recorded-spend stop-threshold — a
   stop rule over recorded tokens, never a bound or a billing
   reconciliation. It is checked before the keyed smoke as well as
@@ -151,7 +160,11 @@ hypothesis.
   `stoppedReason`, which belongs to the budget stop alone. A zero-spend
   abort keeps the slot's rerun allowance; an abort after a completed
   attempt records the entry as crashed carrying its banked cost, keeping
-  the ledger invariant. A new invocation clears the note.
+  the ledger invariant. A new invocation clears the note. A provenance
+  failure during the keyed smoke records into the same channel
+  (`recordedCrashed: false` — no entry exists, and any banked smoke spend
+  is already in the ledger) and the smoke is re-attempted once the
+  browser can report its build.
 - The outcome-blind transport-poisoning criterion:
   `(llmCalls > 0 ∧ both token sides 0) ∨ failureDetail matches
   /ENOTFOUND|Cannot connect to API|ECONNRESET|ETIMEDOUT|EAI_AGAIN|fetch failed/`.
