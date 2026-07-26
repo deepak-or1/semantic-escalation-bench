@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type {
   BenchmarkResults,
   LoadedScenarioSuite,
@@ -35,6 +35,7 @@ import {
   assertArmFReplicatesPhase2a,
   assertCleanWorktree,
   compareProjections,
+  ensureKeyedSmoke,
   isPoisonedError,
   isPoisonedTrial,
   projectForReplication,
@@ -1065,6 +1066,14 @@ describe("Phase-2B run loop", () => {
       expect(outcome.reason).toMatch(/browser provenance unavailable/);
       expect(outcome.reason).toMatch(/ENVIRONMENT fault, not a trial fault/);
     }
+    // FIX (abort channel): the note lands in `provenanceAbort`, saying plainly
+    // that NO entry was recorded — and `stoppedReason` (the budget's field) is
+    // untouched, so a later real budget stop cannot inherit this explanation.
+    expect(state.provenanceAbort).toEqual({
+      reason: expect.stringMatching(/browser provenance unavailable/) as unknown as string,
+      recordedCrashed: false
+    });
+    expect(state.stoppedReason).toBeUndefined();
     // NOTHING recorded: the slot is untouched and fully runnable again.
     expect(state.entries).toEqual([]);
     expect(state.pendingEntry).toBeUndefined();
@@ -1100,7 +1109,15 @@ describe("Phase-2B run loop", () => {
     expect(state.entries).toHaveLength(1);
     expect(state.entries[0]!.costUsd).toBeCloseTo(spend, 10);
     expect(state.entries.reduce((sum, e) => sum + e.costUsd, 0)).toBeCloseTo(state.spendUsd, 10);
-    expect(state.stoppedReason).toMatch(/browser provenance unavailable/);
+    // FIX (abort channel): the note lands in `provenanceAbort` and states that
+    // this branch DID record a crashed entry — the CLI no longer has to guess,
+    // and it no longer prints the opposite. `stoppedReason` stays the budget's.
+    expect(state.provenanceAbort).toEqual({
+      reason: expect.stringMatching(/browser provenance unavailable/) as unknown as string,
+      recordedCrashed: true
+    });
+    expect(state.provenanceAbort!.reason).toMatch(/recorded as crashed carrying that cost/);
+    expect(state.stoppedReason).toBeUndefined();
   });
 
   it("FIX 7: a WRAPPED provenance abort is still recognised through the cause chain", async () => {
@@ -1229,6 +1246,101 @@ describe("Phase-2B run loop", () => {
     expect(state.entries[0]!.reruns).toBe(1);
     expect(state.entries.reduce((sum, e) => sum + e.costUsd, 0)).toBeCloseTo(state.spendUsd, 10);
     expect(() => nextEntry2b(state, schedule)).toThrow(/no silent third attempt/);
+  });
+
+  it("FIX (abort channel): a stale abort note NEVER becomes a later budget stop's reason", async () => {
+    // THE AUDITOR'S SEQUENCE, end to end. The abort used to write its browser
+    // explanation into `stoppedReason`, nothing ever cleared it, and the budget
+    // path preferred whatever was already there — so this exact run finished by
+    // telling the operator a $39.90 budget stop was a broken browser.
+    const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash);
+    const model = PHASE2B_MODEL;
+    const tokens = { llmCalls: 1, inputTokens: 1_000_000, outputTokens: 1_000_000 };
+    const perTrial = trialCost({ tokens }, "hybrid", model)!;
+    expect(perTrial).toBeGreaterThan(0);
+    const bank = async (config: BenchmarkRunConfig) => {
+      await config.hooks!.afterTrial!({
+        engine: "hybrid",
+        runId: "t",
+        tokens
+      } as unknown as TrialResult);
+    };
+    // Two slots: the first aborts then reruns, the second is where the budget
+    // check that used to lie actually runs.
+    const schedule = buildSchedule2b("keyless").slice(0, 2);
+
+    // (1) A provenance abort that BANKED spend — the crashed-entry branch.
+    const aborted = await runCampaign2b(state, {
+      ...baseDeps({ trials: [], stopped: undefined } as unknown as BenchmarkResults),
+      schedule,
+      model,
+      runBenchmark: vi.fn(async (config: BenchmarkRunConfig) => {
+        await bank(config);
+        throw new MissingChromeVersionError("hybrid", "t");
+      }) as unknown as Campaign2bDeps["runBenchmark"]
+    });
+    expect(aborted.kind).toBe("provenance-abort");
+    expect(state.provenanceAbort?.recordedCrashed).toBe(true);
+    expect(state.stoppedReason).toBeUndefined();
+    expect(state.entries[0]!.status).toBe("crashed");
+
+    // (2) RESUME with a working browser: the crashed entry reruns and completes,
+    // and this attempt drives recorded spend past the frozen threshold.
+    const trialsToCross = Math.ceil(CAMPAIGN_BUDGET_THRESHOLD_USD / perTrial) + 1;
+    const stopped = await runCampaign2b(state, {
+      ...baseDeps({ trials: [], stopped: undefined } as unknown as BenchmarkResults),
+      schedule,
+      model,
+      runBenchmark: vi.fn(async (config: BenchmarkRunConfig) => {
+        for (let i = 0; i < trialsToCross; i++) await bank(config);
+        return { trials: [], stopped: undefined } as unknown as BenchmarkResults;
+      }) as unknown as Campaign2bDeps["runBenchmark"]
+    });
+
+    // The rerun completed, and the next slot hit the budget.
+    expect(state.entries[0]!.status).toBe("complete");
+    expect(state.entries[0]!.reruns).toBe(1);
+    expect(state.spendUsd).toBeGreaterThanOrEqual(CAMPAIGN_BUDGET_THRESHOLD_USD);
+    expect(stopped.kind).toBe("stopped");
+    if (stopped.kind === "stopped") {
+      expect(stopped.reason).toMatch(/budget stop/);
+      expect(stopped.reason).not.toMatch(/browser provenance/);
+    }
+    expect(state.stoppedReason).toMatch(/budget stop/);
+    expect(state.stoppedReason).not.toMatch(/browser provenance/);
+    // …and the superseded abort note is gone: a new run clears it.
+    expect(state.provenanceAbort).toBeUndefined();
+  });
+
+  it("FIX F: a superseded provenanceAbort note is removed FROM DISK, even with nothing else to persist", async () => {
+    // Deleting it in memory and waiting for "the next existing persist" was not
+    // enough: a campaign whose schedule is already complete returns without ever
+    // persisting, so the archival snapshot kept a browser error that no longer
+    // describes anything — and that snapshot is the evidence artifact.
+    const schedule = buildSchedule2b("keyless").slice(0, 1);
+    const state = stateWith([{}]); // slot 0 already recorded complete
+    state.provenanceAbort = {
+      reason: "browser provenance unavailable at keyless/A/sweep-1/frozen: CDP did not answer",
+      recordedCrashed: false
+    };
+    const persisted: Campaign2bState[] = [];
+    const deps = baseDeps({ trials: [], stopped: undefined } as unknown as BenchmarkResults);
+
+    const outcome = await runCampaign2b(state, {
+      ...deps,
+      schedule,
+      persist: async (s) => {
+        persisted.push(JSON.parse(JSON.stringify(s)) as Campaign2bState);
+      }
+    });
+
+    expect(outcome.kind).toBe("complete");
+    expect(deps.runBenchmark).not.toHaveBeenCalled(); // nothing left to run
+    expect(state.provenanceAbort).toBeUndefined();
+    // The point of the fix: a snapshot WITHOUT the stale note actually reached
+    // the persist function.
+    expect(persisted.length).toBeGreaterThan(0);
+    expect(persisted[persisted.length - 1]!.provenanceAbort).toBeUndefined();
   });
 
   it("F10: the run loop writes a pendingEntry marker BEFORE the entry and clears it after", async () => {
@@ -1578,5 +1690,578 @@ describe("Phase-2B operator hints and CLI", () => {
     expect(verifyGridFor("keyless").policies).toEqual(["A", "B", "B2"]);
     expect(verifyGridFor("keyed").policies).toEqual(["C", "D"]);
     expect(verifyGridFor("pooled").policies).toEqual(["A", "B", "B2", "C", "D"]);
+  });
+});
+
+// ── The keyed smoke: frozen stamps, and spend that is accounted for ──────────
+//
+// Two findings live here. (1) The smoke's own trial records were stamped with
+// the runner's built-in catalog identity, not the frozen suite's — so a
+// smoke.json summary claimed a suite its own results.json did not. (2) The
+// smoke ran entirely outside the ledger: before the state file was even loaded,
+// with no budget hooks, recording no cost, and re-running on every keyed
+// resume. A state already at $39.90 could therefore incur more paid calls
+// before any stop check.
+
+describe("keyed smoke: frozen stamps and ledger accounting", () => {
+  // The smoke prices through the same pinned table an entry does, so the model
+  // NAME must be the frozen one. The suite's credential isolation scrubs it to
+  // "" before any module loads; this restores the name only — no key is
+  // involved and every runBenchmark below is a stub.
+  beforeEach(() => {
+    vi.stubEnv("STAGEHAND_MODEL", PHASE2B_MODEL);
+  });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  const SMOKE_TOKENS = { llmCalls: 1, inputTokens: 1_000_000, outputTokens: 1_000_000 };
+  /** One smoke trial's priced cost under the pinned table — definitely nonzero. */
+  const perTrial = trialCost({ tokens: SMOKE_TOKENS }, "hybrid", PHASE2B_MODEL)!;
+
+  const frozenFor = (over: { cId?: string; dId?: string } = {}) =>
+    FrozenExpectationsSchema.parse({
+      suiteHash: PHASE2B_SUITE_HASH,
+      protocolId: PHASE2B_SUITE_PROTOCOL_ID,
+      campaignProtocolId: PHASE2B_CAMPAIGN_ID,
+      gitCommit: "0".repeat(40),
+      recordVersion: 2,
+      arms: ["frozen", "any-row"],
+      scheduleLength: 20,
+      smoke: {
+        cId: over.cId ?? FIVE[0]!.id,
+        cMustHealLogin: true,
+        dId: over.dId ?? FIVE[1]!.id,
+        dMustPass: true
+      }
+    });
+
+  const keyedState = (): Campaign2bState =>
+    initCampaign2bState(PHASE2B_SUITE_PROTOCOL_ID, PHASE2B_SUITE_HASH);
+
+  const prepareRun = async () => ({
+    labUrl: "http://127.0.0.1:0",
+    benchDir: "runs/smoke",
+    benchId: "bench-smoke",
+    dispose: async () => undefined
+  });
+
+  /** The EXTENDED ledger invariant: entries + smoke spend reconcile to spendUsd. */
+  const invariantGap = (s: Campaign2bState): number =>
+    s.entries.reduce((sum, e) => sum + e.costUsd, 0) + (s.smokeSpendUsd ?? 0) - s.spendUsd;
+
+  /**
+   * A smoke runBenchmark stub. `plan(call)` says what each of the two calls
+   * does: how many priced trials it banks THROUGH THE HOOKS (the same path
+   * production banks on), and whether it then throws or returns a trial. Call 1
+   * is C, call 2 is D.
+   */
+  const smokeRunner = (
+    plan: (call: number) => { banks: number; throws?: true; healed?: string[]; outcome?: string }
+  ) => {
+    let call = 0;
+    return vi.fn(async (config: BenchmarkRunConfig) => {
+      call += 1;
+      const step = plan(call);
+      for (let i = 0; i < step.banks; i++) {
+        await config.hooks!.afterTrial!({
+          engine: "hybrid",
+          runId: `smoke-t${call}-${i}`,
+          tokens: SMOKE_TOKENS
+        } as unknown as TrialResult);
+      }
+      if (step.throws) throw new Error("engine died mid-smoke");
+      return {
+        trials: [
+          {
+            runId: `smoke-t${call}`,
+            outcome: step.outcome ?? "pass",
+            healedSteps: step.healed ?? (call === 1 ? ["login"] : []),
+            chromeVersion: "149.0.0.1"
+          }
+        ]
+      } as unknown as BenchmarkResults;
+    });
+  };
+
+  it("FIX: the smoke's OWN trial records carry the frozen suite stamps, not a catalog default", async () => {
+    // The outer smoke.json summary was already stamped; the RECORDS the runner
+    // wrote were not, so results.json claimed the built-in phase1 catalog.
+    // Re-asserting the summary is exactly what missed this — these assertions
+    // read the options each runBenchmark call actually received.
+    const configs: BenchmarkRunConfig[] = [];
+    const result = await runKeyedSmoke(
+      frozenFor(),
+      FIVE,
+      {
+        headless: true,
+        prepareRun,
+        runBenchmark: (async (config: BenchmarkRunConfig) => {
+          configs.push(config);
+          const isC = (config.engines as string[])[0] === "hybrid";
+          return {
+            trials: [
+              {
+                runId: "smoke-t",
+                outcome: "pass",
+                healedSteps: isC ? ["login"] : [],
+                chromeVersion: "149.0.0.1"
+              }
+            ]
+          } as unknown as BenchmarkResults;
+        }) as unknown as Campaign2bDeps["runBenchmark"]
+      },
+      FROZEN_PROVENANCE
+    );
+    expect(result.ok).toBe(true);
+    // BOTH smoke trials — C and D — not just the first.
+    expect(configs).toHaveLength(2);
+    expect(configs.map((c) => c.engines)).toEqual([["hybrid"], ["stagehand"]]);
+    for (const [i, config] of configs.entries()) {
+      expect(config.protocolId, `call ${i}`).toBe(PHASE2B_SUITE_PROTOCOL_ID);
+      expect(config.suiteHash, `call ${i}`).toBe(PHASE2B_SUITE_HASH);
+      expect(config.runPurpose, `call ${i}`).toBe("smoke");
+    }
+  });
+
+  it("a PASSING smoke recorded for THIS freeze is not repeated, and costs nothing on resume", async () => {
+    const frozen = frozenFor();
+    const state = keyedState();
+    state.smoke = {
+      pass: true,
+      protocolId: frozen.protocolId,
+      suiteHash: frozen.suiteHash,
+      cId: frozen.smoke.cId,
+      dId: frozen.smoke.dId,
+      gitCommit: "0".repeat(40),
+      spendUsd: perTrial * 2
+    };
+    state.smokeSpendUsd = perTrial * 2;
+    state.spendUsd = perTrial * 2;
+    const runBenchmark = smokeRunner(() => ({ banks: 1 }));
+    const lines: string[] = [];
+
+    const out = await ensureKeyedSmoke(
+      state,
+      frozen,
+      FIVE,
+      {
+        runBenchmark: runBenchmark as unknown as Campaign2bDeps["runBenchmark"],
+        prepareRun,
+        headless: true,
+        log: (line) => lines.push(line),
+        persist: async () => undefined
+      },
+      FROZEN_PROVENANCE
+    );
+
+    expect(out).toEqual({ kind: "skipped" });
+    expect(runBenchmark).not.toHaveBeenCalled();
+    expect(lines.join("\n")).toMatch(/already PASSED[\s\S]*not repeated/);
+    expect(invariantGap(state)).toBeCloseTo(0, 10);
+  });
+
+  it("a recorded smoke belonging to ANOTHER freeze is REFUSED, not honoured", async () => {
+    // A go-ahead earned against different scenario ids does not gate this
+    // campaign. Silently accepting it would let a re-freeze start keyed spend
+    // on the strength of a smoke that never ran against it.
+    const frozen = frozenFor();
+    const state = keyedState();
+    state.smoke = {
+      pass: true,
+      protocolId: frozen.protocolId,
+      suiteHash: frozen.suiteHash,
+      cId: "some-other-scenario",
+      dId: frozen.smoke.dId,
+      gitCommit: "0".repeat(40),
+      spendUsd: 0
+    };
+    const runBenchmark = smokeRunner(() => ({ banks: 1 }));
+
+    await expect(
+      ensureKeyedSmoke(
+        state,
+        frozen,
+        FIVE,
+        {
+          runBenchmark: runBenchmark as unknown as Campaign2bDeps["runBenchmark"],
+          prepareRun,
+          headless: true,
+          persist: async () => undefined
+        },
+        FROZEN_PROVENANCE
+      )
+    ).rejects.toThrow(/belongs to a DIFFERENT freeze/);
+    expect(runBenchmark).not.toHaveBeenCalled();
+  });
+
+  it("a state AT the stop threshold incurs NO smoke call at all, and the stop is RECORDED", async () => {
+    // The defect in one line: the smoke ran before any stop check, so a ledger
+    // already at $39.90 could still buy two more paid trials.
+    const state = keyedState();
+    // Seeded through the smoke channel so the extended invariant holds going in.
+    state.smokeSpendUsd = CAMPAIGN_BUDGET_THRESHOLD_USD;
+    state.spendUsd = CAMPAIGN_BUDGET_THRESHOLD_USD;
+    const runBenchmark = smokeRunner(() => ({ banks: 1 }));
+    const persisted: Campaign2bState[] = [];
+
+    const out = await ensureKeyedSmoke(
+      state,
+      frozenFor(),
+      FIVE,
+      {
+        runBenchmark: runBenchmark as unknown as Campaign2bDeps["runBenchmark"],
+        prepareRun,
+        headless: true,
+        persist: async (s) => {
+          persisted.push(JSON.parse(JSON.stringify(s)) as Campaign2bState);
+        }
+      },
+      FROZEN_PROVENANCE
+    );
+
+    expect(out.kind).toBe("budget-stopped");
+    if (out.kind === "budget-stopped") expect(out.reason).toMatch(/budget stop/);
+    expect(runBenchmark).not.toHaveBeenCalled();
+    expect(state.smoke).toBeUndefined();
+    // THE STOP LEAVES A TRACE. The CLI tells the operator "State preserved at
+    // <file>"; without this the preserved state said nothing about why.
+    expect(state.stoppedReason).toMatch(/budget stop/);
+    expect(persisted.length).toBeGreaterThan(0);
+    expect(persisted[persisted.length - 1]!.stoppedReason).toMatch(/budget stop/);
+  });
+
+  it("FIX C: a threshold crossed MID-SMOKE is a budget stop, never a smoke FAILURE", async () => {
+    // The repro: spend just under the threshold, C banks and crosses it, and the
+    // runner answers D's beforeTrial with a stop — returning ZERO trials plus a
+    // `stopped` block. The grading path read trials[0] as undefined and wrote
+    // "C failed to heal the login / D failed to complete the flow" into
+    // smoke.json as a durable scientific claim about two trials, one of which
+    // never ran — and the CLI exited 2 (usage) rather than 3 (budget).
+    const state = keyedState();
+    const base = CAMPAIGN_BUDGET_THRESHOLD_USD - perTrial / 2;
+    state.smokeSpendUsd = base;
+    state.spendUsd = base;
+    const persisted: Campaign2bState[] = [];
+
+    let call = 0;
+    const runner = vi.fn(async (config: BenchmarkRunConfig) => {
+      call += 1;
+      if (call === 1) {
+        // C runs and banks, pushing recorded spend past the threshold.
+        await config.hooks!.afterTrial!({
+          engine: "hybrid",
+          runId: "smoke-c",
+          tokens: SMOKE_TOKENS
+        } as unknown as TrialResult);
+        return {
+          trials: [
+            { runId: "smoke-c", outcome: "pass", healedSteps: ["login"], chromeVersion: "1" }
+          ]
+        } as unknown as BenchmarkResults;
+      }
+      // D: the REAL runner contract — beforeTrial at the top of the iteration,
+      // and on a stop decision it breaks out and returns what it has (nothing).
+      const decision = await config.hooks!.beforeTrial!({
+        scenarioId: FIVE[1]!.id,
+        engine: "stagehand",
+        trial: 1,
+        completed: 0,
+        total: 1
+      });
+      expect(decision, "the D call should have been told to stop").toBeTruthy();
+      return {
+        trials: [],
+        stopped: { reason: decision!.stop, completedTrials: 0, plannedTrials: 1 }
+      } as unknown as BenchmarkResults;
+    });
+
+    const out = await ensureKeyedSmoke(
+      state,
+      frozenFor(),
+      FIVE,
+      {
+        runBenchmark: runner as unknown as Campaign2bDeps["runBenchmark"],
+        prepareRun,
+        headless: true,
+        persist: async (s) => {
+          persisted.push(JSON.parse(JSON.stringify(s)) as Campaign2bState);
+        }
+      },
+      FROZEN_PROVENANCE
+    );
+
+    // A BUDGET STOP, not a graded smoke result.
+    expect(out.kind).toBe("budget-stopped");
+    if (out.kind === "budget-stopped") expect(out.reason).toMatch(/budget stop/);
+    expect(runner).toHaveBeenCalledTimes(2);
+    // Nothing was graded and nothing was blessed: no pass recorded, so the smoke
+    // is re-attempted once the operator raises or resets the budget.
+    expect(state.smoke).toBeUndefined();
+    // C's money was really spent, so it stays banked — inside the invariant.
+    expect(state.spendUsd).toBeGreaterThanOrEqual(CAMPAIGN_BUDGET_THRESHOLD_USD);
+    expect(state.smokeSpendUsd).toBeCloseTo(base + perTrial, 10);
+    expect(invariantGap(state)).toBeCloseTo(0, 10);
+    // …and the stop is on disk, matching what the CLI claims it preserved.
+    expect(state.stoppedReason).toMatch(/budget stop/);
+    expect(persisted.length).toBeGreaterThan(0);
+    expect(persisted[persisted.length - 1]!.stoppedReason).toMatch(/budget stop/);
+    expect(invariantGap(persisted[persisted.length - 1]!)).toBeCloseTo(0, 10);
+  });
+
+  it("FIX D: a recorded smoke from a DIFFERENT COMMIT of the same suite is refused", async () => {
+    // protocolId and suiteHash are frozen CONSTANTS of this campaign and the two
+    // scenario ids can repeat across freezes, so the commit is the only field
+    // that actually separates one freeze from the next. Omitting it made the
+    // identity check unable to detect the case it exists for.
+    const frozen = frozenFor();
+    const state = keyedState();
+    state.smoke = {
+      pass: true,
+      protocolId: frozen.protocolId,
+      suiteHash: frozen.suiteHash,
+      cId: frozen.smoke.cId,
+      dId: frozen.smoke.dId,
+      gitCommit: "1".repeat(40), // ← the ONLY difference
+      spendUsd: 0
+    };
+    const runBenchmark = smokeRunner(() => ({ banks: 1 }));
+
+    const call = ensureKeyedSmoke(
+      state,
+      frozen,
+      FIVE,
+      {
+        runBenchmark: runBenchmark as unknown as Campaign2bDeps["runBenchmark"],
+        prepareRun,
+        headless: true,
+        persist: async () => undefined
+      },
+      FROZEN_PROVENANCE
+    );
+    await expect(call).rejects.toThrow(/belongs to a DIFFERENT freeze/);
+    // The message names BOTH commits, so the operator can see which is which.
+    await expect(call).rejects.toThrow(new RegExp("1".repeat(40)));
+    await expect(call).rejects.toThrow(new RegExp(frozen.gitCommit));
+    expect(runBenchmark).not.toHaveBeenCalled();
+  });
+
+  it("FIX J: a wrong-suite provenance is refused even on the recorded-pass SKIP path", async () => {
+    // The skip path returns before runKeyedSmoke — where the frozen-suite
+    // refusal lived — so as an exported API this reported a cheerful "skipped"
+    // for a campaign pointed at the wrong suite entirely.
+    const frozen = frozenFor();
+    const state = keyedState();
+    state.smoke = {
+      pass: true,
+      protocolId: frozen.protocolId,
+      suiteHash: frozen.suiteHash,
+      cId: frozen.smoke.cId,
+      dId: frozen.smoke.dId,
+      gitCommit: frozen.gitCommit,
+      spendUsd: 0
+    };
+    const runBenchmark = smokeRunner(() => ({ banks: 1 }));
+
+    await expect(
+      ensureKeyedSmoke(
+        state,
+        frozen,
+        FIVE,
+        {
+          runBenchmark: runBenchmark as unknown as Campaign2bDeps["runBenchmark"],
+          prepareRun,
+          headless: true,
+          persist: async () => undefined
+        },
+        { protocolId: PHASE2B_SUITE_PROTOCOL_ID, suiteHash: "b".repeat(64), gitCommit: null }
+      )
+    ).rejects.toThrow(/keyed smoke refuses to run: suite protocolId/);
+    expect(runBenchmark).not.toHaveBeenCalled();
+  });
+
+  it("a fresh PASSING smoke banks its spend, records the pass, and keeps the extended invariant", async () => {
+    const frozen = frozenFor();
+    const state = keyedState();
+    const persisted: Campaign2bState[] = [];
+    const runBenchmark = smokeRunner((call) => ({
+      banks: 1,
+      healed: call === 1 ? ["login"] : []
+    }));
+
+    const out = await ensureKeyedSmoke(
+      state,
+      frozen,
+      FIVE,
+      {
+        runBenchmark: runBenchmark as unknown as Campaign2bDeps["runBenchmark"],
+        prepareRun,
+        headless: true,
+        persist: async (s) => {
+          persisted.push(JSON.parse(JSON.stringify(s)) as Campaign2bState);
+        }
+      },
+      FROZEN_PROVENANCE
+    );
+
+    expect(out.kind).toBe("passed");
+    // The spend is REAL and it is banked: two priced trials, C and D. (A zero
+    // per-trial price would make every amount assertion below vacuous.)
+    expect(perTrial).toBeGreaterThan(0);
+    expect(state.spendUsd).toBeCloseTo(perTrial * 2, 10);
+    expect(state.smokeSpendUsd).toBeCloseTo(perTrial * 2, 10);
+    // The pass is recorded with THIS freeze's identity, so a resume can check it.
+    expect(state.smoke).toEqual({
+      pass: true,
+      protocolId: frozen.protocolId,
+      suiteHash: frozen.suiteHash,
+      cId: frozen.smoke.cId,
+      dId: frozen.smoke.dId,
+      gitCommit: FROZEN_PROVENANCE.gitCommit,
+      spendUsd: state.smoke!.spendUsd
+    });
+    expect(state.smoke!.spendUsd).toBeCloseTo(perTrial * 2, 10);
+    // The schema accepts it, so it survives a write/reload cycle.
+    expect(Campaign2bStateSchema.safeParse(JSON.parse(JSON.stringify(state))).success).toBe(true);
+    // The invariant holds on the FINAL persisted snapshot, not merely in memory.
+    expect(persisted.length).toBeGreaterThan(0);
+    expect(invariantGap(persisted[persisted.length - 1]!)).toBeCloseTo(0, 10);
+  });
+
+  it("a MID-SMOKE crash leaves every snapshot consistent, records no pass, and re-runs next time", async () => {
+    const frozen = frozenFor();
+    const state = keyedState();
+    const persisted: Campaign2bState[] = [];
+    const persist = async (s: Campaign2bState) => {
+      persisted.push(JSON.parse(JSON.stringify(s)) as Campaign2bState);
+    };
+    // C banks two priced trials; D dies before returning.
+    const crashing = smokeRunner((call) =>
+      call === 1 ? { banks: 2, healed: ["login"] } : { banks: 0, throws: true }
+    );
+
+    await expect(
+      ensureKeyedSmoke(
+        state,
+        frozen,
+        FIVE,
+        {
+          runBenchmark: crashing as unknown as Campaign2bDeps["runBenchmark"],
+          prepareRun,
+          headless: true,
+          persist
+        },
+        FROZEN_PROVENANCE
+      )
+    ).rejects.toThrow(/engine died mid-smoke/);
+
+    // EVERY snapshot that reached disk satisfies the extended invariant — a
+    // kill -9 anywhere in the smoke leaves a ledger that reconciles.
+    expect(persisted.length).toBeGreaterThan(0);
+    for (const [i, snapshot] of persisted.entries()) {
+      expect(invariantGap(snapshot), `snapshot ${i}`).toBeCloseTo(0, 10);
+      expect(snapshot.smoke, `snapshot ${i}`).toBeUndefined();
+    }
+    expect(state.smoke).toBeUndefined();
+    expect(state.spendUsd).toBeCloseTo(perTrial * 2, 10);
+    expect(state.smokeSpendUsd).toBeCloseTo(perTrial * 2, 10);
+
+    // …and because no pass was recorded, the next invocation runs it again.
+    const retry = smokeRunner((call) => ({ banks: 1, healed: call === 1 ? ["login"] : [] }));
+    const out = await ensureKeyedSmoke(
+      state,
+      frozen,
+      FIVE,
+      {
+        runBenchmark: retry as unknown as Campaign2bDeps["runBenchmark"],
+        prepareRun,
+        headless: true,
+        persist
+      },
+      FROZEN_PROVENANCE
+    );
+    expect(retry).toHaveBeenCalledTimes(2); // C and D, run again
+    expect(out.kind).toBe("passed");
+    // The retry's spend ACCUMULATES onto the crashed attempt's — none is lost.
+    expect(state.smokeSpendUsd).toBeCloseTo(perTrial * 4, 10);
+    expect(invariantGap(state)).toBeCloseTo(0, 10);
+  });
+
+  it("a FAILING smoke keeps its spend banked and records NO pass", async () => {
+    const state = keyedState();
+    const persisted: Campaign2bState[] = [];
+    // C heals the login; D does not complete the flow → the D criterion fails.
+    const runBenchmark = smokeRunner((call) =>
+      call === 1 ? { banks: 1, healed: ["login"] } : { banks: 1, outcome: "fail" }
+    );
+
+    const out = await ensureKeyedSmoke(
+      state,
+      frozenFor(),
+      FIVE,
+      {
+        runBenchmark: runBenchmark as unknown as Campaign2bDeps["runBenchmark"],
+        prepareRun,
+        headless: true,
+        persist: async (s) => {
+          persisted.push(JSON.parse(JSON.stringify(s)) as Campaign2bState);
+        }
+      },
+      FROZEN_PROVENANCE
+    );
+
+    expect(out.kind).toBe("failed");
+    if (out.kind === "failed") {
+      expect(out.smoke.ok).toBe(false);
+      expect(out.smoke.trials.find((t) => t.policy === "D")!.passedCriteria).toBe(false);
+    }
+    // The money was spent, so it stays banked — but no pass is recorded, so the
+    // smoke is re-attempted rather than skipped.
+    expect(state.spendUsd).toBeCloseTo(perTrial * 2, 10);
+    expect(state.smokeSpendUsd).toBeCloseTo(perTrial * 2, 10);
+    expect(state.smoke).toBeUndefined();
+    expect(invariantGap(persisted[persisted.length - 1]!)).toBeCloseTo(0, 10);
+  });
+
+  it("reconcilePendingEntry does NOT charge the smoke's spend to the crashed slot", async () => {
+    // The orphan is spendUsd MINUS banked entries MINUS the smoke's share.
+    // Without the last term, a mid-entry kill after a paid smoke would record
+    // the smoke's cost against whichever slot happened to be in flight.
+    const state = keyedState();
+    const entrySum = 1.25;
+    const smokeSpend = 0.75;
+    const orphan = 0.4;
+    state.entries = [
+      {
+        phase: "keyed",
+        sweep: 1,
+        policy: "C",
+        arm: "any-row",
+        status: "complete",
+        benchId: "bench-0",
+        dir: "runs/phase2b/0",
+        costUsd: entrySum,
+        completedTrials: 5,
+        reruns: 0
+      }
+    ];
+    state.smokeSpendUsd = smokeSpend;
+    state.spendUsd = entrySum + smokeSpend + orphan;
+    state.pendingEntry = {
+      phase: "keyed",
+      sweep: 1,
+      policy: "C",
+      arm: "frozen",
+      benchId: "bench-orphan",
+      benchDir: "runs/phase2b/orphan"
+    };
+
+    expect(reconcilePendingEntry(state)).toBe(true);
+    const crashed = state.entries[1]!;
+    expect(crashed.status).toBe("crashed");
+    expect(crashed.dir).toBe("runs/phase2b/orphan");
+    // EXACTLY the orphan — the smoke's $0.75 is not laundered into this slot.
+    expect(crashed.costUsd).toBeCloseTo(orphan, 10);
+    expect(invariantGap(state)).toBeCloseTo(0, 10);
   });
 });

@@ -25,7 +25,7 @@
  */
 import "dotenv/config";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, realpathSync } from "node:fs";
 import { rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -273,6 +273,42 @@ export const Campaign2bStateSchema = z.object({
   stoppedReason: z.string().optional(),
   /** Set when a poisoned entry invalidated the grid (§Transport poisoning). */
   poisonedReason: z.string().optional(),
+  /**
+   * The keyed smoke's banked spend. The smoke makes PAID calls that belong in no
+   * schedule entry, so the ledger invariant is
+   * `sum(entries.costUsd) + (smokeSpendUsd ?? 0) === spendUsd`. Absent reads as
+   * zero, which is what every keyless state (and every pre-existing state file)
+   * means — additive-optional so an old ledger still parses.
+   */
+  smokeSpendUsd: z.number().nonnegative().optional(),
+  /**
+   * A PASSING keyed smoke, recorded so a resume does not pay for it again. Only a
+   * pass is ever written: a failed or crashed smoke leaves this absent and is
+   * re-attempted (subject to the stop threshold). The identity fields let the
+   * next invocation prove the recorded pass belongs to THIS freeze rather than
+   * inheriting a stale go-ahead from another one.
+   */
+  smoke: z
+    .object({
+      pass: z.literal(true),
+      protocolId: z.string(),
+      suiteHash: z.string(),
+      cId: z.string(),
+      dId: z.string(),
+      gitCommit: z.string().nullable(),
+      spendUsd: z.number().nonnegative()
+    })
+    .optional(),
+  /**
+   * A browser-provenance abort's own channel (§Operational machinery). It is
+   * DELIBERATELY not `stoppedReason`: that field is the budget stop's, it is
+   * never cleared, and reusing it made a later real budget stop surface a stale
+   * browser error as its reason. `recordedCrashed` states which branch the abort
+   * took, so the CLI never has to guess whether the entry kept its rerun.
+   */
+  provenanceAbort: z
+    .object({ reason: z.string(), recordedCrashed: z.boolean() })
+    .optional(),
   /** The recorded verifier verdict for this bundle (additive-optional). */
   verdict: KeylessVerdictSchema.optional(),
   /** Present only while an entry is in flight (additive-optional). */
@@ -377,10 +413,14 @@ export function assertState2bMatches(
  * Reconcile a state whose process died MID-ENTRY (F10). The pending marker names
  * the slot that was in flight; its spend is already banked in `spendUsd` but has
  * no entry to account for it, so the slot is recorded as CRASHED carrying exactly
- * the orphaned amount (spendUsd − sum(entries.costUsd)). The ledger invariant
- * holds afterwards, the orphaned run dir is preserved for forensics, and the
- * crash counts against the rerun-once rule — an entry that dies mid-flight twice
- * is not silently attempted a third time.
+ * the orphaned amount (spendUsd − sum(entries.costUsd) − smokeSpendUsd). The
+ * SMOKE'S banked spend is subtracted because it belongs to no schedule entry:
+ * counting it as orphaned would charge the keyed smoke's cost to whichever slot
+ * happened to be in flight. The ledger invariant
+ * `sum(entries.costUsd) + smokeSpendUsd === spendUsd` holds afterwards, the
+ * orphaned run dir is preserved for forensics, and the crash counts against the
+ * rerun-once rule — an entry that dies mid-flight twice is not silently
+ * attempted a third time.
  *
  * Idempotent: with no pending marker it does nothing. Returns whether it acted.
  */
@@ -388,7 +428,7 @@ export function reconcilePendingEntry(state: Campaign2bState): boolean {
   const pending = state.pendingEntry;
   if (!pending) return false;
   const banked = state.entries.reduce((sum, e) => sum + e.costUsd, 0);
-  const orphaned = Math.max(0, state.spendUsd - banked);
+  const orphaned = Math.max(0, state.spendUsd - banked - (state.smokeSpendUsd ?? 0));
   recordEntry(
     state,
     { ...pending, ordinal: -1 },
@@ -977,19 +1017,31 @@ export interface SmokeResult {
  * The two scenario ids and the criteria are DATA from the frozen-expectations
  * file: the mechanism is here, the values are frozen at gate 5.
  */
-export async function runKeyedSmoke(
-  frozen: FrozenExpectations,
-  suiteScenarios: readonly ScenarioSpec[],
-  deps: Pick<Campaign2bDeps, "runBenchmark" | "prepareRun" | "headless" | "log">,
-  /** The loaded suite's provenance, plus the commit, for the stamps and the refusal. */
-  provenance: { protocolId: string; suiteHash: string; gitCommit: string | null }
-): Promise<SmokeResult> {
-  // REFUSE BEFORE RUNNING ANYTHING: a smoke against the wrong suite proves
-  // nothing about the campaign it is supposed to gate.
-  //
-  // DEFENCE IN DEPTH, not an independent barrier: main() pins the suite against
-  // these same constants before calling this, so in production this refusal is a
-  // second copy of an earlier check.
+/**
+ * The budget threshold crossed DURING the smoke (§Schedule). THROWN rather than
+ * folded into the SmokeResult, because the two are different claims and the
+ * driver used to conflate them: the runner answers a mid-run stop with zero
+ * trials plus a `stopped` block, and grading that produced a smoke.json durably
+ * recording "C failed to heal the login / D failed to complete the flow" about
+ * two trials that never ran — then exited 2 (usage) instead of 3 (budget).
+ */
+export class SmokeBudgetStopError extends Error {
+  readonly reason: string;
+  constructor(reason: string) {
+    super(reason);
+    this.name = "SmokeBudgetStopError";
+    this.reason = reason;
+  }
+}
+
+/**
+ * The frozen-suite refusal, shared by BOTH smoke entry points. A smoke against
+ * the wrong suite proves nothing about the campaign it is supposed to gate — and
+ * `ensureKeyedSmoke`'s recorded-pass skip returns before `runKeyedSmoke` is ever
+ * reached, so a check that lives only on the inner function is absent on exactly
+ * the path that runs nothing and reports success.
+ */
+function assertFrozenSmokeSuite(provenance: { protocolId: string; suiteHash: string }): void {
   if (
     provenance.protocolId !== PHASE2B_SUITE_PROTOCOL_ID ||
     provenance.suiteHash !== PHASE2B_SUITE_HASH
@@ -1000,6 +1052,36 @@ export async function runKeyedSmoke(
         `${PHASE2B_SUITE_HASH.slice(0, 16)}…`
     );
   }
+}
+
+export type KeyedSmokeDeps = Pick<
+  Campaign2bDeps,
+  "runBenchmark" | "prepareRun" | "headless" | "log"
+> & {
+  /**
+   * The budget hooks, when the caller is accounting for the smoke's spend
+   * (`ensureKeyedSmoke` always is). Forwarded VERBATIM to both runBenchmark
+   * calls, so the smoke's paid trials bank through exactly the path an entry's
+   * do. Optional only so the criteria-focused tests can drive this function
+   * without a ledger.
+   */
+  hooks?: Parameters<typeof runBenchmark>[0]["hooks"];
+};
+
+export async function runKeyedSmoke(
+  frozen: FrozenExpectations,
+  suiteScenarios: readonly ScenarioSpec[],
+  deps: KeyedSmokeDeps,
+  /** The loaded suite's provenance, plus the commit, for the stamps and the refusal. */
+  provenance: { protocolId: string; suiteHash: string; gitCommit: string | null }
+): Promise<SmokeResult> {
+  // REFUSE BEFORE RUNNING ANYTHING: a smoke against the wrong suite proves
+  // nothing about the campaign it is supposed to gate.
+  //
+  // DEFENCE IN DEPTH, not an independent barrier: main() pins the suite against
+  // these same constants before calling this, so in production this refusal is a
+  // second copy of an earlier check.
+  assertFrozenSmokeSuite(provenance);
   const byId = new Map(suiteScenarios.map((s) => [s.id, s]));
   const plan: { policy: "C" | "D"; id: string }[] = [
     { policy: "C", id: frozen.smoke.cId },
@@ -1036,13 +1118,28 @@ export async function runKeyedSmoke(
         // machine-enforced separation that keeps it out of every campaign bundle.
         runPurpose: "smoke",
         repairMode: cfg.repairMode,
+        // THE SMOKE'S OWN RECORDS CARRY THE FROZEN SUITE IDENTITY. Omitting these
+        // let the runner stamp the smoke's results.json with its built-in
+        // phase1-catalog identity, so the trial records disagreed with the
+        // smoke.json summary written around them — a smoke that cannot be tied to
+        // the suite it gates proves nothing about it. The provenance refusal at
+        // the top of this function has already pinned both to the frozen values.
+        protocolId: provenance.protocolId,
+        suiteHash: provenance.suiteHash,
         readinessMode: "frozen",
         campaignProtocolId: PHASE2B_CAMPAIGN_ID,
-        requireChromeVersion: true
+        requireChromeVersion: true,
+        ...(deps.hooks ? { hooks: deps.hooks } : {})
       });
     } finally {
       await ctx.dispose();
     }
+    // A BUDGET STOP IS NOT A SMOKE FAILURE — checked BEFORE any grading. The
+    // runner reports a mid-run stop as zero trials plus a `stopped` block, and
+    // the grading below reads `trials[0]` as undefined: C then "did not heal the
+    // login", D "did not complete the flow", and smoke.json records both as
+    // scientific findings about trials that never executed.
+    if (results.stopped) throw new SmokeBudgetStopError(results.stopped.reason);
     const t = results.trials[0];
     const healedSteps = t?.healedSteps ?? [];
     // Both criteria are pinned true by the schema, so there is no "disabled"
@@ -1085,6 +1182,163 @@ export async function runKeyedSmoke(
     trials,
     ok: trials.every((t) => t.passedCriteria)
   };
+}
+
+/** What `ensureKeyedSmoke` decided. Every branch is explicit; none is silent. */
+export type EnsureKeyedSmokeOutcome =
+  /** A passing smoke for THIS freeze is already recorded — nothing was run. */
+  | { kind: "skipped" }
+  | { kind: "passed"; smoke: SmokeResult }
+  /** The stop threshold was already reached — no smoke call was made. */
+  | { kind: "budget-stopped"; reason: string }
+  | { kind: "failed"; smoke: SmokeResult };
+
+/**
+ * The keyed smoke AS A LEDGER OPERATION, not a free pre-flight.
+ *
+ * The smoke makes PAID calls. Running it outside the state file (as this driver
+ * originally did) meant three things at once: a resume paid for it again on every
+ * invocation, its spend was invisible to the $39.90 stop rule, and a state
+ * already at the threshold could incur more paid calls before any stop check ran.
+ * So the smoke is ordered like an entry — recorded-pass check, stop check, then
+ * run with budget hooks — and its spend banks into `smokeSpendUsd`, inside the
+ * extended ledger invariant `sum(entries.costUsd) + smokeSpendUsd === spendUsd`.
+ *
+ * THE INVARIANT HOLDS AT EVERY PERSIST, not merely at the end: the persist
+ * callback handed to the hooks re-derives `smokeSpendUsd` from the hooks' own
+ * running total BEFORE writing, so a `kill -9` between two smoke trials leaves a
+ * consistent snapshot. No `state.smoke` is written until the smoke has actually
+ * passed, so that crash re-runs the smoke rather than inheriting a pass it never
+ * earned.
+ */
+export async function ensureKeyedSmoke(
+  state: Campaign2bState,
+  frozen: FrozenExpectations,
+  suiteScenarios: readonly ScenarioSpec[],
+  deps: Pick<Campaign2bDeps, "runBenchmark" | "prepareRun" | "headless" | "log" | "persist">,
+  /** The loaded suite's provenance, plus the commit, for the stamps and the refusal. */
+  provenance: { protocolId: string; suiteHash: string; gitCommit: string | null }
+): Promise<EnsureKeyedSmokeOutcome> {
+  // (0) THE FROZEN-SUITE REFUSAL, before the skip path can bypass it. The same
+  // check lives inside runKeyedSmoke, but the recorded-pass branch below returns
+  // without ever calling it — so as an exported API this would happily report
+  // "skipped" for a campaign pointed at the wrong suite.
+  assertFrozenSmokeSuite(provenance);
+
+  // (1) A RECORDED PASS IS NOT REPEATED — but only if it is THIS freeze's. A
+  // recorded smoke naming other scenario ids, another suite or another COMMIT is
+  // a go-ahead earned somewhere else; honouring it would let a re-frozen
+  // campaign start keyed spend on the strength of a smoke that never ran
+  // against it.
+  const recorded = state.smoke;
+  if (recorded) {
+    // gitCommit carries the weight here. protocolId and suiteHash are frozen
+    // CONSTANTS for this campaign — every freeze of it agrees on them — and the
+    // two smoke scenario ids can legitimately repeat across freezes. The commit
+    // is the only field that actually separates one freeze from the next.
+    const sameFreeze =
+      recorded.protocolId === frozen.protocolId &&
+      recorded.suiteHash === frozen.suiteHash &&
+      recorded.gitCommit === frozen.gitCommit &&
+      recorded.cId === frozen.smoke.cId &&
+      recorded.dId === frozen.smoke.dId;
+    if (!sameFreeze) {
+      throw new Error(
+        `the campaign state's recorded keyed smoke belongs to a DIFFERENT freeze: it recorded ` +
+          `protocolId "${recorded.protocolId}" / suiteHash ${recorded.suiteHash.slice(0, 16)}… / ` +
+          `gitCommit ${recorded.gitCommit ?? "(none)"} / C=${recorded.cId} / D=${recorded.dId}, ` +
+          `but the frozen expectations name protocolId "${frozen.protocolId}" / suiteHash ` +
+          `${frozen.suiteHash.slice(0, 16)}… / gitCommit ${frozen.gitCommit} / ` +
+          `C=${frozen.smoke.cId} / D=${frozen.smoke.dId}. A smoke that gated another freeze does ` +
+          `not gate this one — start this campaign from a fresh state file ` +
+          `(PROTOCOL_2B §Schedule).`
+      );
+    }
+    deps.log?.("keyed smoke already PASSED (recorded in state) — not repeated");
+    return { kind: "skipped" };
+  }
+
+  /**
+   * Stop the campaign at the smoke gate, LEAVING A TRACE. The CLI tells the
+   * operator "State preserved at <file>"; without this the preserved state said
+   * nothing whatever about why the campaign stopped. Mirrors the entry loop's
+   * stop path, which persists the same field for the same reason.
+   */
+  const budgetStopped = async (reason: string): Promise<EnsureKeyedSmokeOutcome> => {
+    state.stoppedReason = reason;
+    await deps.persist(state);
+    return { kind: "budget-stopped", reason };
+  };
+
+  // (2) THE STOP THRESHOLD APPLIES TO THE SMOKE. Checked before the first smoke
+  // call, exactly as it is before every entry: a state at or past the threshold
+  // incurs no further paid calls of any kind.
+  const preStop = shouldStop(state as unknown as CampaignState);
+  if (preStop) return budgetStopped(preStop);
+
+  // (3) Run it WITH spend accounting, through the same hooks an entry uses.
+  const smokeBase = state.smokeSpendUsd ?? 0;
+  const budget = makeBudgetHooks(
+    state as unknown as CampaignState,
+    loadAgentEnvConfig().stagehandModel,
+    async (s) => {
+      // Every banking persist re-derives the smoke's share FIRST, so the
+      // snapshot that reaches disk always satisfies the extended invariant.
+      const snapshot = s as unknown as Campaign2bState;
+      snapshot.smokeSpendUsd = smokeBase + budget.entryCostUsd();
+      await deps.persist(snapshot);
+    }
+  );
+
+  // A throw here propagates: the hooks have already persisted whatever was
+  // banked, and no `state.smoke` exists, so the next invocation re-runs the smoke.
+  let smoke: SmokeResult;
+  try {
+    smoke = await runKeyedSmoke(
+      frozen,
+      suiteScenarios,
+      {
+        runBenchmark: deps.runBenchmark,
+        prepareRun: deps.prepareRun,
+        headless: deps.headless,
+        ...(deps.log ? { log: deps.log } : {}),
+        hooks: budget.hooks
+      },
+      provenance
+    );
+  } catch (error) {
+    // THE THRESHOLD CROSSED MID-SMOKE. It is a budget stop, not a scientific
+    // result: the hooks have already banked and persisted what was spent, no
+    // `state.smoke` is written, and the interrupted smoke is never graded. Every
+    // other error still propagates.
+    if (error instanceof SmokeBudgetStopError) return budgetStopped(error.reason);
+    throw error;
+  }
+
+  // Bring the in-memory share current even when no hook fired (a zero-trial
+  // smoke): harmless when redundant, and the failed-path persist below then
+  // writes a complete snapshot.
+  const spent = budget.entryCostUsd();
+  state.smokeSpendUsd = smokeBase + spent;
+
+  if (!smoke.ok) {
+    // A FAILED smoke keeps its spend banked and records NO pass — it is
+    // re-attempted next invocation, subject to the stop threshold.
+    await deps.persist(state);
+    return { kind: "failed", smoke };
+  }
+
+  state.smoke = {
+    pass: true,
+    protocolId: frozen.protocolId,
+    suiteHash: frozen.suiteHash,
+    cId: frozen.smoke.cId,
+    dId: frozen.smoke.dId,
+    gitCommit: provenance.gitCommit,
+    spendUsd: spent
+  };
+  await deps.persist(state);
+  return { kind: "passed", smoke };
 }
 
 // ── Freeze guard (§Gates) ────────────────────────────────────────────────────
@@ -1303,12 +1557,28 @@ export async function runCampaign2b(
   // A resumed state whose process died mid-entry is reconciled before the first
   // schedule decision, so the ledger the loop reads is already consistent.
   reconcilePendingEntry(state);
+  // A NEW RUN SUPERSEDES A STALE ABORT NOTE — ON DISK, not merely in memory.
+  // The previous invocation's browser fault describes that invocation; leaving
+  // it set is how a later, unrelated outcome ended up reported with a browser
+  // error as its reason. Letting the deletion ride the "next existing persist"
+  // was not enough: a campaign whose schedule is already complete returns
+  // without ever persisting, so the archival snapshot kept the stale note
+  // forever. Written immediately, and ONLY when the field was actually present
+  // — the happy path still adds no extra write.
+  if (state.provenanceAbort !== undefined) {
+    delete state.provenanceAbort;
+    await deps.persist(state);
+  }
   for (;;) {
     const entry = nextEntry2b(state, deps.schedule);
     if (entry === null) return { kind: "complete" };
 
     const preStop = shouldStop(state as unknown as CampaignState);
     if (preStop) {
+      // `stoppedReason` is now the BUDGET's field alone. A provenance abort used
+      // to write it too, and it is never cleared — so this `??` could hand a real
+      // budget stop a stale browser error as its explanation. Aborts record into
+      // `provenanceAbort` instead and never touch this one.
       const reason = state.stoppedReason ?? preStop;
       state.stoppedReason = reason;
       await deps.persist(state);
@@ -1391,7 +1661,10 @@ export async function runCampaign2b(
           });
         }
         delete state.pendingEntry;
-        state.stoppedReason = reason;
+        // ITS OWN CHANNEL, carrying which branch was taken. `stoppedReason` is
+        // the budget's; writing an abort there left a note nothing ever cleared,
+        // and the CLI could not tell whether an entry had been marked crashed.
+        state.provenanceAbort = { reason, recordedCrashed: spent > 0 };
         await deps.persist(state);
         return { kind: "provenance-abort", reason, entry };
       }
@@ -1479,25 +1752,88 @@ function allowlistedSuiteScenarios(suite: LoadedScenarioSuite): ScenarioSpec[] {
   return suite.scenarios.map(suiteScenarioToSpec);
 }
 
-/** The tags pointing at HEAD, for the freeze guard. Empty on any git failure. */
-function readTagsAtHead(): string[] {
-  const out = spawnSync("git", ["tag", "--points-at", "HEAD"], { encoding: "utf8" });
+/**
+ * EVERY git read below is pinned to THIS repository along BOTH routes git offers
+ * for choosing one, because pinning either alone is no defence at all.
+ *
+ *  - `cwd: REPO_ROOT` — with no cwd these answered about whatever repository the
+ *    operator happened to be standing in, so running the driver from an
+ *    unrelated checkout carrying a tag named `phase2b-ablation-freeze-v1`
+ *    satisfied the freeze guard.
+ *  - `env: gitCleanEnv()` — and cwd alone does NOT close that hole, because git
+ *    resolves `GIT_DIR` / `GIT_WORK_TREE` IN PREFERENCE TO the working
+ *    directory. Reproduced: with `GIT_DIR=<fake>/.git GIT_WORK_TREE=<fake>` set,
+ *    `git tag --points-at HEAD` run *from this repository root* still returns the
+ *    fake repo's tags, and `git status --porcelain` reports the fake repo's clean
+ *    tree while ours is dirty. Both guards were bypassable from the right cwd.
+ *
+ * The freeze would then be attested by a repository containing none of this
+ * code. The cwd gate in main() is the third layer: the driver refuses to run
+ * from anywhere but the repo in the first place.
+ */
+
+/**
+ * The process environment with EVERY `GIT_*` variable removed — the environment
+ * every git read below runs under.
+ *
+ * The WHOLE PREFIX is stripped rather than just `GIT_DIR` and `GIT_WORK_TREE`:
+ * `GIT_COMMON_DIR`, `GIT_OBJECT_DIRECTORY`, `GIT_INDEX_FILE`,
+ * `GIT_CEILING_DIRECTORIES` and `GIT_DISCOVERY_ACROSS_FILESYSTEM` redirect the
+ * same reads by other routes, and an allowlist of the two names known to be
+ * exploitable today is exactly the kind of guard that stops guarding.
+ */
+function gitCleanEnv(env: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
+  const clean: NodeJS.ProcessEnv = { ...env };
+  for (const name of Object.keys(clean)) {
+    if (name.startsWith("GIT_")) delete clean[name];
+  }
+  return clean;
+}
+
+/**
+ * The tags pointing at HEAD, for the freeze guard. Empty on any git failure.
+ *
+ * EXPORTED FOR TESTS. On the CLI path this is reached only from the repository
+ * root (main()'s working-directory gate runs first), but proving the pinning
+ * actually holds requires calling it from a hostile cwd AND a hostile
+ * environment — which only a test can do.
+ */
+export function readTagsAtHead(): string[] {
+  const out = spawnSync("git", ["tag", "--points-at", "HEAD"], {
+    cwd: REPO_ROOT,
+    env: gitCleanEnv(),
+    encoding: "utf8"
+  });
   if (out.status !== 0 || typeof out.stdout !== "string") return [];
   return out.stdout.split("\n").map((t) => t.trim()).filter(Boolean);
 }
 
-/** `git status --porcelain`, for the clean-worktree guard. Dirty on git failure. */
-function readWorktreeStatus(): string {
-  const out = spawnSync("git", ["status", "--porcelain"], { encoding: "utf8" });
+/**
+ * `git status --porcelain`, for the clean-worktree guard. Dirty on git failure.
+ * Exported for tests, for the reason given on readTagsAtHead.
+ */
+export function readWorktreeStatus(): string {
+  const out = spawnSync("git", ["status", "--porcelain"], {
+    cwd: REPO_ROOT,
+    env: gitCleanEnv(),
+    encoding: "utf8"
+  });
   if (out.status !== 0 || typeof out.stdout !== "string") {
     return "?? (git status unavailable — treating the worktree as dirty)";
   }
   return out.stdout;
 }
 
-/** The commit HEAD points at, for the pre-spend recheck. */
-function readGitCommit(): string | null {
-  const out = spawnSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" });
+/**
+ * The commit HEAD points at, for the pre-spend recheck. Exported for tests, for
+ * the reason given on readTagsAtHead.
+ */
+export function readGitCommit(): string | null {
+  const out = spawnSync("git", ["rev-parse", "HEAD"], {
+    cwd: REPO_ROOT,
+    env: gitCleanEnv(),
+    encoding: "utf8"
+  });
   if (out.status !== 0 || typeof out.stdout !== "string") return null;
   return out.stdout.trim() || null;
 }
@@ -1684,6 +2020,26 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
+  // THE WORKING-DIRECTORY GATE, before every other guard. The freeze guard reads
+  // git; git answers about the repository you are standing in. Standing in an
+  // unrelated repository that happens to carry a tag named
+  // `phase2b-ablation-freeze-v1` therefore bought a pass — the guard's own
+  // reads are now pinned to REPO_ROOT, and this refuses the situation outright
+  // so no other repo-relative path (state files, run dirs, evidence) can be
+  // half-resolved either. `--print-schedule` stays exempt: it runs nothing.
+  // realpath on both sides so a symlinked checkout is not mistaken for a
+  // different tree.
+  const cwdReal = realpathSync(process.cwd());
+  const rootReal = realpathSync(REPO_ROOT);
+  if (cwdReal !== rootReal) {
+    bail(
+      `campaign must run from the repository root ${rootReal} — current working directory is ` +
+        `${cwdReal}. The freeze and worktree guards read this repository's git history, and the ` +
+        `default state, smoke and run paths resolve relative to it; running from elsewhere would ` +
+        `let another checkout answer for this one (PROTOCOL_2B §Gates, gate 5).`
+    );
+  }
+
   let suite: LoadedScenarioSuite;
   try {
     suite = loadScenarioSuite(args.suiteFile);
@@ -1730,8 +2086,15 @@ async function main(): Promise<void> {
     bail(error instanceof Error ? error.message : String(error));
   }
 
+  // THE LEDGER IS LOADED BEFORE THE KEYED PRE-FLIGHT, not after it. The keyed
+  // smoke spends real money, so it has to bank into this state — and be skipped
+  // when this state already records a pass, and be refused when this state is
+  // already at the stop threshold. Loading it afterwards made all three
+  // impossible. Both phases share this unchanged.
+  const state = loadOrInitState(args.stateFile, suite!, args.phase);
+  await writeStateAtomic(args.stateFile, state);
+
   let frozen: FrozenExpectations | undefined;
-  let smoke: SmokeResult | undefined;
   if (args.phase === "keyed") {
     // F11 — the keyed pre-flight pins the EXACT model and provider, not merely
     // "something in the price table": a different pinned model would price fine
@@ -1875,12 +2238,22 @@ async function main(): Promise<void> {
     }
     console.log("Pre-spend recheck PASSED against the frozen expectations.\n");
 
-    // F2 — the KEYED SMOKE runs before any evidence entry.
+    // F2 — the KEYED SMOKE runs before any evidence entry, accounted for in the
+    // ledger it gates: skipped when already passed, refused at the threshold,
+    // and its spend banked as it accrues.
+    let smokeOutcome: EnsureKeyedSmokeOutcome;
     try {
-      smoke = await runKeyedSmoke(
+      smokeOutcome = await ensureKeyedSmoke(
+        state,
         frozen,
         allowlistedSuiteScenarios(suite!),
-        { runBenchmark, prepareRun, headless: true, log: (line) => console.log(line) },
+        {
+          runBenchmark,
+          prepareRun,
+          headless: true,
+          log: (line) => console.log(line),
+          persist: (s) => writeStateAtomic(args.stateFile, s)
+        },
         {
           protocolId: suite!.protocolId,
           suiteHash: suite!.suiteHash,
@@ -1890,23 +2263,35 @@ async function main(): Promise<void> {
     } catch (error) {
       bail(`keyed smoke failed to run: ${error instanceof Error ? error.message : String(error)}`);
     }
-    mkdirSync(path.dirname(SMOKE_RECORD_FILE), { recursive: true });
-    await writeFile(SMOKE_RECORD_FILE, JSON.stringify(smoke, null, 2) + "\n", "utf8");
-    if (!smoke.ok) {
-      const failed = smoke.trials.filter((t) => !t.passedCriteria);
-      bail(
-        `keyed smoke FAILED (${failed.length} of ${smoke.trials.length} trial(s)): ` +
-          failed
-            .map((t) => `${t.policy}/${t.scenarioId} — ${t.criterion}, got outcome=${t.outcome}`)
-            .join("; ") +
-          `\nRecord at ${SMOKE_RECORD_FILE}. The keyed phase produces no evidence (PROTOCOL_2B §Schedule).`
+    if (smokeOutcome!.kind === "budget-stopped") {
+      console.error(
+        `\nCampaign STOPPED (budget): ${smokeOutcome!.reason}\n` +
+          `State preserved at ${args.stateFile}. The grid is INCOMPLETE and supports no claims.\n` +
+          `When complete, verify with:\n  ${operatorVerifyHint(
+            args.phase,
+            state.entries.map((e) => e.dir).filter(Boolean),
+            args.suiteFile
+          )}`
       );
+      process.exit(3);
     }
-    console.log(`Keyed smoke PASSED (record: ${SMOKE_RECORD_FILE}).\n`);
+    if (smokeOutcome!.kind !== "skipped") {
+      const smoke = smokeOutcome!.smoke;
+      mkdirSync(path.dirname(SMOKE_RECORD_FILE), { recursive: true });
+      await writeFile(SMOKE_RECORD_FILE, JSON.stringify(smoke, null, 2) + "\n", "utf8");
+      if (smokeOutcome!.kind === "failed") {
+        const failed = smoke.trials.filter((t) => !t.passedCriteria);
+        bail(
+          `keyed smoke FAILED (${failed.length} of ${smoke.trials.length} trial(s)): ` +
+            failed
+              .map((t) => `${t.policy}/${t.scenarioId} — ${t.criterion}, got outcome=${t.outcome}`)
+              .join("; ") +
+            `\nRecord at ${SMOKE_RECORD_FILE}. The keyed phase produces no evidence (PROTOCOL_2B §Schedule).`
+        );
+      }
+      console.log(`Keyed smoke PASSED (record: ${SMOKE_RECORD_FILE}).\n`);
+    }
   }
-
-  const state = loadOrInitState(args.stateFile, suite!, args.phase);
-  await writeStateAtomic(args.stateFile, state);
 
   const schedule = buildSchedule2b(args.phase);
   const scenarios: ScenarioSpec[] = allowlistedScenarios;
@@ -1936,10 +2321,14 @@ async function main(): Promise<void> {
 
   const dirs = state.entries.map((e) => e.dir).filter(Boolean);
   if (outcome.kind === "provenance-abort") {
+    // The reason is already branch-aware — it states whether the completed
+    // attempt banked spend and was therefore recorded as crashed. This block
+    // used to append a flat "the entry was NOT marked crashed", which was a lie
+    // on exactly the branch that HAD recorded one. The CLI now claims nothing
+    // about crash marking; only the reason speaks to it.
     console.error(
       `\nCampaign ABORTED (browser provenance): ${outcome.reason}\n` +
-        `State preserved at ${args.stateFile}. The entry was NOT marked crashed and keeps its ` +
-        `rerun allowance — re-run this command once the browser can report its build.`
+        `State preserved at ${args.stateFile} — fix the browser and re-run this command.`
     );
     process.exit(1);
   }

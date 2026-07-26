@@ -135,10 +135,23 @@ hypothesis.
 
 - Per-phase state files (`runs/phase2b/campaign-state.<phase>.json`,
   never shared between phases); crash-rerun-once with an accumulating
-  ledger (`sum(entries.costUsd) == spendUsd`).
+  ledger (`sum(entries.costUsd) + smokeSpendUsd == spendUsd`, where
+  `smokeSpendUsd` — zero in the keyless phase — banks the keyed
+  smoke's recorded spend; see the keyed-smoke bullet below).
 - The frozen **$39.90** pre-trial recorded-spend stop-threshold — a
   stop rule over recorded tokens, never a bound or a billing
-  reconciliation.
+  reconciliation. It is checked before the keyed smoke as well as
+  before every entry: a state at or past the threshold incurs no
+  further smoke calls. A threshold crossed mid-smoke stops the
+  campaign the same way: the interrupted smoke is not graded
+  pass/fail, its banked spend stays in the ledger, and the stop is
+  recorded in the state file.
+- **Browser-provenance aborts** record into the state file's own
+  `provenanceAbort` channel (`{ reason, recordedCrashed }`), never into
+  `stoppedReason`, which belongs to the budget stop alone. A zero-spend
+  abort keeps the slot's rerun allowance; an abort after a completed
+  attempt records the entry as crashed carrying its banked cost, keeping
+  the ledger invariant. A new invocation clears the note.
 - The outcome-blind transport-poisoning criterion:
   `(llmCalls > 0 ∧ both token sides 0) ∨ failureDetail matches
   /ENOTFOUND|Cannot connect to API|ECONNRESET|ETIMEDOUT|EAI_AGAIN|fetch failed/`.
@@ -187,9 +200,17 @@ hypothesis.
 - **Keyed smoke** (Phase-2A §8.5 carried over, `runPurpose: smoke`,
   never evidence, Arm F): one C trial that must heal a
   class-drift-broken login with its repair path and one D trial that
-  must complete the full flow, both with correct stamps; either
-  failing blocks the keyed phase. The exact two smoke scenario ids
-  are frozen at gate 5.
+  must complete the full flow, both with correct stamps — the
+  smoke's own trial records carry the frozen suite
+  `protocolId`/`suiteHash`, not a default catalog id; either failing
+  blocks the keyed phase. The exact two smoke scenario ids are
+  frozen at gate 5. Smoke spend is accounted, not free: it banks
+  into the state ledger under `smokeSpendUsd` as it accrues, inside
+  the same invariant and stop threshold as entry spend. A passing
+  smoke is recorded in the state file and is not repeated on
+  resume; a failed or crashed smoke leaves its spend banked and is
+  re-attempted on the next invocation, subject to the stop
+  threshold.
 - **State files:** `runs/phase2b/campaign-state.keyless.json` and
   `runs/phase2b/campaign-state.keyed.json`, never shared; resume =
   Phase 2A's crash-rerun-once with the accumulating ledger.
