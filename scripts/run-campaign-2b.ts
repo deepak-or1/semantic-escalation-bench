@@ -497,8 +497,11 @@ export const LEDGER_EPSILON_USD = 1e-6;
  * even mid-entry.
  *
  * A CONSISTENT rewrite — every field lowered together so the ledger still
- * reconciles — is invisible to any in-file check; that class belongs to the
- * freeze tag and the frozen verification commands, not to this function.
+ * reconciles — is invisible to any in-file check, and no downstream protection
+ * detects it either: the freeze tag pins code, not this gitignored state file,
+ * and the frozen verification commands read trial records, not ledger totals.
+ * That class is an operator-integrity boundary, closable only by re-deriving
+ * costs from the recorded run directories.
  */
 export function assertLedgerReconciles(state: Campaign2bState): void {
   const entrySum = state.entries.reduce((sum, e) => sum + e.costUsd, 0);
@@ -543,6 +546,66 @@ export function assertLedgerReconciles(state: Campaign2bState): void {
 }
 
 /**
+ * THE IN-FLIGHT MARKER'S IDENTITY, checked against the frozen schedule before it
+ * may touch the ledger.
+ *
+ * Only the marker's `phase` was ever validated; policy, sweep and arm were minted
+ * blindly, so a marker naming any other slot was written in as a crashed entry
+ * and only THEN rejected by `nextEntry2b`'s alignment test — from an
+ * already-corrupted ledger. The destructive case is a marker naming an
+ * already-COMPLETED slot: `recordEntry` finds that slot, and because a completed
+ * row banked no rerunnable spend it REPLACES that row's real `costUsd` with the
+ * orphan amount, destroying a finished evidence row and desynchronising the
+ * ledger sum in one write.
+ *
+ * CALLED FROM BOTH SIDES, deliberately. `reconcilePendingEntry` calls it at
+ * campaign start with `deps.schedule` — the loop's OWN execution schedule, so a
+ * truncated or substituted schedule is what the marker is judged against.
+ * `loadOrInitState` calls it at LOAD with the phase's frozen schedule, because
+ * for `--phase keyed` the loop is reached only after the keyless-bundle
+ * re-verification and the PAID smoke: a corrupt marker discovered there has
+ * already cost money.
+ */
+export function assertPendingMarkerHonest(
+  state: Campaign2bState,
+  schedule: Campaign2bEntry[]
+): void {
+  const pending = state.pendingEntry;
+  if (!pending) return;
+  // A corrupt resume prefix or a double-crash is deeper corruption than this
+  // check is licensed to repair, so those throws propagate — but they are
+  // re-thrown WITH the marker named. Raw, `nextEntry2b`'s messages describe the
+  // ledger and never mention that a marker is what was being validated, which
+  // sent an operator looking in the wrong place.
+  let expected: Campaign2bEntry | null;
+  try {
+    expected = nextEntry2b(state, schedule);
+  } catch (error) {
+    throw new Error(
+      `while validating the in-flight marker (${entryLabel(pending)}): ` +
+        `${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+  if (expected === null) {
+    throw new Error(
+      `campaign state records an in-flight entry (${entryLabel(pending)}) but the frozen ` +
+        `schedule is already COMPLETE — no slot can honestly be in flight. Refusing to mint the ` +
+        `marker into the ledger; this state is corrupt and must be investigated, not resumed.`
+    );
+  }
+  if (!sameEntry(pending, expected)) {
+    throw new Error(
+      `campaign state's in-flight marker (${entryLabel(pending)}) does not match the only slot ` +
+        `that can honestly be in flight (${entryLabel(expected)}, the frozen schedule's next ` +
+        `position) — refusing to mint it into the ledger. Minting it would record a crashed entry ` +
+        `for a slot the schedule never reached, and for an already-completed slot would REPLACE ` +
+        `that row's recorded cost with the orphan amount. This state is corrupt and must be ` +
+        `investigated, not resumed.`
+    );
+  }
+}
+
+/**
  * Reconcile a state whose process died MID-ENTRY (F10). The pending marker names
  * the slot that was in flight; its spend is already banked in `spendUsd` but has
  * no entry to account for it, so the slot is recorded as CRASHED carrying exactly
@@ -556,10 +619,24 @@ export function assertLedgerReconciles(state: Campaign2bState): void {
  * attempted a third time.
  *
  * Idempotent: with no pending marker it does nothing. Returns whether it acted.
+ * The marker's identity is validated by `assertPendingMarkerHonest` first; only
+ * a marker naming the slot the schedule says is in flight may be minted.
+ *
+ * A NOTE ON WHAT "HONEST" MEANS HERE: `nextEntry2b` also names a STOPPED last
+ * entry as the expected slot (it deliberately returns one so the budget is
+ * re-checked), and a marker for that slot can be perfectly honest — a mid-entry
+ * death during a legitimate rerun of a budget-stopped entry. That case is not an
+ * error, and since `recordEntry` accumulates over any row that already banked
+ * spend, minting onto it adds the orphan rather than destroying the stopped
+ * row's recorded cost.
  */
-export function reconcilePendingEntry(state: Campaign2bState): boolean {
+export function reconcilePendingEntry(
+  state: Campaign2bState,
+  schedule: Campaign2bEntry[]
+): boolean {
+  if (!state.pendingEntry) return false;
+  assertPendingMarkerHonest(state, schedule);
   const pending = state.pendingEntry;
-  if (!pending) return false;
   const banked = state.entries.reduce((sum, e) => sum + e.costUsd, 0);
   const orphaned = Math.max(0, state.spendUsd - banked - (state.smokeSpendUsd ?? 0));
   recordEntry(
@@ -1718,19 +1795,31 @@ function recordEntry(
     return;
   }
   const prev = state.entries[idx]!;
-  const wasCrashed = prev.status === "crashed";
+  // ACCUMULATE WHENEVER THE PREVIOUS ROW ALREADY BANKED SPEND. Both "crashed"
+  // AND "stopped" attempts have their cost in state.spendUsd already, so
+  // REPLACING either desynchronises the ledger — and "stopped" is a re-recordable
+  // status: nextEntry2b deliberately returns a stopped slot again so the budget
+  // is re-checked, and both of the loop's recordEntry sites then land here. Only
+  // "crashed" was accumulated, so a stopped slot's rerun silently dropped the
+  // first attempt's cost and PERSISTED a ledger the driver's own loader refuses.
+  const hadBankedSpend = prev.status === "crashed" || prev.status === "stopped";
   state.entries[idx] = {
     ...identity,
     status: fields.status,
     benchId: fields.benchId,
     dir: fields.dir,
-    // A crashed attempt's spend is already banked in state.spendUsd, so ACCUMULATE
-    // rather than replace — sum(entries.costUsd) must reconcile with spendUsd exactly.
-    costUsd: wasCrashed ? prev.costUsd + fields.costUsd : fields.costUsd,
-    completedTrials: wasCrashed
+    costUsd: hadBankedSpend ? prev.costUsd + fields.costUsd : fields.costUsd,
+    completedTrials: hadBankedSpend
       ? prev.completedTrials + fields.completedTrials
       : fields.completedTrials,
-    reruns: wasCrashed ? prev.reruns + 1 : prev.reruns
+    // …but `reruns` counts CRASH reruns only: it feeds the crash-rerun-once rule,
+    // and re-running a budget-stopped slot is not a crash rerun.
+    //
+    // "complete" is the remaining status, and it can never be re-recorded
+    // honestly: nextEntry2b never returns a completed slot, and the marker
+    // identity check refuses everything else — so the replace branch below is
+    // reached only by a genuinely fresh row shape.
+    reruns: prev.status === "crashed" ? prev.reruns + 1 : prev.reruns
   };
 }
 
@@ -1756,8 +1845,21 @@ export async function runCampaign2b(
   // a gap: checking afterwards would validate its own output.
   assertLedgerReconciles(state);
   // A resumed state whose process died mid-entry is reconciled before the first
-  // schedule decision, so the ledger the loop reads is already consistent.
-  reconcilePendingEntry(state);
+  // schedule decision, so the ledger the loop reads is already consistent. The
+  // schedule is passed because the marker's identity is checked against it: only
+  // the slot the schedule says can be in flight may be minted.
+  reconcilePendingEntry(state, deps.schedule);
+  // DEFENCE IN DEPTH on reconcile's OWN output. The pre-check above tolerates a
+  // positive orphan while the marker is set; now the marker is gone, so this
+  // demands exact equality — the orphan must have landed in an entry, in full.
+  //
+  // Honest note: this is a TRIPWIRE, not a currently-reachable failure — with
+  // the pre-check passing, reconcile can no longer produce an imbalance, so no
+  // test can kill this line. That was briefly untrue: minting over a STOPPED
+  // last entry replaced that row's cost instead of accumulating, and this line
+  // was what caught it. That path is closed at its source now, in recordEntry's
+  // banked-spend accumulation, so the tripwire framing is accurate again.
+  assertLedgerReconciles(state);
   // A NEW RUN SUPERSEDES A STALE ABORT NOTE — ON DISK, not merely in memory.
   // The previous invocation's browser fault describes that invocation; leaving
   // it set is how a later, unrelated outcome ended up reported with a browser
@@ -2210,6 +2312,14 @@ export function loadOrInitState(
   }
   try {
     assertLedgerReconciles(parsed.data);
+  } catch (error) {
+    bail(`campaign state at ${stateFile} ${error instanceof Error ? error.message : String(error)}`);
+  }
+  // AT LOAD, not only at campaign start. For --phase keyed the run loop is
+  // reached only after the keyless-bundle re-verification and the PAID smoke, so
+  // a corrupt marker caught there has already cost money.
+  try {
+    assertPendingMarkerHonest(parsed.data, buildSchedule2b(phase));
   } catch (error) {
     bail(`campaign state at ${stateFile} ${error instanceof Error ? error.message : String(error)}`);
   }

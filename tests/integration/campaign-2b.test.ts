@@ -22,6 +22,7 @@ import {
   PHASE2B_PRICES_PINNED_AT,
   PHASE2B_SCENARIO_IDS,
   assertLedgerReconciles,
+  assertPendingMarkerHonest,
   assertPreSpendExpectations,
   assertState2bMatches,
   buildSchedule2b,
@@ -550,7 +551,7 @@ describe("Phase-2B ledger reconciliation", () => {
     expect(() => assertLedgerReconciles(state)).not.toThrow();
     // …and reconcilePendingEntry is the operation licensed to consume it,
     // after which the ledger is exact again.
-    reconcilePendingEntry(state);
+    reconcilePendingEntry(state, buildSchedule2b("keyless"));
     expect(() => assertLedgerReconciles(state)).not.toThrow();
   });
 
@@ -605,6 +606,323 @@ describe("Phase-2B ledger reconciliation", () => {
     expect(() =>
       keyedPhaseGate2b(broken, fakeSuite(), reader, "s.json", () => okReport)
     ).toThrow(/ledger does not reconcile/);
+  });
+
+  // ── The in-flight marker's IDENTITY, not merely its phase ─────────────────
+  //
+  // Only `pendingEntry.phase` was ever validated. Policy, sweep and arm were
+  // minted blindly: a marker naming any other slot was written into the ledger
+  // as a crashed entry and only THEN rejected by nextEntry2b's alignment test —
+  // from an already-corrupted ledger. The destructive case is a marker naming an
+  // already-COMPLETED slot, where recordEntry's replace path overwrites that
+  // row's real cost with the orphan amount.
+
+  describe("pending-marker identity", () => {
+    const KEYLESS = buildSchedule2b("keyless");
+
+    /** A state whose slot-0 is complete, with `pending` claimed to be in flight. */
+    const withMarker = (pending: Partial<Campaign2bState["pendingEntry"]>): Campaign2bState => {
+      const state = stateWith([{ costUsd: 1 }]); // slot 0 = keyless/A/sweep-1/frozen
+      state.spendUsd = 1.4; // $0.40 orphaned by the in-flight slot
+      state.pendingEntry = {
+        phase: "keyless",
+        sweep: 1,
+        policy: "A",
+        arm: "any-row", // schedule[1] — the honest value
+        benchId: "bench-orphan",
+        benchDir: "runs/phase2b/orphan",
+        ...pending
+      } as Campaign2bState["pendingEntry"];
+      return state;
+    };
+
+    it("THE AUDITOR'S PROBE: a first marker claiming B/sweep-5/any-row is refused BEFORE anything is minted", () => {
+      const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash, "keyless");
+      state.spendUsd = 0.42;
+      state.pendingEntry = {
+        phase: "keyless",
+        sweep: 5,
+        policy: "B",
+        arm: "any-row",
+        benchId: "bench-orphan",
+        benchDir: "runs/phase2b/orphan"
+      };
+      // It passes every earlier gate — the phase matches and the ledger's gap is
+      // the documented positive orphan.
+      expect(() => assertState2bMatches(state, SUITE, "keyless")).not.toThrow();
+      expect(() => assertLedgerReconciles(state)).not.toThrow();
+
+      expect(() => reconcilePendingEntry(state, KEYLESS)).toThrow(
+        /in-flight marker \(keyless\/B\/sweep-5\/any-row\) does not match/
+      );
+      // The whole point: NOTHING was written before the refusal.
+      expect(state.entries).toEqual([]);
+      expect(state.pendingEntry).toBeDefined();
+    });
+
+    it("a marker with the wrong POLICY is refused, and the ledger is untouched", () => {
+      const state = withMarker({ policy: "B" });
+      expect(() => reconcilePendingEntry(state, KEYLESS)).toThrow(
+        /does not match the only slot that can honestly be in flight/
+      );
+      expect(state.entries).toHaveLength(1);
+      expect(state.entries[0]!.status).toBe("complete");
+    });
+
+    it("a marker with the wrong SWEEP is refused", () => {
+      const state = withMarker({ sweep: 4 });
+      expect(() => reconcilePendingEntry(state, KEYLESS)).toThrow(
+        /in-flight marker \(keyless\/A\/sweep-4\/any-row\)/
+      );
+      expect(state.entries).toHaveLength(1);
+    });
+
+    it("a marker with the wrong ARM is refused — the arm is part of the cell identity", () => {
+      // schedule[1] is A/sweep-1/any-row; "frozen" is slot 0, already recorded.
+      const state = withMarker({ arm: "frozen" });
+      expect(() => reconcilePendingEntry(state, KEYLESS)).toThrow(
+        /does not match the only slot that can honestly be in flight/
+      );
+      expect(state.entries).toHaveLength(1);
+    });
+
+    it("THE EVIDENCE-DESTRUCTION CASE: a marker duplicating a COMPLETED slot cannot reach the replace path", () => {
+      // recordEntry would find this slot, see prev.status === "complete" (so
+      // wasCrashed is false) and REPLACE the finished row's real $1.00 with the
+      // $0.40 orphan — losing a completed evidence row and desynchronising the
+      // ledger in a single write.
+      const state = stateWith([{ costUsd: 1 }]);
+      state.spendUsd = 1.4;
+      state.pendingEntry = {
+        phase: "keyless",
+        sweep: 1,
+        policy: "A",
+        arm: "frozen", // ← slot 0, already recorded COMPLETE
+        benchId: "bench-orphan",
+        benchDir: "runs/phase2b/orphan"
+      };
+      expect(() => reconcilePendingEntry(state, KEYLESS)).toThrow(
+        /would REPLACE that row's recorded cost with the orphan amount/
+      );
+      // The completed row is intact: cost, status and dir all unchanged.
+      expect(state.entries).toHaveLength(1);
+      const completed = state.entries[0]!;
+      expect(completed.status).toBe("complete");
+      expect(completed.costUsd).toBeCloseTo(1, 10);
+      expect(completed.dir).toBe("runs/x");
+      expect(completed.reruns).toBe(0);
+    });
+
+    it("a marker present while the schedule is FULLY recorded is refused", () => {
+      const state = completeKeylessState();
+      state.pendingEntry = {
+        phase: "keyless",
+        sweep: 5,
+        policy: "B2",
+        arm: "any-row",
+        benchId: "bench-orphan",
+        benchDir: "runs/phase2b/orphan"
+      };
+      expect(() => reconcilePendingEntry(state, KEYLESS)).toThrow(
+        /the frozen schedule is already COMPLETE/
+      );
+      expect(state.entries).toHaveLength(30);
+    });
+
+    it("HONEST fresh-slot recovery still mints the orphan exactly as before", () => {
+      const state = withMarker({});
+      expect(reconcilePendingEntry(state, KEYLESS)).toBe(true);
+      expect(state.pendingEntry).toBeUndefined();
+      expect(state.entries).toHaveLength(2);
+      const crashed = state.entries[1]!;
+      expect(crashed.status).toBe("crashed");
+      expect(crashed.arm).toBe("any-row");
+      expect(crashed.dir).toBe("runs/phase2b/orphan");
+      expect(crashed.costUsd).toBeCloseTo(0.4, 10);
+      expect(crashed.reruns).toBe(0);
+      expect(() => assertLedgerReconciles(state)).not.toThrow();
+    });
+
+    it("HONEST double-crash recovery still ACCUMULATES onto the crashed row", () => {
+      // Last entry crashed with reruns 0, so nextEntry2b names that same slot —
+      // the marker matching it is the legitimate second mid-entry death.
+      const state = stateWith([{ status: "crashed", costUsd: 0.42, reruns: 0 }]);
+      state.spendUsd = 0.5;
+      state.pendingEntry = {
+        phase: "keyless",
+        sweep: 1,
+        policy: "A",
+        arm: "frozen", // the crashed slot itself
+        benchId: "bench-orphan-2",
+        benchDir: "runs/phase2b/orphan-2"
+      };
+      expect(reconcilePendingEntry(state, KEYLESS)).toBe(true);
+      const entry = state.entries[0]!;
+      expect(entry.status).toBe("crashed");
+      expect(entry.reruns).toBe(1);
+      expect(entry.costUsd).toBeCloseTo(0.5, 10); // 0.42 accumulated + 0.08 orphan
+      expect(state.entries).toHaveLength(1);
+      expect(() => assertLedgerReconciles(state)).not.toThrow();
+    });
+
+    it("BATCH 20: minting over a STOPPED last entry ACCUMULATES rather than destroying its cost", async () => {
+      // nextEntry2b names a stopped last entry as expected, so this marker is
+      // HONEST — a mid-entry death during the legitimate rerun of a
+      // budget-stopped slot. It used to hit recordEntry's replace path and
+      // overwrite the stopped row's banked $1.00 with the $0.40 orphan.
+      const state = stateWith([{ status: "stopped", costUsd: 1, completedTrials: 3 }]);
+      state.spendUsd = 1.4;
+      state.pendingEntry = {
+        phase: "keyless",
+        sweep: 1,
+        policy: "A",
+        arm: "frozen", // the stopped slot itself — what nextEntry2b returns
+        benchId: "bench-orphan",
+        benchDir: "runs/phase2b/orphan"
+      };
+
+      expect(reconcilePendingEntry(state, KEYLESS)).toBe(true);
+      expect(state.entries).toHaveLength(1);
+      const row = state.entries[0]!;
+      expect(row.status).toBe("crashed");
+      expect(row.costUsd).toBeCloseTo(1.4, 10); // 1.00 stopped + 0.40 orphan
+      expect(row.completedTrials).toBe(3);
+      // The stopped attempt was not a crash, so it consumed no crash rerun.
+      expect(row.reruns).toBe(0);
+      expect(() => assertLedgerReconciles(state)).not.toThrow();
+    });
+
+    it("BATCH 20: the marker's PHASE is part of the identity comparison", () => {
+      // Sweep, policy and arm all match schedule[0]; only the phase differs.
+      // Dropping the phase term from the comparison would mint a keyed-stamped
+      // entry into a keyless ledger.
+      const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash, "keyless");
+      state.spendUsd = 0.42;
+      state.pendingEntry = {
+        phase: "keyed",
+        sweep: 1,
+        policy: "A",
+        arm: "frozen",
+        benchId: "bench-orphan",
+        benchDir: "runs/phase2b/orphan"
+      };
+      expect(() => assertPendingMarkerHonest(state, KEYLESS)).toThrow(
+        /in-flight marker \(keyed\/A\/sweep-1\/frozen\) does not match/
+      );
+      expect(() => reconcilePendingEntry(state, KEYLESS)).toThrow(
+        /does not match the only slot that can honestly be in flight/
+      );
+      expect(state.entries).toEqual([]);
+    });
+
+    it("BATCH 20: a DOUBLE-CRASH refusal now names the marker as well as the ledger rule", () => {
+      // nextEntry2b's own message describes the ledger and never mentioned that
+      // a marker was what was being validated, sending an operator looking in
+      // the wrong place. The rethrow adds that context without losing the rule.
+      const state = stateWith([{ status: "crashed", costUsd: 0.42, reruns: 1 }]);
+      state.spendUsd = 0.5;
+      state.pendingEntry = {
+        phase: "keyless",
+        sweep: 1,
+        policy: "A",
+        arm: "frozen",
+        benchId: "bench-orphan-3",
+        benchDir: "runs/phase2b/orphan-3"
+      };
+      expect(() => assertPendingMarkerHonest(state, KEYLESS)).toThrow(
+        /while validating the in-flight marker \(keyless\/A\/sweep-1\/frozen\)/
+      );
+      expect(() => assertPendingMarkerHonest(state, KEYLESS)).toThrow(
+        /no silent third attempt/
+      );
+    });
+
+    it("BATCH 20: assertPendingMarkerHonest stands alone — refusals and the honest pass", () => {
+      // The helper is the shared check; loadOrInitState calls it too, but that
+      // wiring refuses via bail/process.exit and is structurally undrivable
+      // in-process (same class as the other bail paths).
+      const wrongIdentity = withMarker({ policy: "B" });
+      expect(() => assertPendingMarkerHonest(wrongIdentity, KEYLESS)).toThrow(
+        /does not match the only slot that can honestly be in flight/
+      );
+
+      const scheduleDone = completeKeylessState();
+      scheduleDone.pendingEntry = {
+        phase: "keyless",
+        sweep: 5,
+        policy: "B2",
+        arm: "any-row",
+        benchId: "bench-orphan",
+        benchDir: "runs/phase2b/orphan"
+      };
+      expect(() => assertPendingMarkerHonest(scheduleDone, KEYLESS)).toThrow(
+        /the frozen schedule is already COMPLETE/
+      );
+
+      // The honest marker passes, and a state with no marker is a no-op.
+      expect(() => assertPendingMarkerHonest(withMarker({}), KEYLESS)).not.toThrow();
+      expect(() =>
+        assertPendingMarkerHonest(
+          initCampaign2bState(SUITE.protocolId, SUITE.suiteHash, "keyless"),
+          KEYLESS
+        )
+      ).not.toThrow();
+    });
+
+    it("BATCH 20: the loop judges the marker against ITS OWN schedule, not a re-derived one", async () => {
+      // The marker names schedule[1], which is honest against the full frozen
+      // keyless schedule. Handed a TRUNCATED schedule the loop must judge it
+      // against that one — proving it consults deps.schedule rather than
+      // rebuilding the phase's schedule internally.
+      const state = withMarker({});
+      state.spendUsd = 1; // one recorded entry at $1, no orphan
+      expect(() => assertPendingMarkerHonest(state, KEYLESS)).not.toThrow();
+
+      const truncated = KEYLESS.slice(0, 1); // slot 0 only — already recorded
+      const deps = {
+        schedule: truncated,
+        scenarios: FIVE,
+        model: null,
+        headless: true,
+        runBenchmark: vi.fn(async () => ({ trials: [] }) as unknown as BenchmarkResults),
+        prepareRun: async (e: Campaign2bEntry) => ({
+          labUrl: "http://127.0.0.1:0",
+          benchDir: `runs/${e.ordinal}`,
+          benchId: `bench-${e.ordinal}`,
+          dispose: async () => undefined
+        }),
+        persist: async () => undefined
+      };
+      await expect(runCampaign2b(state, deps)).rejects.toThrow(
+        /the frozen schedule is already COMPLETE/
+      );
+      expect(deps.runBenchmark).not.toHaveBeenCalled();
+      expect(state.entries).toHaveLength(1);
+    });
+
+    it("WIRING: runCampaign2b refuses a mismatched marker before running anything", async () => {
+      const state = withMarker({ policy: "B" });
+      const deps = {
+        schedule: KEYLESS,
+        scenarios: FIVE,
+        model: null,
+        headless: true,
+        runBenchmark: vi.fn(async () => ({ trials: [] }) as unknown as BenchmarkResults),
+        prepareRun: async (e: Campaign2bEntry) => ({
+          labUrl: "http://127.0.0.1:0",
+          benchDir: `runs/${e.ordinal}`,
+          benchId: `bench-${e.ordinal}`,
+          dispose: async () => undefined
+        }),
+        persist: async () => undefined
+      };
+      await expect(runCampaign2b(state, deps)).rejects.toThrow(
+        /does not match the only slot that can honestly be in flight/
+      );
+      expect(deps.runBenchmark).not.toHaveBeenCalled();
+      expect(state.entries).toHaveLength(1);
+      expect(state.entries[0]!.status).toBe("complete");
+    });
   });
 
   it("ITEM 9: the reconcile check runs BEFORE reconcilePendingEntry, not after its own output", async () => {
@@ -1630,6 +1948,120 @@ describe("Phase-2B run loop", () => {
     expect(state.spendUsd).toBeCloseTo(spendPerTrial * 2, 10);
   });
 
+  // ── A STOPPED row banked spend too ────────────────────────────────────────
+  //
+  // recordEntry's accumulate branch keyed on `prev.status === "crashed"`, but
+  // "stopped" is equally re-recordable: nextEntry2b deliberately returns a
+  // stopped slot again so the budget is re-checked. Its first attempt's cost was
+  // therefore REPLACED rather than accumulated, and the loop PERSISTED a ledger
+  // that the driver's own loadOrInitState refuses on the next run.
+
+  /** One priced trial under the pinned table — definitely nonzero. */
+  const STOPPED_TOKENS = { llmCalls: 1, inputTokens: 1_000_000, outputTokens: 1_000_000 };
+  const bankOne = async (config: BenchmarkRunConfig) => {
+    await config.hooks!.afterTrial!({
+      engine: "hybrid",
+      runId: "t",
+      tokens: STOPPED_TOKENS
+    } as unknown as TrialResult);
+  };
+  /** Attempt 1 for both tests below: bank a trial, then report a budget stop. */
+  const stopAfterBanking = () =>
+    vi.fn(async (config: BenchmarkRunConfig) => {
+      await bankOne(config);
+      return {
+        trials: [],
+        stopped: { reason: "budget stop (test)", completedTrials: 1, plannedTrials: 5 }
+      } as unknown as BenchmarkResults;
+    }) as unknown as Campaign2bDeps["runBenchmark"];
+
+  it("BATCH 20: a STOPPED entry's RERUN accumulates — the loop never persists a ledger its loader rejects", async () => {
+    const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash, "keyless");
+    const schedule = buildSchedule2b("keyless").slice(0, 1);
+    const model = PHASE2B_MODEL;
+    const perTrial = trialCost({ tokens: STOPPED_TOKENS }, "hybrid", model)!;
+    expect(perTrial).toBeGreaterThan(0);
+    const persisted: Campaign2bState[] = [];
+    const capture = async (s: Campaign2bState) => {
+      persisted.push(JSON.parse(JSON.stringify(s)) as Campaign2bState);
+    };
+
+    // Attempt 1 — the runner banks a trial, then halts on its own stop rule.
+    const stopped = await runCampaign2b(state, {
+      ...baseDeps({ trials: [], stopped: undefined } as unknown as BenchmarkResults),
+      schedule,
+      model,
+      persist: capture,
+      runBenchmark: stopAfterBanking()
+    });
+    expect(stopped.kind).toBe("stopped");
+    expect(state.entries[0]!.status).toBe("stopped");
+    expect(state.entries[0]!.costUsd).toBeCloseTo(perTrial, 10);
+
+    // Attempt 2 — the rerun nextEntry2b explicitly invites, banking again and
+    // completing cleanly.
+    await runCampaign2b(state, {
+      ...baseDeps({ trials: [], stopped: undefined } as unknown as BenchmarkResults),
+      schedule,
+      model,
+      persist: capture,
+      runBenchmark: vi.fn(async (config: BenchmarkRunConfig) => {
+        await bankOne(config);
+        return { trials: [], stopped: undefined } as unknown as BenchmarkResults;
+      }) as unknown as Campaign2bDeps["runBenchmark"]
+    });
+
+    const row = state.entries[0]!;
+    expect(row.status).toBe("complete");
+    // THE DEFECT: this was `perTrial` — the first attempt's spend silently
+    // dropped out of the ledger while staying in spendUsd.
+    expect(row.costUsd).toBeCloseTo(perTrial * 2, 10);
+    expect(row.completedTrials).toBe(2);
+    // A stopped rerun is NOT a crash rerun — the crash-rerun-once budget is
+    // untouched by it.
+    expect(row.reruns).toBe(0);
+    expect(state.spendUsd).toBeCloseTo(perTrial * 2, 10);
+
+    // The decisive assertion: the snapshot that reached DISK reconciles, so the
+    // next loadOrInitState accepts it. Under the defect this was exactly the
+    // state the driver's own loader refused.
+    const last = persisted[persisted.length - 1]!;
+    expect(() => assertLedgerReconciles(last)).not.toThrow();
+    expect(last.entries[0]!.costUsd).toBeCloseTo(perTrial * 2, 10);
+  });
+
+  it("BATCH 20: a stopped entry whose rerun CRASHES carries both attempts' cost", async () => {
+    const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash, "keyless");
+    const schedule = buildSchedule2b("keyless").slice(0, 1);
+    const model = PHASE2B_MODEL;
+    const perTrial = trialCost({ tokens: STOPPED_TOKENS }, "hybrid", model)!;
+
+    await runCampaign2b(state, {
+      ...baseDeps({ trials: [], stopped: undefined } as unknown as BenchmarkResults),
+      schedule,
+      model,
+      runBenchmark: stopAfterBanking()
+    });
+    expect(state.entries[0]!.status).toBe("stopped");
+
+    const crashed = await runCampaign2b(state, {
+      ...baseDeps({ trials: [], stopped: undefined } as unknown as BenchmarkResults),
+      schedule,
+      model,
+      runBenchmark: vi.fn(async (config: BenchmarkRunConfig) => {
+        await bankOne(config);
+        throw new Error("engine died on the rerun");
+      }) as unknown as Campaign2bDeps["runBenchmark"]
+    });
+
+    expect(crashed.kind).toBe("crashed");
+    const row = state.entries[0]!;
+    expect(row.status).toBe("crashed");
+    expect(row.costUsd).toBeCloseTo(perTrial * 2, 10);
+    expect(state.spendUsd).toBeCloseTo(perTrial * 2, 10);
+    expect(() => assertLedgerReconciles(state)).not.toThrow();
+  });
+
   it("F10: a process killed MID-ENTRY resumes as a crash with the orphaned spend reconciled", async () => {
     const state = initCampaign2bState(SUITE.protocolId, SUITE.suiteHash, "keyless");
     const schedule = buildSchedule2b("keyless");
@@ -1645,7 +2077,7 @@ describe("Phase-2B run loop", () => {
     };
     state.spendUsd = 0.42;
 
-    expect(reconcilePendingEntry(state)).toBe(true);
+    expect(reconcilePendingEntry(state, schedule)).toBe(true);
     expect(state.pendingEntry).toBeUndefined();
     expect(state.entries).toHaveLength(1);
     const entry = state.entries[0]!;
@@ -1667,7 +2099,7 @@ describe("Phase-2B run loop", () => {
       benchDir: "runs/phase2b/orphan-2"
     };
     state.spendUsd = 0.5;
-    reconcilePendingEntry(state);
+    reconcilePendingEntry(state, schedule);
     expect(state.entries[0]!.reruns).toBe(1);
     expect(state.entries.reduce((sum, e) => sum + e.costUsd, 0)).toBeCloseTo(state.spendUsd, 10);
     expect(() => nextEntry2b(state, schedule)).toThrow(/no silent third attempt/);
@@ -2914,7 +3346,7 @@ describe("keyed smoke: frozen stamps and ledger accounting", () => {
       benchDir: "runs/phase2b/orphan"
     };
 
-    expect(reconcilePendingEntry(state)).toBe(true);
+    expect(reconcilePendingEntry(state, buildSchedule2b("keyed"))).toBe(true);
     const crashed = state.entries[1]!;
     expect(crashed.status).toBe("crashed");
     expect(crashed.dir).toBe("runs/phase2b/orphan");
