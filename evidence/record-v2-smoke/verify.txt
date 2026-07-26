@@ -1,0 +1,25 @@
+
+> semantic-escalation-bench@0.1.0 verify:suite /Users/deepakdalai/Documents/GitHub/semantic-escalation-bench
+> tsx scripts/verify-suite.ts runs/bench-2026-07-26T03-42-41-006Z runs/bench-2026-07-26T03-46-07-582Z --suite data/phase2a/scenario-suite.json --expect-policies A\,B2 --expect-trials 1 --expect-record-version 2
+
+# Suite verification
+
+## schema: OK
+## provenance: OK
+## completeness: OK
+## grading: OK
+
+## grading provenance
+  64 trial record(s): 37 recomputed from shipped raw payloads (v2) · 27 hard-failure (v2, no payload produced — consistency-checked) · 0 attested (v1, raw payloads not shipped)
+  v2 records: the whole grading chain — extraction checks, normalization, domain assessment, accuracy, judge — RE-DERIVED from the shipped raw payloads against an oracle re-derived from the supplied suite, and the step trace reconciled against the record's token and repair evidence.
+  Still attested: the raw payloads' own authenticity, the facts of a crash that produced no payload, and timing/token measurements.
+
+## predictions (report-only — never a gate)
+  59 hit · 5 miss · 96 not-run
+  - MISS f3-page-size-3-a policy B2: predicted all-pass, observed 0/1
+  - MISS f3-page-size-3-b policy B2: predicted all-pass, observed 0/1
+  - MISS f3-page-size-2-a policy B2: predicted all-pass, observed 0/1
+  - MISS f3-page-size-2-b policy B2: predicted all-pass, observed 0/1
+  - MISS x-class-l3-page-size-2 policy B2: predicted all-pass, observed 0/1
+
+VERIFY: PASS
