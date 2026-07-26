@@ -33,9 +33,14 @@ function card(heading: boolean): FakeElement {
 }
 
 function stubDocument(nodes: { tables?: () => FakeElement[]; cards?: () => FakeElement[] }): void {
+  // Selector-exact so a future query in the poll falls through to [] instead
+  // of silently reusing the card list.
   vi.stubGlobal("document", {
-    querySelectorAll: (selector: string) =>
-      selector === "table" ? (nodes.tables?.() ?? []) : (nodes.cards?.() ?? [])
+    querySelectorAll: (selector: string) => {
+      if (selector === "table") return nodes.tables?.() ?? [];
+      if (selector === "article, div") return nodes.cards?.() ?? [];
+      return [];
+    }
   });
 }
 
