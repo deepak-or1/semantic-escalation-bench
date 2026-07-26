@@ -17,29 +17,32 @@ trials, exact ground truth, zero flaky results. Three findings:
 
 - **When breakage is visible, escalation is a bargain.** Calling the
   model only on failure matched the full LLM agent 120/120 on the first
-  campaign's suite, at 8.61× lower inference cost.
-- **When breakage is silent, the trigger never fires.** Served a
-  plausible wrong page, the escalation policy extracted wrong data with
-  zero model calls. It never learned anything was wrong.
+  campaign's suite, at 8.61× lower inference cost; that suite turned
+  out too easy to separate the paid policies, which is why the second
+  campaign exists.
+- **When breakage is silent, the trigger never fires.** Served a page
+  whose pagination control had been swapped for a decoy, the escalation
+  policy silently returned 5 of the 12 rows (every field it did
+  extract was correct) with zero model calls. It never learned
+  anything was wrong.
 - **Four tests were passed by exactly one policy: the $0 hardcoded
-  script.** A readiness check buried in the harness failed every other
-  policy before the model was allowed to look at the page. The full LLM
+  script.** A readiness check shared by every other policy's pipeline
+  failed them before extraction could begin. The full LLM
   agent burned 10 model calls per trial repairing a page that was never
   broken.
 
-That last result was not predicted. The test suite was written by a
-different frontier model that registered a pass/fail prediction for
-every cell in advance. It went 141 for 160, and all 19 misses were that
+The registered predictions missed it too. The test suite's author, a
+different frontier model, called all 160 scenario-policy pairs in
+advance and went 141 for 160; every one of the 19 misses was that
 readiness check.
 
-## Five policies, one variable
+## Five policies, one treatment
 
 One pipeline: log in, navigate, extract a stats table into strict JSON,
 grade the output against exact ground truth. Five frozen policies run
 it, from hardcoded selectors to full semantic control. They differ in
-exactly one thing, the
-addressing-and-repair policy: how the automation finds things on the
-page, and when, if ever, the model is allowed to act.
+the addressing-and-repair policy: how the automation finds things on
+the page, and when, if ever, the model is allowed to act.
 
 | Policy | How it finds things on the page | When the model acts |
 | --- | --- | --- |
@@ -53,12 +56,22 @@ page, and when, if ever, the model is allowed to act.
 calls; "header-name mapping" finds columns by their header text instead
 of their position.)
 
-Model, task, site, ground truth, and validation are all held fixed, so
-when two policies score differently, the policy is the reason. Built on
-[Stagehand](https://github.com/browserbase/stagehand) +
-[Browserbase](https://browserbase.com) against a local synthetic site,
-so the whole benchmark is reproducible and nothing real gets scraped
+The task, site, oracle, validator, and model are fixed. The treatment
+is the addressing-and-repair policy. B, B2, and C are settings of one
+hybrid engine; A and D use distinct engines, so comparisons involving
+them are policy-bundle comparisons rather than configuration-only
+ablations. Built on
+[Stagehand](https://github.com/browserbase/stagehand), driving local
+Chrome against a local synthetic site (a
+[Browserbase](https://browserbase.com) adapter ships but was not
+exercised in either campaign), so the whole benchmark is reproducible
+and nothing real gets scraped
 (see [Safety & compliance](#safety--compliance)).
+
+This is an independent project with no affiliation with Anthropic or
+Browserbase. Neither company commissioned, funded, or reviewed the
+work. Cost figures use provider-reported token usage at the pinned
+public prices and were not reconciled against provider invoices.
 
 ## How it was kept honest
 
@@ -67,8 +80,12 @@ adversarially:
 
 1. The five policies were frozen and git-tagged before any paid trial
    ran.
-2. Only then did an external frontier model (GPT-5.6, "sol") write the
-   32-scenario test suite. Held out, so nothing could be tuned to it.
+2. Only then did an external frontier model (GPT-5.6, "sol"; the model
+   identity is operator-attested, and the artifacts prove the suite's
+   bytes, hash, timing, and predictions, not who wrote them) write the
+   32-scenario test suite. Held out, so the frozen implementations
+   could not be tuned to it; the suite author had read the frozen code
+   and deliberately targeted known internals.
 3. The same model registered a pass/fail prediction for every cell (a
    cell = one scenario for one policy) before a single trial ran.
 4. 32 scenarios × 5 policies × 5 repeat sweeps = 800 trials, and every
@@ -94,7 +111,21 @@ A cell is one scenario for one policy, pooled over five sweeps:
 | C LLM repair on failure | 20/32 | $0.119 | $0.0060 |
 | D full semantic | 27/32 | $1.056 | $0.0391 |
 
-Costs are model inference only; A, B, and B2 make zero model calls.
+Costs are model inference only: provider-reported tokens priced at
+the pinned 2026-07-14 table for `anthropic/claude-haiku-4-5` ($1 in /
+$5 out per MTok); A, B, and B2 make zero model calls. Phase 2A
+recorded inference spend totaled $8.213774: $5.878303 in the accepted
+published grid, $2.274621 in an aborted first attempt (preserved in
+[evidence/phase2a/states/](evidence/phase2a/states/), never pooled),
+and $0.060850 in a discarded partial
+([reconciliation](evidence/phase2a/report/KEYED_REPORT.md)).
+
+Why no error bars: every cell landed identically in all five sweeps,
+and the sweeps are repeat runs of the same 32 frozen scenarios, not
+independent samples. The effective unit for comparing policies is the
+32 scenarios, so intervals computed over 800 trials would overstate
+precision; raw counts are reported instead
+([docs/PHASE2A_RESULTS.md](docs/PHASE2A_RESULTS.md)).
 
 ![32 held-out scenarios × 5 policies: three failure regimes, zero variance](docs/img/outcome_map.png)
 
@@ -106,34 +137,42 @@ recovered three cells beyond deterministic repair (header vocabulary
 drift, a card-grid redesign, and both at once) for about $0.006 per
 successful workflow. Phase 1 said it louder: C matched full-semantic D
 120/120 judged-correct on that frozen suite, at 8.61× lower inference
-cost ($0.0036 vs $0.0312 per successful workflow). You don't need the
-model driving. You need it on call.
+cost ($0.0036 vs $0.0312 per successful workflow). When the failure
+announces itself, you don't need the model driving; you need it on
+call. Finding 2 is what happens when it doesn't announce itself.
 
 **2. When breakage is silent, the repair trigger never fires.** Decoy
-scenarios render plausible wrong content alongside the real thing. C's
-cached actions "succeed", extraction returns the wrong rows (one decoy
-trial graded 0.71 field accuracy against the required 1.00, with no
-error raised anywhere), and C fails all six pure decoy cells with
-**zero LLM calls**. It never learns anything went wrong. D reads the
-page every step and passes all of them. That is what D's 8.9× per-sweep
-premium actually buys: catching failures that don't look like failures.
-And in the one compound cell where C's repair did fire, it healed the
-broken selector and the trial still failed. Repair fixes locators, not
-meaning.
+scenarios render plausible wrong content alongside the real thing. On
+the two level-1 decoy cells, C's cached actions "succeed" and
+extraction silently stops after page 1: 5 of 12 standings rows, every
+extracted field correct, graded 0.71 overall accuracy against the
+required 1.00, with no error raised anywhere and no model call made. The
+level-2 and level-3 decoys fail louder (`not_found`, `auth`), but the
+repair trigger still never fires: C fails all six pure decoy cells
+with **zero LLM calls**. D reads the page every step and passes all of
+them. None of the six failures ever presented as a cached-selector
+miss, so C's repair trigger never had cause to fire. That is what D's
+8.9× per-sweep premium actually buys: reading the page instead of
+trusting a trigger. And in the one compound decoy
+cell where C's repair did fire, it healed the drifted login selectors
+and the trial still failed. Repair fixes locators, not meaning.
 
 ![What paying for semantics buys, cell by cell](docs/img/pass_vs_cost.png)
 
-**3. The gate is the policy.** One shared readiness check treats a
-stats table as "ready" only once it shows at least 5 rows. Serve a
-perfectly valid 3- or 2-row page and every policy above the baseline
-fails identically: deterministic repair finds nothing to reveal, C aims
-its one repair call at a control that does not exist, and D burns 10
-calls per trial and still fails. The failure happens before the model
-is allowed to see the page. Only the $0 baseline passes those four
+**3. The gate is the policy.** One readiness check shared by every
+policy above the baseline (`waitForContent` in
+[packages/agent/src/core/domReady.ts](packages/agent/src/core/domReady.ts))
+treats a stats table as "ready" only once it shows at least 5 rows.
+Serve a perfectly valid 3- or 2-row page and every policy above the
+baseline fails identically: deterministic repair finds nothing to
+reveal, C spends its one repair call hunting a reveal tab that does
+not exist on these pages (the heal records a replacement selector and
+the trial still fails), and D burns 10 calls per trial and still
+fails. The failure happens before extraction ever runs. Only the $0 baseline passes those four
 small-page cells, because it never consults the check. (A fifth,
 compound gate cell also strips A's login hooks; there the whole ladder
 goes 0/5.) Of the 27 cells outside this cluster, D passes all 27. The
-model was never the ceiling here. A harness assumption was.
+model was never the ceiling here. A shared pipeline assumption was.
 
 ![Remove the five gate cells and the ladder is a clean dose-response](docs/img/gate_effect.png)
 
@@ -143,8 +182,9 @@ exactly right and missed only the readiness-gate cluster nobody knew
 existed. That is what held-out testing is for: the misses pile up
 exactly where your model of the system is wrong. One more upset from
 the grid: structural addressing without any repair path (B) scored
-below the hardcoded baseline, 11 cells to 15. Structure buys nothing
-under drift until something can repair it.
+below the hardcoded baseline, 11 cells to 15. Structural addressing
+only pays when something can act on the mismatch it detects, and B has
+nothing that can.
 
 ## Check every number yourself
 
@@ -159,6 +199,23 @@ pnpm verify:suite evidence/phase2a/runs/* \
   --expect-policies A,B,B2,C,D --expect-trials 5
 ```
 
+What that proves, and doesn't: the verifier re-derives every pass/fail
+verdict from the per-trial accuracy records against the frozen suite
+oracle, re-checking schema, provenance, completeness, and grading. The
+raw extractions and screenshots behind those records are machine-local
+and not bundled, so this is re-verification of the shipped records,
+not a re-run. Re-running the keyed grid needs a model key (≈$5.9 at
+the pinned prices).
+
+The keyless three-fifths of the grid re-runs from scratch with no key
+and no cost (480 trials; it refuses to start if a model key is
+present, and the published keyless grid has already repeated 480/480
+across two independent executions):
+
+```bash
+pnpm campaign:2a --suite data/phase2a/scenario-suite.json --phase keyless
+```
+
 The three charts regenerate from the same records and refuse to render
 if anything disagrees with the published figures:
 
@@ -167,8 +224,10 @@ python3 -m venv .venv && .venv/bin/pip install matplotlib
 .venv/bin/python scripts/render-phase2a-charts.py
 ```
 
-**Deliberately narrow.** One model, one synthetic local site, one task
-family, one frozen 32-scenario suite. This measures where semantic
+**Deliberately narrow.** One model (`anthropic/claude-haiku-4-5`, a
+deliberately cheap tier; nothing here measures whether a stronger
+tier moves these cells), one synthetic local site, one task family,
+one frozen 32-scenario suite. This measures where semantic
 inference belongs in an automation stack, not general agent ability.
 Full per-axis metrics, the readiness-gate anatomy, cost accounting, and
 the network incident that forced a full restart of the paid runs:
@@ -182,11 +241,13 @@ dense, typed, relational data with built-in arithmetic (games played
 must equal wins + draws + losses), which gives the deterministic
 validator real teeth. A seeded fake league means exact per-cell ground
 truth, so "correct" is measured, not guessed. And sports pages break
-automation in unusually well-documented ways: every chaos flag in the
-lab maps to a cited real-world incident in
+automation in unusually well-documented ways: the lab's three drift
+modes each map to cited real-world evidence in
 [docs/EVIDENCE.md](docs/EVIDENCE.md), including a real baseballr fix
-for a mid-table column insertion that silently mislabeled stats, which
-is this suite's column-shuffle scenario observed in production. The
+for a mid-table column insertion that silently mislabeled the columns
+after it, the same positional-addressing failure class this suite's
+column-shuffle scenario probes. The decoy and small-page axes are
+constructed diagnostic probes, not observed incidents. The
 findings don't depend on the domain; the measurability does. Everything
 runs against `localhost`.
 
@@ -197,7 +258,7 @@ Prerequisites: **Node 20+**, **pnpm 9** (`corepack enable`), and
 Chrome; everything else uses a bundled Chromium).
 
 ```bash
-git clone <this-repo>
+git clone https://github.com/deepak-or1/semantic-escalation-bench.git
 cd semantic-escalation-bench
 pnpm install
 cp .env.example .env   # optional; sensible defaults, no keys required
@@ -276,7 +337,8 @@ semantic-escalation-bench/
 - [docs/WRITEUP.md](docs/WRITEUP.md): the build story: what broke and what it taught.
 - [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md): a 2–3 minute recorded-demo script.
 - [docs/LIMITATIONS.md](docs/LIMITATIONS.md): honest scope, caveats, and what production would need.
-- [docs/EVIDENCE.md](docs/EVIDENCE.md): each lab chaos mode mapped to a documented real-world failure.
+- [docs/EVIDENCE.md](docs/EVIDENCE.md): the lab's drift modes mapped to documented real-world failures (28 verified citations).
+- [docs/CORRECTIONS.md](docs/CORRECTIONS.md): post-`v1.0.0` corrections: each old claim, its fix, and its (nil) effect on results.
 
 ## Related work
 

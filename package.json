@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "A controlled benchmark of semantic escalation in web automation: five frozen policies from hardcoded selectors to full LLM control, exact-output grading, pre-registered campaigns. Built on Stagehand + Browserbase; read-only.",
+  "description": "A controlled benchmark of semantic escalation in web automation: five frozen policies from hardcoded selectors to full LLM control, exact-output grading, pre-registered campaigns. Built on Stagehand driving local Chrome (a Browserbase adapter ships but is unexercised); read-only.",
   "engines": {
     "node": ">=20"
   },
