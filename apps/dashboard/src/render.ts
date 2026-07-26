@@ -10,6 +10,7 @@ import {
   type TrialResult
 } from "@ssda/shared";
 import type { DashboardData, ScreenshotRef } from "./data";
+import type { EngineSummaryRow } from "./summary";
 import type { ValueSelection } from "./watchlist";
 import {
   barPathRight,
@@ -667,6 +668,39 @@ function chartsSection(results: BenchmarkResults): string {
   );
 }
 
+/**
+ * Per-engine roll-up over the loaded trials (see summarizeEngines). Renders
+ * nothing at all when the run produced no trials — the empty states above
+ * already say so, and an empty table would only repeat them.
+ */
+function engineSummarySection(rows: EngineSummaryRow[]): string {
+  if (rows.length === 0) return "";
+  const body = rows
+    .map(
+      (r) =>
+        `<tr>` +
+        `<td>${esc(SERIES[r.engine as EngineName]?.label ?? r.engine)}</td>` +
+        `<td class="num">${esc(r.trials)}</td>` +
+        `<td class="num">${esc(r.passes)}</td>` +
+        `<td class="num">${esc(r.semanticInterventions)}</td>` +
+        `<td class="num">${esc(r.deterministicRepairs)}</td>` +
+        `<td class="num">${esc(r.llmCalls)}</td>` +
+        `<td class="num">${esc(r.retries)}</td>` +
+        `</tr>`
+    )
+    .join("");
+  return panel({
+    title: "Engine summary",
+    subtitle: "Per-engine totals across every trial in this run.",
+    body:
+      `<div class="table-wrap"><table class="engine-summary"><thead><tr>` +
+      `<th>Engine</th><th class="num">Trials</th><th class="num">Passes</th>` +
+      `<th class="num">Semantic interventions</th><th class="num">Deterministic repairs</th>` +
+      `<th class="num">LLM calls</th><th class="num">Retries</th>` +
+      `</tr></thead><tbody>${body}</tbody></table></div>`
+  });
+}
+
 function failuresSection(data: DashboardData, imgSrc: (r: ScreenshotRef) => string): string {
   const bench = data.bench;
   if (!bench) return "";
@@ -1135,6 +1169,7 @@ export function renderDashboardHtml(
       matrixSection(bench.results) +
       survivalSection(bench.results) +
       chartsSection(bench.results) +
+      engineSummarySection(bench.summary) +
       failuresSection(data, imgSrc)
     : panel({
         title: "Reliability benchmark",
