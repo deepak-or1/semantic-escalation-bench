@@ -49,12 +49,13 @@ its 5 sweeps: **50/50 exact, 0 misses, 0 mixed cells**, against the
 table frozen at gate 5 (PROTOCOL_2B §Expectations).
 
 The bounded claim, per the protocol's language rules: within the five
-pre-registered Phase-2B scenarios, relaxing the shared five-row
-readiness predicate caused the predicted recoveries with zero
-cross-sweep variance — B2, C, and D recovered exactly where registered,
-while the negative control (A) did not move. This establishes causality
-inside the benchmark; it does not generalize to other predicates,
-suites, or models.
+pre-registered Phase 2B scenarios, relaxing the shared five-row
+readiness predicate caused exactly the recoveries registered before
+the ablation ran, with zero cross-sweep variance. B recovered the four
+pure small-page scenarios, B2, C, and D recovered all five, and the
+negative control A did not move. This establishes causality inside the
+benchmark; it does not generalize to other predicates, suites, or
+models.
 
 ## Transport poisoning
 
@@ -70,7 +71,10 @@ frozen transport pattern`) matched **0 of 250 trials**.
 `spendUsd = 0`. Costs are recorded provider tokens priced at the pinned
 2026-07-14 table; the $39.90 figure is the pre-trial recorded-spend
 stop threshold, not a hard spending bound, and was never approached.
-Gate-5 projection was $1.75 expected / $4.55 conservative bound;
-observed $2.09 — the overshoot is D's Arm-R trials walking the full
-pager on the compound cell (~31% above the `f3-page-size-5` proxy used
-in the projection).
+Gate-5 projection was $1.75 expected, with $4.55 as an empirical
+planning estimate derived from the costliest observed Phase-2A trial —
+never an enforced ceiling; observed $2.09. The miss is spread across
+all 25 of D's Arm-R trials, not any single cell: mean $0.055759/trial,
+30.8% above the $0.042632 `f3-page-size-5` proxy, because the
+page-size-2 and page-size-3 scenarios require more paginated views
+than the page-size-5 proxy did.
