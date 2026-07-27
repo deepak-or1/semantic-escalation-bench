@@ -187,6 +187,38 @@ below the hardcoded baseline, 11 cells to 15. Structural addressing
 only pays when something can act on the mismatch it detects, and B has
 nothing that can.
 
+## Phase 2B: proving the gate did it
+
+Finding 3 was an observation. Phase 2B is the experiment: change the
+readiness rule and nothing else, then see whether the five gate cells
+move. The expected outcome of every cell was registered before any
+trial ran, and the whole grid repeated five times.
+
+| Policy | Five-row rule | Any visible row | Change |
+| --- | ---: | ---: | ---: |
+| A: baseline | 4/5 | 4/5 | 0 |
+| B: cached selectors | 0/5 | 4/5 | +4 |
+| B2: deterministic repair | 0/5 | 5/5 | +5 |
+| C: repair on failure | 0/5 | 5/5 | +5 |
+| D: semantic control | 0/5 | 5/5 | +5 |
+
+Scenario cells passed, out of the five registered scenarios; every
+cell landed identically in all five sweeps. All 50 registered cell
+outcomes matched, and that includes the registered failures: A, which
+never consults the readiness check, is the negative control and did
+not move, while B still fails the one scenario that also breaks its
+login selector, because relaxing a wait rule cannot give a policy a
+repair path it does not have.
+
+This is a post-hoc causal ablation with expectations registered before
+execution, not a held-out test: Phase 2A discovered the gate, and
+Phase 2B confirms it caused those failures. The numbers stop at these
+five scenarios, this one model, and this constructed domain. The
+lesson travels further than the numbers are allowed to: semantic
+escalation can only help after the deterministic system has correctly
+recognized what state it is in. Full analysis:
+[docs/PHASE2B_RESULTS.md](docs/PHASE2B_RESULTS.md).
+
 ## Check every number yourself
 
 No API key needed. All 800 per-trial records ship in
@@ -337,7 +369,7 @@ semantic-escalation-bench/
 
 - [docs/PROTOCOL.md](docs/PROTOCOL.md) / [docs/PHASE1_RESULTS.md](docs/PHASE1_RESULTS.md): the Phase-1 frozen protocol and its bounded analysis.
 - [docs/PROTOCOL_2A.md](docs/PROTOCOL_2A.md) / [docs/PHASE2A_RESULTS.md](docs/PHASE2A_RESULTS.md): the Phase-2A two-stage freeze design and the held-out-grid results.
-- [docs/PROTOCOL_2B.md](docs/PROTOCOL_2B.md): the Phase-2B readiness-gate ablation design (frozen at `phase2b-ablation-freeze-v1`; nothing has run yet).
+- [docs/PROTOCOL_2B.md](docs/PROTOCOL_2B.md) / [docs/PHASE2B_RESULTS.md](docs/PHASE2B_RESULTS.md): the Phase-2B readiness-gate ablation (frozen at `phase2b-ablation-freeze-v1`) and its bounded results.
 - [docs/RECORD_FORMAT.md](docs/RECORD_FORMAT.md): the version-2 trial record format future campaigns ship (frozen at `record-v2-freeze-v1`).
 - [docs/HARNESS.md](docs/HARNESS.md): engines, lab site, chaos flags, Phase-1 catalog, judge rules, keyless-tier numbers.
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): how the system fits together and why.
