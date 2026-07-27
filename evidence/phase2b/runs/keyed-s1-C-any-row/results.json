@@ -1,0 +1,4883 @@
+{
+  "benchId": "bench-2026-07-26T23-03-49-722Z",
+  "createdAt": "2026-07-26T23:04:18.437Z",
+  "labUrl": "http://127.0.0.1:51147",
+  "trialsPerScenario": 1,
+  "scenarios": [
+    {
+      "id": "f3-page-size-3-a",
+      "name": "F3 pagination stress page size 3, instance A",
+      "description": "The standings are paginated at three rows per page for paired seed 2231.",
+      "chaos": [],
+      "seed": 2231,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core",
+      "params": {
+        "pageSize": 3
+      }
+    },
+    {
+      "id": "f3-page-size-3-b",
+      "name": "F3 pagination stress page size 3, instance B",
+      "description": "The standings are paginated at three rows per page for paired seed 2232.",
+      "chaos": [],
+      "seed": 2232,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core",
+      "params": {
+        "pageSize": 3
+      }
+    },
+    {
+      "id": "f3-page-size-2-a",
+      "name": "F3 pagination stress page size 2, instance A",
+      "description": "The standings are paginated at two rows per page for paired seed 2231.",
+      "chaos": [],
+      "seed": 2231,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core",
+      "params": {
+        "pageSize": 2
+      }
+    },
+    {
+      "id": "f3-page-size-2-b",
+      "name": "F3 pagination stress page size 2, instance B",
+      "description": "The standings are paginated at two rows per page for paired seed 2232.",
+      "chaos": [],
+      "seed": 2232,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core",
+      "params": {
+        "pageSize": 2
+      }
+    },
+    {
+      "id": "x-class-l3-page-size-2",
+      "name": "X class drift level 3 with page size 2",
+      "description": "Every class and id token is renamed while the standings require six paginated views.",
+      "chaos": [],
+      "seed": 2263,
+      "session": "fresh",
+      "expected": "success",
+      "group": "core",
+      "params": {
+        "classDriftLevel": 3,
+        "pageSize": 2
+      }
+    }
+  ],
+  "trials": [
+    {
+      "scenarioId": "f3-page-size-3-a",
+      "engine": "hybrid",
+      "trial": 1,
+      "runId": "f3-page-size-3-a-hybrid-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 4071,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-26T23-03-49-722Z/trials/f3-page-size-3-a-hybrid-t1",
+      "tokens": {
+        "llmCalls": 0,
+        "inputTokens": 0,
+        "outputTokens": 0
+      },
+      "recordVersion": 2,
+      "canonical": {
+        "raw": {
+          "stats": {
+            "rows": [
+              {
+                "team": "Calder United",
+                "played": 22,
+                "wins": 14,
+                "draws": 3,
+                "losses": 5,
+                "goalsFor": 51,
+                "goalsAgainst": 25,
+                "points": 45,
+                "form": "WWWDD"
+              },
+              {
+                "team": "Eastvale Athletic",
+                "played": 22,
+                "wins": 14,
+                "draws": 3,
+                "losses": 5,
+                "goalsFor": 36,
+                "goalsAgainst": 25,
+                "points": 45,
+                "form": "DWLWL"
+              },
+              {
+                "team": "Dunmore City",
+                "played": 22,
+                "wins": 13,
+                "draws": 3,
+                "losses": 6,
+                "goalsFor": 48,
+                "goalsAgainst": 38,
+                "points": 42,
+                "form": "WWWWW"
+              },
+              {
+                "team": "Ironbridge FC",
+                "played": 22,
+                "wins": 11,
+                "draws": 7,
+                "losses": 4,
+                "goalsFor": 42,
+                "goalsAgainst": 26,
+                "points": 40,
+                "form": "LDWDW"
+              },
+              {
+                "team": "Gillside FC",
+                "played": 22,
+                "wins": 10,
+                "draws": 6,
+                "losses": 6,
+                "goalsFor": 40,
+                "goalsAgainst": 33,
+                "points": 36,
+                "form": "DLDLL"
+              },
+              {
+                "team": "Ashford Rovers",
+                "played": 22,
+                "wins": 9,
+                "draws": 3,
+                "losses": 10,
+                "goalsFor": 35,
+                "goalsAgainst": 36,
+                "points": 30,
+                "form": "LLLDW"
+              },
+              {
+                "team": "Lowton Harriers",
+                "played": 22,
+                "wins": 7,
+                "draws": 6,
+                "losses": 9,
+                "goalsFor": 26,
+                "goalsAgainst": 28,
+                "points": 27,
+                "form": "WDDLD"
+              },
+              {
+                "team": "Juniper Vale",
+                "played": 22,
+                "wins": 7,
+                "draws": 5,
+                "losses": 10,
+                "goalsFor": 37,
+                "goalsAgainst": 37,
+                "points": 26,
+                "form": "DLLWW"
+              },
+              {
+                "team": "Bexley Town",
+                "played": 22,
+                "wins": 7,
+                "draws": 4,
+                "losses": 11,
+                "goalsFor": 25,
+                "goalsAgainst": 37,
+                "points": 25,
+                "form": "DLWLL"
+              },
+              {
+                "team": "Harwick Albion",
+                "played": 22,
+                "wins": 5,
+                "draws": 5,
+                "losses": 12,
+                "goalsFor": 28,
+                "goalsAgainst": 39,
+                "points": 20,
+                "form": "LWLDW"
+              },
+              {
+                "team": "Kestrel Park",
+                "played": 22,
+                "wins": 4,
+                "draws": 7,
+                "losses": 11,
+                "goalsFor": 25,
+                "goalsAgainst": 42,
+                "points": 19,
+                "form": "LWWDL"
+              },
+              {
+                "team": "Farrow Wanderers",
+                "played": 22,
+                "wins": 3,
+                "draws": 4,
+                "losses": 15,
+                "goalsFor": 13,
+                "goalsAgainst": 40,
+                "points": 13,
+                "form": "WLLDL"
+              }
+            ]
+          },
+          "odds": {
+            "rows": [
+              {
+                "kickoff": "Sat 11 Jul, 12:00",
+                "homeTeam": "Calder United",
+                "awayTeam": "Ashford Rovers",
+                "homeOdds": "1.51",
+                "drawOdds": "4.96",
+                "awayOdds": "5.40",
+                "overOdds": "1.47",
+                "underOdds": "2.74",
+                "totalsLine": "2.5"
+              },
+              {
+                "kickoff": "Sat 11 Jul, 13:30",
+                "homeTeam": "Bexley Town",
+                "awayTeam": "Dunmore City",
+                "homeOdds": "2.14",
+                "drawOdds": "3.88",
+                "awayOdds": "3.07",
+                "overOdds": "1.88",
+                "underOdds": "1.95",
+                "totalsLine": "2.5"
+              },
+              {
+                "kickoff": "Sat 11 Jul, 15:00",
+                "homeTeam": "Lowton Harriers",
+                "awayTeam": "Eastvale Athletic",
+                "homeOdds": "2.30",
+                "drawOdds": "3.29",
+                "awayOdds": "3.21",
+                "overOdds": "2.47",
+                "underOdds": "1.56",
+                "totalsLine": "2.5"
+              },
+              {
+                "kickoff": "Sat 11 Jul, 16:30",
+                "homeTeam": "Kestrel Park",
+                "awayTeam": "Farrow Wanderers",
+                "homeOdds": "2.13",
+                "drawOdds": "3.34",
+                "awayOdds": "3.56",
+                "overOdds": "2.35",
+                "underOdds": "1.61",
+                "totalsLine": "2.5"
+              },
+              {
+                "kickoff": "Sat 11 Jul, 18:00",
+                "homeTeam": "Juniper Vale",
+                "awayTeam": "Gillside FC",
+                "homeOdds": "2.01",
+                "drawOdds": "4.84",
+                "awayOdds": "2.90",
+                "overOdds": "1.21",
+                "underOdds": "4.51",
+                "totalsLine": "2.5"
+              },
+              {
+                "kickoff": "Sat 11 Jul, 19:30",
+                "homeTeam": "Ironbridge FC",
+                "awayTeam": "Harwick Albion",
+                "homeOdds": "1.47",
+                "drawOdds": "5.27",
+                "awayOdds": "5.53",
+                "overOdds": "1.33",
+                "underOdds": "3.44",
+                "totalsLine": "2.5"
+              }
+            ]
+          }
+        },
+        "stats": [
+          {
+            "name": "Calder United",
+            "played": 22,
+            "goalsFor": 51,
+            "goalsAgainst": 25,
+            "wins": 14,
+            "draws": 3,
+            "losses": 5,
+            "points": 45,
+            "form": "WWWDD",
+            "missingFields": []
+          },
+          {
+            "name": "Eastvale Athletic",
+            "played": 22,
+            "goalsFor": 36,
+            "goalsAgainst": 25,
+            "wins": 14,
+            "draws": 3,
+            "losses": 5,
+            "points": 45,
+            "form": "DWLWL",
+            "missingFields": []
+          },
+          {
+            "name": "Dunmore City",
+            "played": 22,
+            "goalsFor": 48,
+            "goalsAgainst": 38,
+            "wins": 13,
+            "draws": 3,
+            "losses": 6,
+            "points": 42,
+            "form": "WWWWW",
+            "missingFields": []
+          },
+          {
+            "name": "Ironbridge FC",
+            "played": 22,
+            "goalsFor": 42,
+            "goalsAgainst": 26,
+            "wins": 11,
+            "draws": 7,
+            "losses": 4,
+            "points": 40,
+            "form": "LDWDW",
+            "missingFields": []
+          },
+          {
+            "name": "Gillside FC",
+            "played": 22,
+            "goalsFor": 40,
+            "goalsAgainst": 33,
+            "wins": 10,
+            "draws": 6,
+            "losses": 6,
+            "points": 36,
+            "form": "DLDLL",
+            "missingFields": []
+          },
+          {
+            "name": "Ashford Rovers",
+            "played": 22,
+            "goalsFor": 35,
+            "goalsAgainst": 36,
+            "wins": 9,
+            "draws": 3,
+            "losses": 10,
+            "points": 30,
+            "form": "LLLDW",
+            "missingFields": []
+          },
+          {
+            "name": "Lowton Harriers",
+            "played": 22,
+            "goalsFor": 26,
+            "goalsAgainst": 28,
+            "wins": 7,
+            "draws": 6,
+            "losses": 9,
+            "points": 27,
+            "form": "WDDLD",
+            "missingFields": []
+          },
+          {
+            "name": "Juniper Vale",
+            "played": 22,
+            "goalsFor": 37,
+            "goalsAgainst": 37,
+            "wins": 7,
+            "draws": 5,
+            "losses": 10,
+            "points": 26,
+            "form": "DLLWW",
+            "missingFields": []
+          },
+          {
+            "name": "Bexley Town",
+            "played": 22,
+            "goalsFor": 25,
+            "goalsAgainst": 37,
+            "wins": 7,
+            "draws": 4,
+            "losses": 11,
+            "points": 25,
+            "form": "DLWLL",
+            "missingFields": []
+          },
+          {
+            "name": "Harwick Albion",
+            "played": 22,
+            "goalsFor": 28,
+            "goalsAgainst": 39,
+            "wins": 5,
+            "draws": 5,
+            "losses": 12,
+            "points": 20,
+            "form": "LWLDW",
+            "missingFields": []
+          },
+          {
+            "name": "Kestrel Park",
+            "played": 22,
+            "goalsFor": 25,
+            "goalsAgainst": 42,
+            "wins": 4,
+            "draws": 7,
+            "losses": 11,
+            "points": 19,
+            "form": "LWWDL",
+            "missingFields": []
+          },
+          {
+            "name": "Farrow Wanderers",
+            "played": 22,
+            "goalsFor": 13,
+            "goalsAgainst": 40,
+            "wins": 3,
+            "draws": 4,
+            "losses": 15,
+            "points": 13,
+            "form": "WLLDL",
+            "missingFields": []
+          }
+        ],
+        "odds": [
+          {
+            "homeTeam": "Calder United",
+            "awayTeam": "Ashford Rovers",
+            "kickoff": "Sat 11 Jul, 12:00",
+            "oneXTwo": {
+              "home": 1.51,
+              "draw": 4.96,
+              "away": 5.4
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.47,
+              "under": 2.74
+            },
+            "sourceFormat": "decimal"
+          },
+          {
+            "homeTeam": "Bexley Town",
+            "awayTeam": "Dunmore City",
+            "kickoff": "Sat 11 Jul, 13:30",
+            "oneXTwo": {
+              "home": 2.14,
+              "draw": 3.88,
+              "away": 3.07
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.88,
+              "under": 1.95
+            },
+            "sourceFormat": "decimal"
+          },
+          {
+            "homeTeam": "Lowton Harriers",
+            "awayTeam": "Eastvale Athletic",
+            "kickoff": "Sat 11 Jul, 15:00",
+            "oneXTwo": {
+              "home": 2.3,
+              "draw": 3.29,
+              "away": 3.21
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 2.47,
+              "under": 1.56
+            },
+            "sourceFormat": "decimal"
+          },
+          {
+            "homeTeam": "Kestrel Park",
+            "awayTeam": "Farrow Wanderers",
+            "kickoff": "Sat 11 Jul, 16:30",
+            "oneXTwo": {
+              "home": 2.13,
+              "draw": 3.34,
+              "away": 3.56
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 2.35,
+              "under": 1.61
+            },
+            "sourceFormat": "decimal"
+          },
+          {
+            "homeTeam": "Juniper Vale",
+            "awayTeam": "Gillside FC",
+            "kickoff": "Sat 11 Jul, 18:00",
+            "oneXTwo": {
+              "home": 2.01,
+              "draw": 4.84,
+              "away": 2.9
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.21,
+              "under": 4.51
+            },
+            "sourceFormat": "decimal"
+          },
+          {
+            "homeTeam": "Ironbridge FC",
+            "awayTeam": "Harwick Albion",
+            "kickoff": "Sat 11 Jul, 19:30",
+            "oneXTwo": {
+              "home": 1.47,
+              "draw": 5.27,
+              "away": 5.53
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.33,
+              "under": 3.44
+            },
+            "sourceFormat": "decimal"
+          }
+        ],
+        "failures": [],
+        "warnings": []
+      },
+      "pagesRequested": [
+        "stats",
+        "odds"
+      ],
+      "chromeVersion": "Chrome/150.0.7871.184",
+      "stepTrace": [
+        {
+          "step": "login",
+          "cachedSelectorMatched": true,
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "login",
+          "cachedSelectorMatched": true,
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "login",
+          "cachedSelectorMatched": true,
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "reveal-table",
+          "readinessOutcome": "ready",
+          "escalationTriggered": false,
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "extract-stats",
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0,
+          "note": "header-mappable table found; no extraction repair needed"
+        },
+        {
+          "step": "extract-stats",
+          "cachedSelectorMatched": true,
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "extract-stats",
+          "cachedSelectorMatched": true,
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "extract-stats",
+          "cachedSelectorMatched": true,
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "extract-odds",
+          "readinessOutcome": "ready",
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "extract-odds",
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0,
+          "note": "header-mappable table found; no extraction repair needed"
+        }
+      ]
+    },
+    {
+      "scenarioId": "f3-page-size-3-b",
+      "engine": "hybrid",
+      "trial": 1,
+      "runId": "f3-page-size-3-b-hybrid-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 4000,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-26T23-03-49-722Z/trials/f3-page-size-3-b-hybrid-t1",
+      "tokens": {
+        "llmCalls": 0,
+        "inputTokens": 0,
+        "outputTokens": 0
+      },
+      "recordVersion": 2,
+      "canonical": {
+        "raw": {
+          "stats": {
+            "rows": [
+              {
+                "team": "Dunmore City",
+                "played": 22,
+                "wins": 14,
+                "draws": 2,
+                "losses": 6,
+                "goalsFor": 41,
+                "goalsAgainst": 24,
+                "points": 44,
+                "form": "WDWWW"
+              },
+              {
+                "team": "Bexley Town",
+                "played": 22,
+                "wins": 11,
+                "draws": 4,
+                "losses": 7,
+                "goalsFor": 37,
+                "goalsAgainst": 28,
+                "points": 37,
+                "form": "DWWLL"
+              },
+              {
+                "team": "Calder United",
+                "played": 22,
+                "wins": 10,
+                "draws": 5,
+                "losses": 7,
+                "goalsFor": 46,
+                "goalsAgainst": 29,
+                "points": 35,
+                "form": "WWLWW"
+              },
+              {
+                "team": "Eastvale Athletic",
+                "played": 22,
+                "wins": 10,
+                "draws": 4,
+                "losses": 8,
+                "goalsFor": 25,
+                "goalsAgainst": 30,
+                "points": 34,
+                "form": "WWWDL"
+              },
+              {
+                "team": "Juniper Vale",
+                "played": 22,
+                "wins": 9,
+                "draws": 6,
+                "losses": 7,
+                "goalsFor": 42,
+                "goalsAgainst": 41,
+                "points": 33,
+                "form": "DWLWW"
+              },
+              {
+                "team": "Farrow Wanderers",
+                "played": 22,
+                "wins": 8,
+                "draws": 7,
+                "losses": 7,
+                "goalsFor": 34,
+                "goalsAgainst": 30,
+                "points": 31,
+                "form": "WDLDW"
+              },
+              {
+                "team": "Ironbridge FC",
+                "played": 22,
+                "wins": 8,
+                "draws": 7,
+                "losses": 7,
+                "goalsFor": 33,
+                "goalsAgainst": 33,
+                "points": 31,
+                "form": "LDWLL"
+              },
+              {
+                "team": "Ashford Rovers",
+                "played": 22,
+                "wins": 8,
+                "draws": 4,
+                "losses": 10,
+                "goalsFor": 37,
+                "goalsAgainst": 44,
+                "points": 28,
+                "form": "LLLLW"
+              },
+              {
+                "team": "Gillside FC",
+                "played": 22,
+                "wins": 8,
+                "draws": 4,
+                "losses": 10,
+                "goalsFor": 33,
+                "goalsAgainst": 43,
+                "points": 28,
+                "form": "LLDLL"
+              },
+              {
+                "team": "Harwick Albion",
+                "played": 22,
+                "wins": 6,
+                "draws": 5,
+                "losses": 11,
+                "goalsFor": 32,
+                "goalsAgainst": 33,
+                "points": 23,
+                "form": "LLDWW"
+              },
+              {
+                "team": "Lowton Harriers",
+                "played": 22,
+                "wins": 3,
+                "draws": 12,
+                "losses": 7,
+                "goalsFor": 26,
+                "goalsAgainst": 34,
+                "points": 21,
+                "form": "WDDDL"
+              },
+              {
+                "team": "Kestrel Park",
+                "played": 22,
+                "wins": 4,
+                "draws": 6,
+                "losses": 12,
+                "goalsFor": 18,
+                "goalsAgainst": 35,
+                "points": 18,
+                "form": "LLDDL"
+              }
+            ]
+          },
+          "odds": {
+            "rows": [
+              {
+                "kickoff": "Sat 11 Jul, 12:00",
+                "homeTeam": "Ashford Rovers",
+                "awayTeam": "Bexley Town",
+                "homeOdds": "2.33",
+                "drawOdds": "3.99",
+                "awayOdds": "2.69",
+                "overOdds": "1.53",
+                "underOdds": "2.57",
+                "totalsLine": "2.5"
+              },
+              {
+                "kickoff": "Sat 11 Jul, 13:30",
+                "homeTeam": "Calder United",
+                "awayTeam": "Lowton Harriers",
+                "homeOdds": "1.54",
+                "drawOdds": "4.62",
+                "awayOdds": "5.44",
+                "overOdds": "1.65",
+                "underOdds": "2.29",
+                "totalsLine": "2.5"
+              },
+              {
+                "kickoff": "Sat 11 Jul, 15:00",
+                "homeTeam": "Dunmore City",
+                "awayTeam": "Kestrel Park",
+                "homeOdds": "2.00",
+                "drawOdds": "3.51",
+                "awayOdds": "3.77",
+                "overOdds": "2.08",
+                "underOdds": "1.77",
+                "totalsLine": "2.5"
+              },
+              {
+                "kickoff": "Sat 11 Jul, 16:30",
+                "homeTeam": "Eastvale Athletic",
+                "awayTeam": "Juniper Vale",
+                "homeOdds": "2.02",
+                "drawOdds": "4.53",
+                "awayOdds": "2.99",
+                "overOdds": "1.39",
+                "underOdds": "3.10",
+                "totalsLine": "2.5"
+              },
+              {
+                "kickoff": "Sat 11 Jul, 18:00",
+                "homeTeam": "Farrow Wanderers",
+                "awayTeam": "Ironbridge FC",
+                "homeOdds": "2.00",
+                "drawOdds": "4.19",
+                "awayOdds": "3.22",
+                "overOdds": "1.56",
+                "underOdds": "2.47",
+                "totalsLine": "2.5"
+              },
+              {
+                "kickoff": "Sat 11 Jul, 19:30",
+                "homeTeam": "Gillside FC",
+                "awayTeam": "Harwick Albion",
+                "homeOdds": "2.19",
+                "drawOdds": "3.72",
+                "awayOdds": "3.08",
+                "overOdds": "1.76",
+                "underOdds": "2.09",
+                "totalsLine": "2.5"
+              }
+            ]
+          }
+        },
+        "stats": [
+          {
+            "name": "Dunmore City",
+            "played": 22,
+            "goalsFor": 41,
+            "goalsAgainst": 24,
+            "wins": 14,
+            "draws": 2,
+            "losses": 6,
+            "points": 44,
+            "form": "WDWWW",
+            "missingFields": []
+          },
+          {
+            "name": "Bexley Town",
+            "played": 22,
+            "goalsFor": 37,
+            "goalsAgainst": 28,
+            "wins": 11,
+            "draws": 4,
+            "losses": 7,
+            "points": 37,
+            "form": "DWWLL",
+            "missingFields": []
+          },
+          {
+            "name": "Calder United",
+            "played": 22,
+            "goalsFor": 46,
+            "goalsAgainst": 29,
+            "wins": 10,
+            "draws": 5,
+            "losses": 7,
+            "points": 35,
+            "form": "WWLWW",
+            "missingFields": []
+          },
+          {
+            "name": "Eastvale Athletic",
+            "played": 22,
+            "goalsFor": 25,
+            "goalsAgainst": 30,
+            "wins": 10,
+            "draws": 4,
+            "losses": 8,
+            "points": 34,
+            "form": "WWWDL",
+            "missingFields": []
+          },
+          {
+            "name": "Juniper Vale",
+            "played": 22,
+            "goalsFor": 42,
+            "goalsAgainst": 41,
+            "wins": 9,
+            "draws": 6,
+            "losses": 7,
+            "points": 33,
+            "form": "DWLWW",
+            "missingFields": []
+          },
+          {
+            "name": "Farrow Wanderers",
+            "played": 22,
+            "goalsFor": 34,
+            "goalsAgainst": 30,
+            "wins": 8,
+            "draws": 7,
+            "losses": 7,
+            "points": 31,
+            "form": "WDLDW",
+            "missingFields": []
+          },
+          {
+            "name": "Ironbridge FC",
+            "played": 22,
+            "goalsFor": 33,
+            "goalsAgainst": 33,
+            "wins": 8,
+            "draws": 7,
+            "losses": 7,
+            "points": 31,
+            "form": "LDWLL",
+            "missingFields": []
+          },
+          {
+            "name": "Ashford Rovers",
+            "played": 22,
+            "goalsFor": 37,
+            "goalsAgainst": 44,
+            "wins": 8,
+            "draws": 4,
+            "losses": 10,
+            "points": 28,
+            "form": "LLLLW",
+            "missingFields": []
+          },
+          {
+            "name": "Gillside FC",
+            "played": 22,
+            "goalsFor": 33,
+            "goalsAgainst": 43,
+            "wins": 8,
+            "draws": 4,
+            "losses": 10,
+            "points": 28,
+            "form": "LLDLL",
+            "missingFields": []
+          },
+          {
+            "name": "Harwick Albion",
+            "played": 22,
+            "goalsFor": 32,
+            "goalsAgainst": 33,
+            "wins": 6,
+            "draws": 5,
+            "losses": 11,
+            "points": 23,
+            "form": "LLDWW",
+            "missingFields": []
+          },
+          {
+            "name": "Lowton Harriers",
+            "played": 22,
+            "goalsFor": 26,
+            "goalsAgainst": 34,
+            "wins": 3,
+            "draws": 12,
+            "losses": 7,
+            "points": 21,
+            "form": "WDDDL",
+            "missingFields": []
+          },
+          {
+            "name": "Kestrel Park",
+            "played": 22,
+            "goalsFor": 18,
+            "goalsAgainst": 35,
+            "wins": 4,
+            "draws": 6,
+            "losses": 12,
+            "points": 18,
+            "form": "LLDDL",
+            "missingFields": []
+          }
+        ],
+        "odds": [
+          {
+            "homeTeam": "Ashford Rovers",
+            "awayTeam": "Bexley Town",
+            "kickoff": "Sat 11 Jul, 12:00",
+            "oneXTwo": {
+              "home": 2.33,
+              "draw": 3.99,
+              "away": 2.69
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.53,
+              "under": 2.57
+            },
+            "sourceFormat": "decimal"
+          },
+          {
+            "homeTeam": "Calder United",
+            "awayTeam": "Lowton Harriers",
+            "kickoff": "Sat 11 Jul, 13:30",
+            "oneXTwo": {
+              "home": 1.54,
+              "draw": 4.62,
+              "away": 5.44
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.65,
+              "under": 2.29
+            },
+            "sourceFormat": "decimal"
+          },
+          {
+            "homeTeam": "Dunmore City",
+            "awayTeam": "Kestrel Park",
+            "kickoff": "Sat 11 Jul, 15:00",
+            "oneXTwo": {
+              "home": 2,
+              "draw": 3.51,
+              "away": 3.77
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 2.08,
+              "under": 1.77
+            },
+            "sourceFormat": "decimal"
+          },
+          {
+            "homeTeam": "Eastvale Athletic",
+            "awayTeam": "Juniper Vale",
+            "kickoff": "Sat 11 Jul, 16:30",
+            "oneXTwo": {
+              "home": 2.02,
+              "draw": 4.53,
+              "away": 2.99
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.39,
+              "under": 3.1
+            },
+            "sourceFormat": "decimal"
+          },
+          {
+            "homeTeam": "Farrow Wanderers",
+            "awayTeam": "Ironbridge FC",
+            "kickoff": "Sat 11 Jul, 18:00",
+            "oneXTwo": {
+              "home": 2,
+              "draw": 4.19,
+              "away": 3.22
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.56,
+              "under": 2.47
+            },
+            "sourceFormat": "decimal"
+          },
+          {
+            "homeTeam": "Gillside FC",
+            "awayTeam": "Harwick Albion",
+            "kickoff": "Sat 11 Jul, 19:30",
+            "oneXTwo": {
+              "home": 2.19,
+              "draw": 3.72,
+              "away": 3.08
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.76,
+              "under": 2.09
+            },
+            "sourceFormat": "decimal"
+          }
+        ],
+        "failures": [],
+        "warnings": []
+      },
+      "pagesRequested": [
+        "stats",
+        "odds"
+      ],
+      "chromeVersion": "Chrome/150.0.7871.184",
+      "stepTrace": [
+        {
+          "step": "login",
+          "cachedSelectorMatched": true,
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "login",
+          "cachedSelectorMatched": true,
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "login",
+          "cachedSelectorMatched": true,
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "reveal-table",
+          "readinessOutcome": "ready",
+          "escalationTriggered": false,
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "extract-stats",
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0,
+          "note": "header-mappable table found; no extraction repair needed"
+        },
+        {
+          "step": "extract-stats",
+          "cachedSelectorMatched": true,
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "extract-stats",
+          "cachedSelectorMatched": true,
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "extract-stats",
+          "cachedSelectorMatched": true,
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "extract-odds",
+          "readinessOutcome": "ready",
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "extract-odds",
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0,
+          "note": "header-mappable table found; no extraction repair needed"
+        }
+      ]
+    },
+    {
+      "scenarioId": "f3-page-size-2-a",
+      "engine": "hybrid",
+      "trial": 1,
+      "runId": "f3-page-size-2-a-hybrid-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 5343,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-26T23-03-49-722Z/trials/f3-page-size-2-a-hybrid-t1",
+      "tokens": {
+        "llmCalls": 0,
+        "inputTokens": 0,
+        "outputTokens": 0
+      },
+      "recordVersion": 2,
+      "canonical": {
+        "raw": {
+          "stats": {
+            "rows": [
+              {
+                "team": "Calder United",
+                "played": 22,
+                "wins": 14,
+                "draws": 3,
+                "losses": 5,
+                "goalsFor": 51,
+                "goalsAgainst": 25,
+                "points": 45,
+                "form": "WWWDD"
+              },
+              {
+                "team": "Eastvale Athletic",
+                "played": 22,
+                "wins": 14,
+                "draws": 3,
+                "losses": 5,
+                "goalsFor": 36,
+                "goalsAgainst": 25,
+                "points": 45,
+                "form": "DWLWL"
+              },
+              {
+                "team": "Dunmore City",
+                "played": 22,
+                "wins": 13,
+                "draws": 3,
+                "losses": 6,
+                "goalsFor": 48,
+                "goalsAgainst": 38,
+                "points": 42,
+                "form": "WWWWW"
+              },
+              {
+                "team": "Ironbridge FC",
+                "played": 22,
+                "wins": 11,
+                "draws": 7,
+                "losses": 4,
+                "goalsFor": 42,
+                "goalsAgainst": 26,
+                "points": 40,
+                "form": "LDWDW"
+              },
+              {
+                "team": "Gillside FC",
+                "played": 22,
+                "wins": 10,
+                "draws": 6,
+                "losses": 6,
+                "goalsFor": 40,
+                "goalsAgainst": 33,
+                "points": 36,
+                "form": "DLDLL"
+              },
+              {
+                "team": "Ashford Rovers",
+                "played": 22,
+                "wins": 9,
+                "draws": 3,
+                "losses": 10,
+                "goalsFor": 35,
+                "goalsAgainst": 36,
+                "points": 30,
+                "form": "LLLDW"
+              },
+              {
+                "team": "Lowton Harriers",
+                "played": 22,
+                "wins": 7,
+                "draws": 6,
+                "losses": 9,
+                "goalsFor": 26,
+                "goalsAgainst": 28,
+                "points": 27,
+                "form": "WDDLD"
+              },
+              {
+                "team": "Juniper Vale",
+                "played": 22,
+                "wins": 7,
+                "draws": 5,
+                "losses": 10,
+                "goalsFor": 37,
+                "goalsAgainst": 37,
+                "points": 26,
+                "form": "DLLWW"
+              },
+              {
+                "team": "Bexley Town",
+                "played": 22,
+                "wins": 7,
+                "draws": 4,
+                "losses": 11,
+                "goalsFor": 25,
+                "goalsAgainst": 37,
+                "points": 25,
+                "form": "DLWLL"
+              },
+              {
+                "team": "Harwick Albion",
+                "played": 22,
+                "wins": 5,
+                "draws": 5,
+                "losses": 12,
+                "goalsFor": 28,
+                "goalsAgainst": 39,
+                "points": 20,
+                "form": "LWLDW"
+              },
+              {
+                "team": "Kestrel Park",
+                "played": 22,
+                "wins": 4,
+                "draws": 7,
+                "losses": 11,
+                "goalsFor": 25,
+                "goalsAgainst": 42,
+                "points": 19,
+                "form": "LWWDL"
+              },
+              {
+                "team": "Farrow Wanderers",
+                "played": 22,
+                "wins": 3,
+                "draws": 4,
+                "losses": 15,
+                "goalsFor": 13,
+                "goalsAgainst": 40,
+                "points": 13,
+                "form": "WLLDL"
+              }
+            ]
+          },
+          "odds": {
+            "rows": [
+              {
+                "kickoff": "Sat 11 Jul, 12:00",
+                "homeTeam": "Calder United",
+                "awayTeam": "Ashford Rovers",
+                "homeOdds": "1.51",
+                "drawOdds": "4.96",
+                "awayOdds": "5.40",
+                "overOdds": "1.47",
+                "underOdds": "2.74",
+                "totalsLine": "2.5"
+              },
+              {
+                "kickoff": "Sat 11 Jul, 13:30",
+                "homeTeam": "Bexley Town",
+                "awayTeam": "Dunmore City",
+                "homeOdds": "2.14",
+                "drawOdds": "3.88",
+                "awayOdds": "3.07",
+                "overOdds": "1.88",
+                "underOdds": "1.95",
+                "totalsLine": "2.5"
+              },
+              {
+                "kickoff": "Sat 11 Jul, 15:00",
+                "homeTeam": "Lowton Harriers",
+                "awayTeam": "Eastvale Athletic",
+                "homeOdds": "2.30",
+                "drawOdds": "3.29",
+                "awayOdds": "3.21",
+                "overOdds": "2.47",
+                "underOdds": "1.56",
+                "totalsLine": "2.5"
+              },
+              {
+                "kickoff": "Sat 11 Jul, 16:30",
+                "homeTeam": "Kestrel Park",
+                "awayTeam": "Farrow Wanderers",
+                "homeOdds": "2.13",
+                "drawOdds": "3.34",
+                "awayOdds": "3.56",
+                "overOdds": "2.35",
+                "underOdds": "1.61",
+                "totalsLine": "2.5"
+              },
+              {
+                "kickoff": "Sat 11 Jul, 18:00",
+                "homeTeam": "Juniper Vale",
+                "awayTeam": "Gillside FC",
+                "homeOdds": "2.01",
+                "drawOdds": "4.84",
+                "awayOdds": "2.90",
+                "overOdds": "1.21",
+                "underOdds": "4.51",
+                "totalsLine": "2.5"
+              },
+              {
+                "kickoff": "Sat 11 Jul, 19:30",
+                "homeTeam": "Ironbridge FC",
+                "awayTeam": "Harwick Albion",
+                "homeOdds": "1.47",
+                "drawOdds": "5.27",
+                "awayOdds": "5.53",
+                "overOdds": "1.33",
+                "underOdds": "3.44",
+                "totalsLine": "2.5"
+              }
+            ]
+          }
+        },
+        "stats": [
+          {
+            "name": "Calder United",
+            "played": 22,
+            "goalsFor": 51,
+            "goalsAgainst": 25,
+            "wins": 14,
+            "draws": 3,
+            "losses": 5,
+            "points": 45,
+            "form": "WWWDD",
+            "missingFields": []
+          },
+          {
+            "name": "Eastvale Athletic",
+            "played": 22,
+            "goalsFor": 36,
+            "goalsAgainst": 25,
+            "wins": 14,
+            "draws": 3,
+            "losses": 5,
+            "points": 45,
+            "form": "DWLWL",
+            "missingFields": []
+          },
+          {
+            "name": "Dunmore City",
+            "played": 22,
+            "goalsFor": 48,
+            "goalsAgainst": 38,
+            "wins": 13,
+            "draws": 3,
+            "losses": 6,
+            "points": 42,
+            "form": "WWWWW",
+            "missingFields": []
+          },
+          {
+            "name": "Ironbridge FC",
+            "played": 22,
+            "goalsFor": 42,
+            "goalsAgainst": 26,
+            "wins": 11,
+            "draws": 7,
+            "losses": 4,
+            "points": 40,
+            "form": "LDWDW",
+            "missingFields": []
+          },
+          {
+            "name": "Gillside FC",
+            "played": 22,
+            "goalsFor": 40,
+            "goalsAgainst": 33,
+            "wins": 10,
+            "draws": 6,
+            "losses": 6,
+            "points": 36,
+            "form": "DLDLL",
+            "missingFields": []
+          },
+          {
+            "name": "Ashford Rovers",
+            "played": 22,
+            "goalsFor": 35,
+            "goalsAgainst": 36,
+            "wins": 9,
+            "draws": 3,
+            "losses": 10,
+            "points": 30,
+            "form": "LLLDW",
+            "missingFields": []
+          },
+          {
+            "name": "Lowton Harriers",
+            "played": 22,
+            "goalsFor": 26,
+            "goalsAgainst": 28,
+            "wins": 7,
+            "draws": 6,
+            "losses": 9,
+            "points": 27,
+            "form": "WDDLD",
+            "missingFields": []
+          },
+          {
+            "name": "Juniper Vale",
+            "played": 22,
+            "goalsFor": 37,
+            "goalsAgainst": 37,
+            "wins": 7,
+            "draws": 5,
+            "losses": 10,
+            "points": 26,
+            "form": "DLLWW",
+            "missingFields": []
+          },
+          {
+            "name": "Bexley Town",
+            "played": 22,
+            "goalsFor": 25,
+            "goalsAgainst": 37,
+            "wins": 7,
+            "draws": 4,
+            "losses": 11,
+            "points": 25,
+            "form": "DLWLL",
+            "missingFields": []
+          },
+          {
+            "name": "Harwick Albion",
+            "played": 22,
+            "goalsFor": 28,
+            "goalsAgainst": 39,
+            "wins": 5,
+            "draws": 5,
+            "losses": 12,
+            "points": 20,
+            "form": "LWLDW",
+            "missingFields": []
+          },
+          {
+            "name": "Kestrel Park",
+            "played": 22,
+            "goalsFor": 25,
+            "goalsAgainst": 42,
+            "wins": 4,
+            "draws": 7,
+            "losses": 11,
+            "points": 19,
+            "form": "LWWDL",
+            "missingFields": []
+          },
+          {
+            "name": "Farrow Wanderers",
+            "played": 22,
+            "goalsFor": 13,
+            "goalsAgainst": 40,
+            "wins": 3,
+            "draws": 4,
+            "losses": 15,
+            "points": 13,
+            "form": "WLLDL",
+            "missingFields": []
+          }
+        ],
+        "odds": [
+          {
+            "homeTeam": "Calder United",
+            "awayTeam": "Ashford Rovers",
+            "kickoff": "Sat 11 Jul, 12:00",
+            "oneXTwo": {
+              "home": 1.51,
+              "draw": 4.96,
+              "away": 5.4
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.47,
+              "under": 2.74
+            },
+            "sourceFormat": "decimal"
+          },
+          {
+            "homeTeam": "Bexley Town",
+            "awayTeam": "Dunmore City",
+            "kickoff": "Sat 11 Jul, 13:30",
+            "oneXTwo": {
+              "home": 2.14,
+              "draw": 3.88,
+              "away": 3.07
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.88,
+              "under": 1.95
+            },
+            "sourceFormat": "decimal"
+          },
+          {
+            "homeTeam": "Lowton Harriers",
+            "awayTeam": "Eastvale Athletic",
+            "kickoff": "Sat 11 Jul, 15:00",
+            "oneXTwo": {
+              "home": 2.3,
+              "draw": 3.29,
+              "away": 3.21
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 2.47,
+              "under": 1.56
+            },
+            "sourceFormat": "decimal"
+          },
+          {
+            "homeTeam": "Kestrel Park",
+            "awayTeam": "Farrow Wanderers",
+            "kickoff": "Sat 11 Jul, 16:30",
+            "oneXTwo": {
+              "home": 2.13,
+              "draw": 3.34,
+              "away": 3.56
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 2.35,
+              "under": 1.61
+            },
+            "sourceFormat": "decimal"
+          },
+          {
+            "homeTeam": "Juniper Vale",
+            "awayTeam": "Gillside FC",
+            "kickoff": "Sat 11 Jul, 18:00",
+            "oneXTwo": {
+              "home": 2.01,
+              "draw": 4.84,
+              "away": 2.9
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.21,
+              "under": 4.51
+            },
+            "sourceFormat": "decimal"
+          },
+          {
+            "homeTeam": "Ironbridge FC",
+            "awayTeam": "Harwick Albion",
+            "kickoff": "Sat 11 Jul, 19:30",
+            "oneXTwo": {
+              "home": 1.47,
+              "draw": 5.27,
+              "away": 5.53
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.33,
+              "under": 3.44
+            },
+            "sourceFormat": "decimal"
+          }
+        ],
+        "failures": [],
+        "warnings": []
+      },
+      "pagesRequested": [
+        "stats",
+        "odds"
+      ],
+      "chromeVersion": "Chrome/150.0.7871.184",
+      "stepTrace": [
+        {
+          "step": "login",
+          "cachedSelectorMatched": true,
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "login",
+          "cachedSelectorMatched": true,
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "login",
+          "cachedSelectorMatched": true,
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "reveal-table",
+          "readinessOutcome": "ready",
+          "escalationTriggered": false,
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "extract-stats",
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0,
+          "note": "header-mappable table found; no extraction repair needed"
+        },
+        {
+          "step": "extract-stats",
+          "cachedSelectorMatched": true,
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "extract-stats",
+          "cachedSelectorMatched": true,
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "extract-stats",
+          "cachedSelectorMatched": true,
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "extract-stats",
+          "cachedSelectorMatched": true,
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "extract-stats",
+          "cachedSelectorMatched": true,
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "extract-odds",
+          "readinessOutcome": "ready",
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "extract-odds",
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0,
+          "note": "header-mappable table found; no extraction repair needed"
+        }
+      ]
+    },
+    {
+      "scenarioId": "f3-page-size-2-b",
+      "engine": "hybrid",
+      "trial": 1,
+      "runId": "f3-page-size-2-b-hybrid-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "pass",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 5227,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-26T23-03-49-722Z/trials/f3-page-size-2-b-hybrid-t1",
+      "tokens": {
+        "llmCalls": 0,
+        "inputTokens": 0,
+        "outputTokens": 0
+      },
+      "recordVersion": 2,
+      "canonical": {
+        "raw": {
+          "stats": {
+            "rows": [
+              {
+                "team": "Dunmore City",
+                "played": 22,
+                "wins": 14,
+                "draws": 2,
+                "losses": 6,
+                "goalsFor": 41,
+                "goalsAgainst": 24,
+                "points": 44,
+                "form": "WDWWW"
+              },
+              {
+                "team": "Bexley Town",
+                "played": 22,
+                "wins": 11,
+                "draws": 4,
+                "losses": 7,
+                "goalsFor": 37,
+                "goalsAgainst": 28,
+                "points": 37,
+                "form": "DWWLL"
+              },
+              {
+                "team": "Calder United",
+                "played": 22,
+                "wins": 10,
+                "draws": 5,
+                "losses": 7,
+                "goalsFor": 46,
+                "goalsAgainst": 29,
+                "points": 35,
+                "form": "WWLWW"
+              },
+              {
+                "team": "Eastvale Athletic",
+                "played": 22,
+                "wins": 10,
+                "draws": 4,
+                "losses": 8,
+                "goalsFor": 25,
+                "goalsAgainst": 30,
+                "points": 34,
+                "form": "WWWDL"
+              },
+              {
+                "team": "Juniper Vale",
+                "played": 22,
+                "wins": 9,
+                "draws": 6,
+                "losses": 7,
+                "goalsFor": 42,
+                "goalsAgainst": 41,
+                "points": 33,
+                "form": "DWLWW"
+              },
+              {
+                "team": "Farrow Wanderers",
+                "played": 22,
+                "wins": 8,
+                "draws": 7,
+                "losses": 7,
+                "goalsFor": 34,
+                "goalsAgainst": 30,
+                "points": 31,
+                "form": "WDLDW"
+              },
+              {
+                "team": "Ironbridge FC",
+                "played": 22,
+                "wins": 8,
+                "draws": 7,
+                "losses": 7,
+                "goalsFor": 33,
+                "goalsAgainst": 33,
+                "points": 31,
+                "form": "LDWLL"
+              },
+              {
+                "team": "Ashford Rovers",
+                "played": 22,
+                "wins": 8,
+                "draws": 4,
+                "losses": 10,
+                "goalsFor": 37,
+                "goalsAgainst": 44,
+                "points": 28,
+                "form": "LLLLW"
+              },
+              {
+                "team": "Gillside FC",
+                "played": 22,
+                "wins": 8,
+                "draws": 4,
+                "losses": 10,
+                "goalsFor": 33,
+                "goalsAgainst": 43,
+                "points": 28,
+                "form": "LLDLL"
+              },
+              {
+                "team": "Harwick Albion",
+                "played": 22,
+                "wins": 6,
+                "draws": 5,
+                "losses": 11,
+                "goalsFor": 32,
+                "goalsAgainst": 33,
+                "points": 23,
+                "form": "LLDWW"
+              },
+              {
+                "team": "Lowton Harriers",
+                "played": 22,
+                "wins": 3,
+                "draws": 12,
+                "losses": 7,
+                "goalsFor": 26,
+                "goalsAgainst": 34,
+                "points": 21,
+                "form": "WDDDL"
+              },
+              {
+                "team": "Kestrel Park",
+                "played": 22,
+                "wins": 4,
+                "draws": 6,
+                "losses": 12,
+                "goalsFor": 18,
+                "goalsAgainst": 35,
+                "points": 18,
+                "form": "LLDDL"
+              }
+            ]
+          },
+          "odds": {
+            "rows": [
+              {
+                "kickoff": "Sat 11 Jul, 12:00",
+                "homeTeam": "Ashford Rovers",
+                "awayTeam": "Bexley Town",
+                "homeOdds": "2.33",
+                "drawOdds": "3.99",
+                "awayOdds": "2.69",
+                "overOdds": "1.53",
+                "underOdds": "2.57",
+                "totalsLine": "2.5"
+              },
+              {
+                "kickoff": "Sat 11 Jul, 13:30",
+                "homeTeam": "Calder United",
+                "awayTeam": "Lowton Harriers",
+                "homeOdds": "1.54",
+                "drawOdds": "4.62",
+                "awayOdds": "5.44",
+                "overOdds": "1.65",
+                "underOdds": "2.29",
+                "totalsLine": "2.5"
+              },
+              {
+                "kickoff": "Sat 11 Jul, 15:00",
+                "homeTeam": "Dunmore City",
+                "awayTeam": "Kestrel Park",
+                "homeOdds": "2.00",
+                "drawOdds": "3.51",
+                "awayOdds": "3.77",
+                "overOdds": "2.08",
+                "underOdds": "1.77",
+                "totalsLine": "2.5"
+              },
+              {
+                "kickoff": "Sat 11 Jul, 16:30",
+                "homeTeam": "Eastvale Athletic",
+                "awayTeam": "Juniper Vale",
+                "homeOdds": "2.02",
+                "drawOdds": "4.53",
+                "awayOdds": "2.99",
+                "overOdds": "1.39",
+                "underOdds": "3.10",
+                "totalsLine": "2.5"
+              },
+              {
+                "kickoff": "Sat 11 Jul, 18:00",
+                "homeTeam": "Farrow Wanderers",
+                "awayTeam": "Ironbridge FC",
+                "homeOdds": "2.00",
+                "drawOdds": "4.19",
+                "awayOdds": "3.22",
+                "overOdds": "1.56",
+                "underOdds": "2.47",
+                "totalsLine": "2.5"
+              },
+              {
+                "kickoff": "Sat 11 Jul, 19:30",
+                "homeTeam": "Gillside FC",
+                "awayTeam": "Harwick Albion",
+                "homeOdds": "2.19",
+                "drawOdds": "3.72",
+                "awayOdds": "3.08",
+                "overOdds": "1.76",
+                "underOdds": "2.09",
+                "totalsLine": "2.5"
+              }
+            ]
+          }
+        },
+        "stats": [
+          {
+            "name": "Dunmore City",
+            "played": 22,
+            "goalsFor": 41,
+            "goalsAgainst": 24,
+            "wins": 14,
+            "draws": 2,
+            "losses": 6,
+            "points": 44,
+            "form": "WDWWW",
+            "missingFields": []
+          },
+          {
+            "name": "Bexley Town",
+            "played": 22,
+            "goalsFor": 37,
+            "goalsAgainst": 28,
+            "wins": 11,
+            "draws": 4,
+            "losses": 7,
+            "points": 37,
+            "form": "DWWLL",
+            "missingFields": []
+          },
+          {
+            "name": "Calder United",
+            "played": 22,
+            "goalsFor": 46,
+            "goalsAgainst": 29,
+            "wins": 10,
+            "draws": 5,
+            "losses": 7,
+            "points": 35,
+            "form": "WWLWW",
+            "missingFields": []
+          },
+          {
+            "name": "Eastvale Athletic",
+            "played": 22,
+            "goalsFor": 25,
+            "goalsAgainst": 30,
+            "wins": 10,
+            "draws": 4,
+            "losses": 8,
+            "points": 34,
+            "form": "WWWDL",
+            "missingFields": []
+          },
+          {
+            "name": "Juniper Vale",
+            "played": 22,
+            "goalsFor": 42,
+            "goalsAgainst": 41,
+            "wins": 9,
+            "draws": 6,
+            "losses": 7,
+            "points": 33,
+            "form": "DWLWW",
+            "missingFields": []
+          },
+          {
+            "name": "Farrow Wanderers",
+            "played": 22,
+            "goalsFor": 34,
+            "goalsAgainst": 30,
+            "wins": 8,
+            "draws": 7,
+            "losses": 7,
+            "points": 31,
+            "form": "WDLDW",
+            "missingFields": []
+          },
+          {
+            "name": "Ironbridge FC",
+            "played": 22,
+            "goalsFor": 33,
+            "goalsAgainst": 33,
+            "wins": 8,
+            "draws": 7,
+            "losses": 7,
+            "points": 31,
+            "form": "LDWLL",
+            "missingFields": []
+          },
+          {
+            "name": "Ashford Rovers",
+            "played": 22,
+            "goalsFor": 37,
+            "goalsAgainst": 44,
+            "wins": 8,
+            "draws": 4,
+            "losses": 10,
+            "points": 28,
+            "form": "LLLLW",
+            "missingFields": []
+          },
+          {
+            "name": "Gillside FC",
+            "played": 22,
+            "goalsFor": 33,
+            "goalsAgainst": 43,
+            "wins": 8,
+            "draws": 4,
+            "losses": 10,
+            "points": 28,
+            "form": "LLDLL",
+            "missingFields": []
+          },
+          {
+            "name": "Harwick Albion",
+            "played": 22,
+            "goalsFor": 32,
+            "goalsAgainst": 33,
+            "wins": 6,
+            "draws": 5,
+            "losses": 11,
+            "points": 23,
+            "form": "LLDWW",
+            "missingFields": []
+          },
+          {
+            "name": "Lowton Harriers",
+            "played": 22,
+            "goalsFor": 26,
+            "goalsAgainst": 34,
+            "wins": 3,
+            "draws": 12,
+            "losses": 7,
+            "points": 21,
+            "form": "WDDDL",
+            "missingFields": []
+          },
+          {
+            "name": "Kestrel Park",
+            "played": 22,
+            "goalsFor": 18,
+            "goalsAgainst": 35,
+            "wins": 4,
+            "draws": 6,
+            "losses": 12,
+            "points": 18,
+            "form": "LLDDL",
+            "missingFields": []
+          }
+        ],
+        "odds": [
+          {
+            "homeTeam": "Ashford Rovers",
+            "awayTeam": "Bexley Town",
+            "kickoff": "Sat 11 Jul, 12:00",
+            "oneXTwo": {
+              "home": 2.33,
+              "draw": 3.99,
+              "away": 2.69
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.53,
+              "under": 2.57
+            },
+            "sourceFormat": "decimal"
+          },
+          {
+            "homeTeam": "Calder United",
+            "awayTeam": "Lowton Harriers",
+            "kickoff": "Sat 11 Jul, 13:30",
+            "oneXTwo": {
+              "home": 1.54,
+              "draw": 4.62,
+              "away": 5.44
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.65,
+              "under": 2.29
+            },
+            "sourceFormat": "decimal"
+          },
+          {
+            "homeTeam": "Dunmore City",
+            "awayTeam": "Kestrel Park",
+            "kickoff": "Sat 11 Jul, 15:00",
+            "oneXTwo": {
+              "home": 2,
+              "draw": 3.51,
+              "away": 3.77
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 2.08,
+              "under": 1.77
+            },
+            "sourceFormat": "decimal"
+          },
+          {
+            "homeTeam": "Eastvale Athletic",
+            "awayTeam": "Juniper Vale",
+            "kickoff": "Sat 11 Jul, 16:30",
+            "oneXTwo": {
+              "home": 2.02,
+              "draw": 4.53,
+              "away": 2.99
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.39,
+              "under": 3.1
+            },
+            "sourceFormat": "decimal"
+          },
+          {
+            "homeTeam": "Farrow Wanderers",
+            "awayTeam": "Ironbridge FC",
+            "kickoff": "Sat 11 Jul, 18:00",
+            "oneXTwo": {
+              "home": 2,
+              "draw": 4.19,
+              "away": 3.22
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.56,
+              "under": 2.47
+            },
+            "sourceFormat": "decimal"
+          },
+          {
+            "homeTeam": "Gillside FC",
+            "awayTeam": "Harwick Albion",
+            "kickoff": "Sat 11 Jul, 19:30",
+            "oneXTwo": {
+              "home": 2.19,
+              "draw": 3.72,
+              "away": 3.08
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.76,
+              "under": 2.09
+            },
+            "sourceFormat": "decimal"
+          }
+        ],
+        "failures": [],
+        "warnings": []
+      },
+      "pagesRequested": [
+        "stats",
+        "odds"
+      ],
+      "chromeVersion": "Chrome/150.0.7871.184",
+      "stepTrace": [
+        {
+          "step": "login",
+          "cachedSelectorMatched": true,
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "login",
+          "cachedSelectorMatched": true,
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "login",
+          "cachedSelectorMatched": true,
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "reveal-table",
+          "readinessOutcome": "ready",
+          "escalationTriggered": false,
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "extract-stats",
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0,
+          "note": "header-mappable table found; no extraction repair needed"
+        },
+        {
+          "step": "extract-stats",
+          "cachedSelectorMatched": true,
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "extract-stats",
+          "cachedSelectorMatched": true,
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "extract-stats",
+          "cachedSelectorMatched": true,
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "extract-stats",
+          "cachedSelectorMatched": true,
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "extract-stats",
+          "cachedSelectorMatched": true,
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "extract-odds",
+          "readinessOutcome": "ready",
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "extract-odds",
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0,
+          "note": "header-mappable table found; no extraction repair needed"
+        }
+      ]
+    },
+    {
+      "scenarioId": "x-class-l3-page-size-2",
+      "engine": "hybrid",
+      "trial": 1,
+      "runId": "x-class-l3-page-size-2-hybrid-t1",
+      "outcome": "pass",
+      "outcomeReason": "success: pipeline succeeded (accuracy 1.00)",
+      "outcomeClass": "recovered",
+      "pipelineSuccess": true,
+      "extractionSuccess": true,
+      "validationSuccess": true,
+      "accuracy": {
+        "stats": {
+          "expectedRows": 12,
+          "matchedRows": 12,
+          "fieldChecks": 48,
+          "fieldMatches": 48,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "odds": {
+          "expectedRows": 6,
+          "matchedRows": 6,
+          "fieldChecks": 30,
+          "fieldMatches": 30,
+          "rowCoverage": 1,
+          "fieldAccuracy": 1,
+          "duplicateRows": 0,
+          "unexpectedRows": 0,
+          "score": 1
+        },
+        "overall": 1
+      },
+      "durationMs": 10010,
+      "retries": 0,
+      "recoveredAfterFailure": false,
+      "artifactsDir": "runs/bench-2026-07-26T23-03-49-722Z/trials/x-class-l3-page-size-2-hybrid-t1",
+      "tokens": {
+        "llmCalls": 4,
+        "inputTokens": 6777,
+        "outputTokens": 274
+      },
+      "healedSteps": [
+        "login",
+        "extract-stats"
+      ],
+      "recordVersion": 2,
+      "canonical": {
+        "raw": {
+          "stats": {
+            "rows": [
+              {
+                "team": "Gillside FC",
+                "played": 22,
+                "wins": 14,
+                "draws": 5,
+                "losses": 3,
+                "goalsFor": 50,
+                "goalsAgainst": 19,
+                "points": 47,
+                "form": "WWWWW"
+              },
+              {
+                "team": "Farrow Wanderers",
+                "played": 22,
+                "wins": 14,
+                "draws": 4,
+                "losses": 4,
+                "goalsFor": 50,
+                "goalsAgainst": 32,
+                "points": 46,
+                "form": "WWWWL"
+              },
+              {
+                "team": "Kestrel Park",
+                "played": 22,
+                "wins": 10,
+                "draws": 6,
+                "losses": 6,
+                "goalsFor": 45,
+                "goalsAgainst": 38,
+                "points": 36,
+                "form": "WWDLL"
+              },
+              {
+                "team": "Eastvale Athletic",
+                "played": 22,
+                "wins": 10,
+                "draws": 4,
+                "losses": 8,
+                "goalsFor": 35,
+                "goalsAgainst": 32,
+                "points": 34,
+                "form": "LWLWD"
+              },
+              {
+                "team": "Dunmore City",
+                "played": 22,
+                "wins": 10,
+                "draws": 3,
+                "losses": 9,
+                "goalsFor": 42,
+                "goalsAgainst": 47,
+                "points": 33,
+                "form": "LLLWW"
+              },
+              {
+                "team": "Juniper Vale",
+                "played": 22,
+                "wins": 7,
+                "draws": 7,
+                "losses": 8,
+                "goalsFor": 34,
+                "goalsAgainst": 34,
+                "points": 28,
+                "form": "WLDLD"
+              },
+              {
+                "team": "Lowton Harriers",
+                "played": 22,
+                "wins": 7,
+                "draws": 6,
+                "losses": 9,
+                "goalsFor": 41,
+                "goalsAgainst": 41,
+                "points": 27,
+                "form": "LWLLD"
+              },
+              {
+                "team": "Harwick Albion",
+                "played": 22,
+                "wins": 7,
+                "draws": 6,
+                "losses": 9,
+                "goalsFor": 31,
+                "goalsAgainst": 35,
+                "points": 27,
+                "form": "WWDDL"
+              },
+              {
+                "team": "Ironbridge FC",
+                "played": 22,
+                "wins": 7,
+                "draws": 6,
+                "losses": 9,
+                "goalsFor": 29,
+                "goalsAgainst": 35,
+                "points": 27,
+                "form": "LLDDW"
+              },
+              {
+                "team": "Calder United",
+                "played": 22,
+                "wins": 6,
+                "draws": 4,
+                "losses": 12,
+                "goalsFor": 25,
+                "goalsAgainst": 44,
+                "points": 22,
+                "form": "WLWLD"
+              },
+              {
+                "team": "Ashford Rovers",
+                "played": 22,
+                "wins": 6,
+                "draws": 3,
+                "losses": 13,
+                "goalsFor": 30,
+                "goalsAgainst": 45,
+                "points": 21,
+                "form": "LLWWD"
+              },
+              {
+                "team": "Bexley Town",
+                "played": 22,
+                "wins": 6,
+                "draws": 2,
+                "losses": 14,
+                "goalsFor": 38,
+                "goalsAgainst": 48,
+                "points": 20,
+                "form": "LLLLD"
+              }
+            ]
+          },
+          "odds": {
+            "rows": [
+              {
+                "kickoff": "Sat 11 Jul, 12:00",
+                "homeTeam": "Ashford Rovers",
+                "awayTeam": "Dunmore City",
+                "homeOdds": "1.97",
+                "drawOdds": "4.89",
+                "awayOdds": "2.95",
+                "overOdds": "1.28",
+                "underOdds": "3.79",
+                "totalsLine": "2.5"
+              },
+              {
+                "kickoff": "Sat 11 Jul, 13:30",
+                "homeTeam": "Eastvale Athletic",
+                "awayTeam": "Calder United",
+                "homeOdds": "1.82",
+                "drawOdds": "4.19",
+                "awayOdds": "3.82",
+                "overOdds": "1.67",
+                "underOdds": "2.24",
+                "totalsLine": "2.5"
+              },
+              {
+                "kickoff": "Sat 11 Jul, 15:00",
+                "homeTeam": "Farrow Wanderers",
+                "awayTeam": "Bexley Town",
+                "homeOdds": "1.50",
+                "drawOdds": "5.12",
+                "awayOdds": "5.26",
+                "overOdds": "1.37",
+                "underOdds": "3.18",
+                "totalsLine": "2.5"
+              },
+              {
+                "kickoff": "Sat 11 Jul, 16:30",
+                "homeTeam": "Gillside FC",
+                "awayTeam": "Lowton Harriers",
+                "homeOdds": "1.54",
+                "drawOdds": "4.64",
+                "awayOdds": "5.39",
+                "overOdds": "1.49",
+                "underOdds": "2.67",
+                "totalsLine": "2.5"
+              },
+              {
+                "kickoff": "Sat 11 Jul, 18:00",
+                "homeTeam": "Harwick Albion",
+                "awayTeam": "Kestrel Park",
+                "homeOdds": "2.69",
+                "drawOdds": "3.97",
+                "awayOdds": "2.34",
+                "overOdds": "1.51",
+                "underOdds": "2.60",
+                "totalsLine": "2.5"
+              },
+              {
+                "kickoff": "Sat 11 Jul, 19:30",
+                "homeTeam": "Ironbridge FC",
+                "awayTeam": "Juniper Vale",
+                "homeOdds": "2.40",
+                "drawOdds": "4.16",
+                "awayOdds": "2.54",
+                "overOdds": "1.64",
+                "underOdds": "2.29",
+                "totalsLine": "2.5"
+              }
+            ]
+          }
+        },
+        "stats": [
+          {
+            "name": "Gillside FC",
+            "played": 22,
+            "goalsFor": 50,
+            "goalsAgainst": 19,
+            "wins": 14,
+            "draws": 5,
+            "losses": 3,
+            "points": 47,
+            "form": "WWWWW",
+            "missingFields": []
+          },
+          {
+            "name": "Farrow Wanderers",
+            "played": 22,
+            "goalsFor": 50,
+            "goalsAgainst": 32,
+            "wins": 14,
+            "draws": 4,
+            "losses": 4,
+            "points": 46,
+            "form": "WWWWL",
+            "missingFields": []
+          },
+          {
+            "name": "Kestrel Park",
+            "played": 22,
+            "goalsFor": 45,
+            "goalsAgainst": 38,
+            "wins": 10,
+            "draws": 6,
+            "losses": 6,
+            "points": 36,
+            "form": "WWDLL",
+            "missingFields": []
+          },
+          {
+            "name": "Eastvale Athletic",
+            "played": 22,
+            "goalsFor": 35,
+            "goalsAgainst": 32,
+            "wins": 10,
+            "draws": 4,
+            "losses": 8,
+            "points": 34,
+            "form": "LWLWD",
+            "missingFields": []
+          },
+          {
+            "name": "Dunmore City",
+            "played": 22,
+            "goalsFor": 42,
+            "goalsAgainst": 47,
+            "wins": 10,
+            "draws": 3,
+            "losses": 9,
+            "points": 33,
+            "form": "LLLWW",
+            "missingFields": []
+          },
+          {
+            "name": "Juniper Vale",
+            "played": 22,
+            "goalsFor": 34,
+            "goalsAgainst": 34,
+            "wins": 7,
+            "draws": 7,
+            "losses": 8,
+            "points": 28,
+            "form": "WLDLD",
+            "missingFields": []
+          },
+          {
+            "name": "Lowton Harriers",
+            "played": 22,
+            "goalsFor": 41,
+            "goalsAgainst": 41,
+            "wins": 7,
+            "draws": 6,
+            "losses": 9,
+            "points": 27,
+            "form": "LWLLD",
+            "missingFields": []
+          },
+          {
+            "name": "Harwick Albion",
+            "played": 22,
+            "goalsFor": 31,
+            "goalsAgainst": 35,
+            "wins": 7,
+            "draws": 6,
+            "losses": 9,
+            "points": 27,
+            "form": "WWDDL",
+            "missingFields": []
+          },
+          {
+            "name": "Ironbridge FC",
+            "played": 22,
+            "goalsFor": 29,
+            "goalsAgainst": 35,
+            "wins": 7,
+            "draws": 6,
+            "losses": 9,
+            "points": 27,
+            "form": "LLDDW",
+            "missingFields": []
+          },
+          {
+            "name": "Calder United",
+            "played": 22,
+            "goalsFor": 25,
+            "goalsAgainst": 44,
+            "wins": 6,
+            "draws": 4,
+            "losses": 12,
+            "points": 22,
+            "form": "WLWLD",
+            "missingFields": []
+          },
+          {
+            "name": "Ashford Rovers",
+            "played": 22,
+            "goalsFor": 30,
+            "goalsAgainst": 45,
+            "wins": 6,
+            "draws": 3,
+            "losses": 13,
+            "points": 21,
+            "form": "LLWWD",
+            "missingFields": []
+          },
+          {
+            "name": "Bexley Town",
+            "played": 22,
+            "goalsFor": 38,
+            "goalsAgainst": 48,
+            "wins": 6,
+            "draws": 2,
+            "losses": 14,
+            "points": 20,
+            "form": "LLLLD",
+            "missingFields": []
+          }
+        ],
+        "odds": [
+          {
+            "homeTeam": "Ashford Rovers",
+            "awayTeam": "Dunmore City",
+            "kickoff": "Sat 11 Jul, 12:00",
+            "oneXTwo": {
+              "home": 1.97,
+              "draw": 4.89,
+              "away": 2.95
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.28,
+              "under": 3.79
+            },
+            "sourceFormat": "decimal"
+          },
+          {
+            "homeTeam": "Eastvale Athletic",
+            "awayTeam": "Calder United",
+            "kickoff": "Sat 11 Jul, 13:30",
+            "oneXTwo": {
+              "home": 1.82,
+              "draw": 4.19,
+              "away": 3.82
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.67,
+              "under": 2.24
+            },
+            "sourceFormat": "decimal"
+          },
+          {
+            "homeTeam": "Farrow Wanderers",
+            "awayTeam": "Bexley Town",
+            "kickoff": "Sat 11 Jul, 15:00",
+            "oneXTwo": {
+              "home": 1.5,
+              "draw": 5.12,
+              "away": 5.26
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.37,
+              "under": 3.18
+            },
+            "sourceFormat": "decimal"
+          },
+          {
+            "homeTeam": "Gillside FC",
+            "awayTeam": "Lowton Harriers",
+            "kickoff": "Sat 11 Jul, 16:30",
+            "oneXTwo": {
+              "home": 1.54,
+              "draw": 4.64,
+              "away": 5.39
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.49,
+              "under": 2.67
+            },
+            "sourceFormat": "decimal"
+          },
+          {
+            "homeTeam": "Harwick Albion",
+            "awayTeam": "Kestrel Park",
+            "kickoff": "Sat 11 Jul, 18:00",
+            "oneXTwo": {
+              "home": 2.69,
+              "draw": 3.97,
+              "away": 2.34
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.51,
+              "under": 2.6
+            },
+            "sourceFormat": "decimal"
+          },
+          {
+            "homeTeam": "Ironbridge FC",
+            "awayTeam": "Juniper Vale",
+            "kickoff": "Sat 11 Jul, 19:30",
+            "oneXTwo": {
+              "home": 2.4,
+              "draw": 4.16,
+              "away": 2.54
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.64,
+              "under": 2.29
+            },
+            "sourceFormat": "decimal"
+          }
+        ],
+        "failures": [],
+        "warnings": []
+      },
+      "pagesRequested": [
+        "stats",
+        "odds"
+      ],
+      "chromeVersion": "Chrome/150.0.7871.184",
+      "stepTrace": [
+        {
+          "step": "login",
+          "cachedSelectorMatched": false,
+          "escalationTriggered": true,
+          "repairAttempted": true,
+          "repairSucceeded": true,
+          "repairKind": "llm",
+          "modelCallsAtStep": 1,
+          "downstreamRecovered": true
+        },
+        {
+          "step": "login",
+          "cachedSelectorMatched": false,
+          "escalationTriggered": true,
+          "repairAttempted": true,
+          "repairSucceeded": true,
+          "repairKind": "llm",
+          "modelCallsAtStep": 1,
+          "downstreamRecovered": true
+        },
+        {
+          "step": "login",
+          "cachedSelectorMatched": false,
+          "escalationTriggered": true,
+          "repairAttempted": true,
+          "repairSucceeded": true,
+          "repairKind": "llm",
+          "modelCallsAtStep": 1,
+          "downstreamRecovered": true
+        },
+        {
+          "step": "reveal-table",
+          "readinessOutcome": "ready",
+          "escalationTriggered": false,
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "extract-stats",
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0,
+          "note": "header-mappable table found; no extraction repair needed"
+        },
+        {
+          "step": "extract-stats",
+          "cachedSelectorMatched": false,
+          "escalationTriggered": true,
+          "repairAttempted": true,
+          "repairSucceeded": true,
+          "repairKind": "llm",
+          "modelCallsAtStep": 1,
+          "downstreamRecovered": true
+        },
+        {
+          "step": "extract-stats",
+          "cachedSelectorMatched": true,
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "extract-stats",
+          "cachedSelectorMatched": true,
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "extract-stats",
+          "cachedSelectorMatched": true,
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "extract-stats",
+          "cachedSelectorMatched": true,
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "extract-odds",
+          "readinessOutcome": "ready",
+          "modelCallsAtStep": 0
+        },
+        {
+          "step": "extract-odds",
+          "escalationTriggered": false,
+          "repairAttempted": false,
+          "repairSucceeded": false,
+          "repairKind": null,
+          "modelCallsAtStep": 0,
+          "note": "header-mappable table found; no extraction repair needed"
+        }
+      ]
+    }
+  ],
+  "engines": [
+    {
+      "engine": "hybrid",
+      "trials": 5,
+      "taskSuccessRate": 1,
+      "extractionSuccessRate": 1,
+      "validationSuccessRate": 1,
+      "meanAccuracy": 1,
+      "meanDurationMs": 5730.2,
+      "totalRetries": 0,
+      "recovery": {
+        "firstAttemptFailures": 0,
+        "recovered": 0,
+        "recoveryRate": null
+      },
+      "retryRecoveries": 0,
+      "failuresByCategory": {},
+      "outcomeClasses": {
+        "pass": 4,
+        "recovered": 1
+      },
+      "silentCorruptionRate": 0,
+      "tokens": {
+        "llmCalls": 4,
+        "inputTokens": 6777,
+        "outputTokens": 274
+      },
+      "healedTrials": 1
+    }
+  ],
+  "comparison": [
+    {
+      "scenarioId": "f3-page-size-3-a",
+      "results": {
+        "hybrid": "pass"
+      }
+    },
+    {
+      "scenarioId": "f3-page-size-3-b",
+      "results": {
+        "hybrid": "pass"
+      }
+    },
+    {
+      "scenarioId": "f3-page-size-2-a",
+      "results": {
+        "hybrid": "pass"
+      }
+    },
+    {
+      "scenarioId": "f3-page-size-2-b",
+      "results": {
+        "hybrid": "pass"
+      }
+    },
+    {
+      "scenarioId": "x-class-l3-page-size-2",
+      "results": {
+        "hybrid": "pass"
+      }
+    }
+  ],
+  "oracles": {
+    "f3-page-size-3-a": {
+      "truth": {
+        "seed": 2231,
+        "league": {
+          "name": "Northern Premier Division",
+          "season": "2025/26",
+          "avgGoalsPerTeamPerGame": 1.32,
+          "trueHomeAdvantage": 1.14
+        },
+        "teams": [
+          {
+            "id": "calder-united",
+            "name": "Calder United",
+            "played": 22,
+            "wins": 14,
+            "draws": 3,
+            "losses": 5,
+            "goalsFor": 51,
+            "goalsAgainst": 25,
+            "points": 45,
+            "form": "WWWDD"
+          },
+          {
+            "id": "eastvale-athletic",
+            "name": "Eastvale Athletic",
+            "played": 22,
+            "wins": 14,
+            "draws": 3,
+            "losses": 5,
+            "goalsFor": 36,
+            "goalsAgainst": 25,
+            "points": 45,
+            "form": "DWLWL"
+          },
+          {
+            "id": "dunmore-city",
+            "name": "Dunmore City",
+            "played": 22,
+            "wins": 13,
+            "draws": 3,
+            "losses": 6,
+            "goalsFor": 48,
+            "goalsAgainst": 38,
+            "points": 42,
+            "form": "WWWWW"
+          },
+          {
+            "id": "ironbridge-fc",
+            "name": "Ironbridge FC",
+            "played": 22,
+            "wins": 11,
+            "draws": 7,
+            "losses": 4,
+            "goalsFor": 42,
+            "goalsAgainst": 26,
+            "points": 40,
+            "form": "LDWDW"
+          },
+          {
+            "id": "gillside-fc",
+            "name": "Gillside FC",
+            "played": 22,
+            "wins": 10,
+            "draws": 6,
+            "losses": 6,
+            "goalsFor": 40,
+            "goalsAgainst": 33,
+            "points": 36,
+            "form": "DLDLL"
+          },
+          {
+            "id": "ashford-rovers",
+            "name": "Ashford Rovers",
+            "played": 22,
+            "wins": 9,
+            "draws": 3,
+            "losses": 10,
+            "goalsFor": 35,
+            "goalsAgainst": 36,
+            "points": 30,
+            "form": "LLLDW"
+          },
+          {
+            "id": "lowton-harriers",
+            "name": "Lowton Harriers",
+            "played": 22,
+            "wins": 7,
+            "draws": 6,
+            "losses": 9,
+            "goalsFor": 26,
+            "goalsAgainst": 28,
+            "points": 27,
+            "form": "WDDLD"
+          },
+          {
+            "id": "juniper-vale",
+            "name": "Juniper Vale",
+            "played": 22,
+            "wins": 7,
+            "draws": 5,
+            "losses": 10,
+            "goalsFor": 37,
+            "goalsAgainst": 37,
+            "points": 26,
+            "form": "DLLWW"
+          },
+          {
+            "id": "bexley-town",
+            "name": "Bexley Town",
+            "played": 22,
+            "wins": 7,
+            "draws": 4,
+            "losses": 11,
+            "goalsFor": 25,
+            "goalsAgainst": 37,
+            "points": 25,
+            "form": "DLWLL"
+          },
+          {
+            "id": "harwick-albion",
+            "name": "Harwick Albion",
+            "played": 22,
+            "wins": 5,
+            "draws": 5,
+            "losses": 12,
+            "goalsFor": 28,
+            "goalsAgainst": 39,
+            "points": 20,
+            "form": "LWLDW"
+          },
+          {
+            "id": "kestrel-park",
+            "name": "Kestrel Park",
+            "played": 22,
+            "wins": 4,
+            "draws": 7,
+            "losses": 11,
+            "goalsFor": 25,
+            "goalsAgainst": 42,
+            "points": 19,
+            "form": "LWWDL"
+          },
+          {
+            "id": "farrow-wanderers",
+            "name": "Farrow Wanderers",
+            "played": 22,
+            "wins": 3,
+            "draws": 4,
+            "losses": 15,
+            "goalsFor": 13,
+            "goalsAgainst": 40,
+            "points": 13,
+            "form": "WLLDL"
+          }
+        ],
+        "fixtures": [
+          {
+            "id": "calder-united-vs-ashford-rovers",
+            "homeTeam": "Calder United",
+            "awayTeam": "Ashford Rovers",
+            "kickoff": "2026-07-11T12:00:00.000Z"
+          },
+          {
+            "id": "bexley-town-vs-dunmore-city",
+            "homeTeam": "Bexley Town",
+            "awayTeam": "Dunmore City",
+            "kickoff": "2026-07-11T13:30:00.000Z"
+          },
+          {
+            "id": "lowton-harriers-vs-eastvale-athletic",
+            "homeTeam": "Lowton Harriers",
+            "awayTeam": "Eastvale Athletic",
+            "kickoff": "2026-07-11T15:00:00.000Z"
+          },
+          {
+            "id": "kestrel-park-vs-farrow-wanderers",
+            "homeTeam": "Kestrel Park",
+            "awayTeam": "Farrow Wanderers",
+            "kickoff": "2026-07-11T16:30:00.000Z"
+          },
+          {
+            "id": "juniper-vale-vs-gillside-fc",
+            "homeTeam": "Juniper Vale",
+            "awayTeam": "Gillside FC",
+            "kickoff": "2026-07-11T18:00:00.000Z"
+          },
+          {
+            "id": "ironbridge-fc-vs-harwick-albion",
+            "homeTeam": "Ironbridge FC",
+            "awayTeam": "Harwick Albion",
+            "kickoff": "2026-07-11T19:30:00.000Z"
+          }
+        ],
+        "markets": [
+          {
+            "fixtureId": "calder-united-vs-ashford-rovers",
+            "homeTeam": "Calder United",
+            "awayTeam": "Ashford Rovers",
+            "kickoff": "2026-07-11T12:00:00.000Z",
+            "oneXTwo": {
+              "home": 1.51,
+              "draw": 4.96,
+              "away": 5.4
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.47,
+              "under": 2.74
+            }
+          },
+          {
+            "fixtureId": "bexley-town-vs-dunmore-city",
+            "homeTeam": "Bexley Town",
+            "awayTeam": "Dunmore City",
+            "kickoff": "2026-07-11T13:30:00.000Z",
+            "oneXTwo": {
+              "home": 2.14,
+              "draw": 3.88,
+              "away": 3.07
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.88,
+              "under": 1.95
+            }
+          },
+          {
+            "fixtureId": "lowton-harriers-vs-eastvale-athletic",
+            "homeTeam": "Lowton Harriers",
+            "awayTeam": "Eastvale Athletic",
+            "kickoff": "2026-07-11T15:00:00.000Z",
+            "oneXTwo": {
+              "home": 2.3,
+              "draw": 3.29,
+              "away": 3.21
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 2.47,
+              "under": 1.56
+            }
+          },
+          {
+            "fixtureId": "kestrel-park-vs-farrow-wanderers",
+            "homeTeam": "Kestrel Park",
+            "awayTeam": "Farrow Wanderers",
+            "kickoff": "2026-07-11T16:30:00.000Z",
+            "oneXTwo": {
+              "home": 2.13,
+              "draw": 3.34,
+              "away": 3.56
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 2.35,
+              "under": 1.61
+            }
+          },
+          {
+            "fixtureId": "juniper-vale-vs-gillside-fc",
+            "homeTeam": "Juniper Vale",
+            "awayTeam": "Gillside FC",
+            "kickoff": "2026-07-11T18:00:00.000Z",
+            "oneXTwo": {
+              "home": 2.01,
+              "draw": 4.84,
+              "away": 2.9
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.21,
+              "under": 4.51
+            }
+          },
+          {
+            "fixtureId": "ironbridge-fc-vs-harwick-albion",
+            "homeTeam": "Ironbridge FC",
+            "awayTeam": "Harwick Albion",
+            "kickoff": "2026-07-11T19:30:00.000Z",
+            "oneXTwo": {
+              "home": 1.47,
+              "draw": 5.27,
+              "away": 5.53
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.33,
+              "under": 3.44
+            }
+          }
+        ],
+        "trueProbabilities": [
+          {
+            "fixtureId": "calder-united-vs-ashford-rovers",
+            "home": 0.6361837094594535,
+            "draw": 0.19234714570227843,
+            "away": 0.17146914483826806,
+            "over25": 0.6485680846280226
+          },
+          {
+            "fixtureId": "bexley-town-vs-dunmore-city",
+            "home": 0.44970047375744066,
+            "draw": 0.25180832682109755,
+            "away": 0.2984911994214619,
+            "over25": 0.5167949277601399
+          },
+          {
+            "fixtureId": "lowton-harriers-vs-eastvale-athletic",
+            "home": 0.4134975837991913,
+            "draw": 0.2809050283160562,
+            "away": 0.3055973878847525,
+            "over25": 0.4061549780388296
+          },
+          {
+            "fixtureId": "kestrel-park-vs-farrow-wanderers",
+            "home": 0.4550148301139337,
+            "draw": 0.2778902804145335,
+            "away": 0.2670948894715327,
+            "over25": 0.4008532960383179
+          },
+          {
+            "fixtureId": "juniper-vale-vs-gillside-fc",
+            "home": 0.46636269498161287,
+            "draw": 0.2013837682063076,
+            "away": 0.33225353681207953,
+            "over25": 0.7770987239671849
+          },
+          {
+            "fixtureId": "ironbridge-fc-vs-harwick-albion",
+            "home": 0.6386413975112878,
+            "draw": 0.17903190583648212,
+            "away": 0.1823266966522301,
+            "over25": 0.7357065541479066
+          }
+        ]
+      },
+      "overrides": []
+    },
+    "f3-page-size-3-b": {
+      "truth": {
+        "seed": 2232,
+        "league": {
+          "name": "Northern Premier Division",
+          "season": "2025/26",
+          "avgGoalsPerTeamPerGame": 1.32,
+          "trueHomeAdvantage": 1.14
+        },
+        "teams": [
+          {
+            "id": "dunmore-city",
+            "name": "Dunmore City",
+            "played": 22,
+            "wins": 14,
+            "draws": 2,
+            "losses": 6,
+            "goalsFor": 41,
+            "goalsAgainst": 24,
+            "points": 44,
+            "form": "WDWWW"
+          },
+          {
+            "id": "bexley-town",
+            "name": "Bexley Town",
+            "played": 22,
+            "wins": 11,
+            "draws": 4,
+            "losses": 7,
+            "goalsFor": 37,
+            "goalsAgainst": 28,
+            "points": 37,
+            "form": "DWWLL"
+          },
+          {
+            "id": "calder-united",
+            "name": "Calder United",
+            "played": 22,
+            "wins": 10,
+            "draws": 5,
+            "losses": 7,
+            "goalsFor": 46,
+            "goalsAgainst": 29,
+            "points": 35,
+            "form": "WWLWW"
+          },
+          {
+            "id": "eastvale-athletic",
+            "name": "Eastvale Athletic",
+            "played": 22,
+            "wins": 10,
+            "draws": 4,
+            "losses": 8,
+            "goalsFor": 25,
+            "goalsAgainst": 30,
+            "points": 34,
+            "form": "WWWDL"
+          },
+          {
+            "id": "juniper-vale",
+            "name": "Juniper Vale",
+            "played": 22,
+            "wins": 9,
+            "draws": 6,
+            "losses": 7,
+            "goalsFor": 42,
+            "goalsAgainst": 41,
+            "points": 33,
+            "form": "DWLWW"
+          },
+          {
+            "id": "farrow-wanderers",
+            "name": "Farrow Wanderers",
+            "played": 22,
+            "wins": 8,
+            "draws": 7,
+            "losses": 7,
+            "goalsFor": 34,
+            "goalsAgainst": 30,
+            "points": 31,
+            "form": "WDLDW"
+          },
+          {
+            "id": "ironbridge-fc",
+            "name": "Ironbridge FC",
+            "played": 22,
+            "wins": 8,
+            "draws": 7,
+            "losses": 7,
+            "goalsFor": 33,
+            "goalsAgainst": 33,
+            "points": 31,
+            "form": "LDWLL"
+          },
+          {
+            "id": "ashford-rovers",
+            "name": "Ashford Rovers",
+            "played": 22,
+            "wins": 8,
+            "draws": 4,
+            "losses": 10,
+            "goalsFor": 37,
+            "goalsAgainst": 44,
+            "points": 28,
+            "form": "LLLLW"
+          },
+          {
+            "id": "gillside-fc",
+            "name": "Gillside FC",
+            "played": 22,
+            "wins": 8,
+            "draws": 4,
+            "losses": 10,
+            "goalsFor": 33,
+            "goalsAgainst": 43,
+            "points": 28,
+            "form": "LLDLL"
+          },
+          {
+            "id": "harwick-albion",
+            "name": "Harwick Albion",
+            "played": 22,
+            "wins": 6,
+            "draws": 5,
+            "losses": 11,
+            "goalsFor": 32,
+            "goalsAgainst": 33,
+            "points": 23,
+            "form": "LLDWW"
+          },
+          {
+            "id": "lowton-harriers",
+            "name": "Lowton Harriers",
+            "played": 22,
+            "wins": 3,
+            "draws": 12,
+            "losses": 7,
+            "goalsFor": 26,
+            "goalsAgainst": 34,
+            "points": 21,
+            "form": "WDDDL"
+          },
+          {
+            "id": "kestrel-park",
+            "name": "Kestrel Park",
+            "played": 22,
+            "wins": 4,
+            "draws": 6,
+            "losses": 12,
+            "goalsFor": 18,
+            "goalsAgainst": 35,
+            "points": 18,
+            "form": "LLDDL"
+          }
+        ],
+        "fixtures": [
+          {
+            "id": "ashford-rovers-vs-bexley-town",
+            "homeTeam": "Ashford Rovers",
+            "awayTeam": "Bexley Town",
+            "kickoff": "2026-07-11T12:00:00.000Z"
+          },
+          {
+            "id": "calder-united-vs-lowton-harriers",
+            "homeTeam": "Calder United",
+            "awayTeam": "Lowton Harriers",
+            "kickoff": "2026-07-11T13:30:00.000Z"
+          },
+          {
+            "id": "dunmore-city-vs-kestrel-park",
+            "homeTeam": "Dunmore City",
+            "awayTeam": "Kestrel Park",
+            "kickoff": "2026-07-11T15:00:00.000Z"
+          },
+          {
+            "id": "eastvale-athletic-vs-juniper-vale",
+            "homeTeam": "Eastvale Athletic",
+            "awayTeam": "Juniper Vale",
+            "kickoff": "2026-07-11T16:30:00.000Z"
+          },
+          {
+            "id": "farrow-wanderers-vs-ironbridge-fc",
+            "homeTeam": "Farrow Wanderers",
+            "awayTeam": "Ironbridge FC",
+            "kickoff": "2026-07-11T18:00:00.000Z"
+          },
+          {
+            "id": "gillside-fc-vs-harwick-albion",
+            "homeTeam": "Gillside FC",
+            "awayTeam": "Harwick Albion",
+            "kickoff": "2026-07-11T19:30:00.000Z"
+          }
+        ],
+        "markets": [
+          {
+            "fixtureId": "ashford-rovers-vs-bexley-town",
+            "homeTeam": "Ashford Rovers",
+            "awayTeam": "Bexley Town",
+            "kickoff": "2026-07-11T12:00:00.000Z",
+            "oneXTwo": {
+              "home": 2.33,
+              "draw": 3.99,
+              "away": 2.69
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.53,
+              "under": 2.57
+            }
+          },
+          {
+            "fixtureId": "calder-united-vs-lowton-harriers",
+            "homeTeam": "Calder United",
+            "awayTeam": "Lowton Harriers",
+            "kickoff": "2026-07-11T13:30:00.000Z",
+            "oneXTwo": {
+              "home": 1.54,
+              "draw": 4.62,
+              "away": 5.44
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.65,
+              "under": 2.29
+            }
+          },
+          {
+            "fixtureId": "dunmore-city-vs-kestrel-park",
+            "homeTeam": "Dunmore City",
+            "awayTeam": "Kestrel Park",
+            "kickoff": "2026-07-11T15:00:00.000Z",
+            "oneXTwo": {
+              "home": 2,
+              "draw": 3.51,
+              "away": 3.77
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 2.08,
+              "under": 1.77
+            }
+          },
+          {
+            "fixtureId": "eastvale-athletic-vs-juniper-vale",
+            "homeTeam": "Eastvale Athletic",
+            "awayTeam": "Juniper Vale",
+            "kickoff": "2026-07-11T16:30:00.000Z",
+            "oneXTwo": {
+              "home": 2.02,
+              "draw": 4.53,
+              "away": 2.99
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.39,
+              "under": 3.1
+            }
+          },
+          {
+            "fixtureId": "farrow-wanderers-vs-ironbridge-fc",
+            "homeTeam": "Farrow Wanderers",
+            "awayTeam": "Ironbridge FC",
+            "kickoff": "2026-07-11T18:00:00.000Z",
+            "oneXTwo": {
+              "home": 2,
+              "draw": 4.19,
+              "away": 3.22
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.56,
+              "under": 2.47
+            }
+          },
+          {
+            "fixtureId": "gillside-fc-vs-harwick-albion",
+            "homeTeam": "Gillside FC",
+            "awayTeam": "Harwick Albion",
+            "kickoff": "2026-07-11T19:30:00.000Z",
+            "oneXTwo": {
+              "home": 2.19,
+              "draw": 3.72,
+              "away": 3.08
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.76,
+              "under": 2.09
+            }
+          }
+        ],
+        "trueProbabilities": [
+          {
+            "fixtureId": "ashford-rovers-vs-bexley-town",
+            "home": 0.4195470021190195,
+            "draw": 0.23089307654667543,
+            "away": 0.3495599213343051,
+            "over25": 0.633165757866205
+          },
+          {
+            "fixtureId": "calder-united-vs-lowton-harriers",
+            "home": 0.624039648825549,
+            "draw": 0.2041764660311575,
+            "away": 0.17178388514329357,
+            "over25": 0.5927484888460912
+          },
+          {
+            "fixtureId": "dunmore-city-vs-kestrel-park",
+            "home": 0.49053718468396995,
+            "draw": 0.26027897148752627,
+            "away": 0.2491838438285038,
+            "over25": 0.45235601538981063
+          },
+          {
+            "fixtureId": "eastvale-athletic-vs-juniper-vale",
+            "home": 0.4687076582556471,
+            "draw": 0.21572493755702662,
+            "away": 0.31556740418732626,
+            "over25": 0.69683968802312
+          },
+          {
+            "fixtureId": "farrow-wanderers-vs-ironbridge-fc",
+            "home": 0.4787909221859403,
+            "draw": 0.229807257835573,
+            "away": 0.2914018199784867,
+            "over25": 0.6130584587035698
+          },
+          {
+            "fixtureId": "gillside-fc-vs-harwick-albion",
+            "home": 0.4303126776714092,
+            "draw": 0.24620398701991217,
+            "away": 0.3234833353086787,
+            "over25": 0.5520760510501703
+          }
+        ]
+      },
+      "overrides": []
+    },
+    "f3-page-size-2-a": {
+      "truth": {
+        "seed": 2231,
+        "league": {
+          "name": "Northern Premier Division",
+          "season": "2025/26",
+          "avgGoalsPerTeamPerGame": 1.32,
+          "trueHomeAdvantage": 1.14
+        },
+        "teams": [
+          {
+            "id": "calder-united",
+            "name": "Calder United",
+            "played": 22,
+            "wins": 14,
+            "draws": 3,
+            "losses": 5,
+            "goalsFor": 51,
+            "goalsAgainst": 25,
+            "points": 45,
+            "form": "WWWDD"
+          },
+          {
+            "id": "eastvale-athletic",
+            "name": "Eastvale Athletic",
+            "played": 22,
+            "wins": 14,
+            "draws": 3,
+            "losses": 5,
+            "goalsFor": 36,
+            "goalsAgainst": 25,
+            "points": 45,
+            "form": "DWLWL"
+          },
+          {
+            "id": "dunmore-city",
+            "name": "Dunmore City",
+            "played": 22,
+            "wins": 13,
+            "draws": 3,
+            "losses": 6,
+            "goalsFor": 48,
+            "goalsAgainst": 38,
+            "points": 42,
+            "form": "WWWWW"
+          },
+          {
+            "id": "ironbridge-fc",
+            "name": "Ironbridge FC",
+            "played": 22,
+            "wins": 11,
+            "draws": 7,
+            "losses": 4,
+            "goalsFor": 42,
+            "goalsAgainst": 26,
+            "points": 40,
+            "form": "LDWDW"
+          },
+          {
+            "id": "gillside-fc",
+            "name": "Gillside FC",
+            "played": 22,
+            "wins": 10,
+            "draws": 6,
+            "losses": 6,
+            "goalsFor": 40,
+            "goalsAgainst": 33,
+            "points": 36,
+            "form": "DLDLL"
+          },
+          {
+            "id": "ashford-rovers",
+            "name": "Ashford Rovers",
+            "played": 22,
+            "wins": 9,
+            "draws": 3,
+            "losses": 10,
+            "goalsFor": 35,
+            "goalsAgainst": 36,
+            "points": 30,
+            "form": "LLLDW"
+          },
+          {
+            "id": "lowton-harriers",
+            "name": "Lowton Harriers",
+            "played": 22,
+            "wins": 7,
+            "draws": 6,
+            "losses": 9,
+            "goalsFor": 26,
+            "goalsAgainst": 28,
+            "points": 27,
+            "form": "WDDLD"
+          },
+          {
+            "id": "juniper-vale",
+            "name": "Juniper Vale",
+            "played": 22,
+            "wins": 7,
+            "draws": 5,
+            "losses": 10,
+            "goalsFor": 37,
+            "goalsAgainst": 37,
+            "points": 26,
+            "form": "DLLWW"
+          },
+          {
+            "id": "bexley-town",
+            "name": "Bexley Town",
+            "played": 22,
+            "wins": 7,
+            "draws": 4,
+            "losses": 11,
+            "goalsFor": 25,
+            "goalsAgainst": 37,
+            "points": 25,
+            "form": "DLWLL"
+          },
+          {
+            "id": "harwick-albion",
+            "name": "Harwick Albion",
+            "played": 22,
+            "wins": 5,
+            "draws": 5,
+            "losses": 12,
+            "goalsFor": 28,
+            "goalsAgainst": 39,
+            "points": 20,
+            "form": "LWLDW"
+          },
+          {
+            "id": "kestrel-park",
+            "name": "Kestrel Park",
+            "played": 22,
+            "wins": 4,
+            "draws": 7,
+            "losses": 11,
+            "goalsFor": 25,
+            "goalsAgainst": 42,
+            "points": 19,
+            "form": "LWWDL"
+          },
+          {
+            "id": "farrow-wanderers",
+            "name": "Farrow Wanderers",
+            "played": 22,
+            "wins": 3,
+            "draws": 4,
+            "losses": 15,
+            "goalsFor": 13,
+            "goalsAgainst": 40,
+            "points": 13,
+            "form": "WLLDL"
+          }
+        ],
+        "fixtures": [
+          {
+            "id": "calder-united-vs-ashford-rovers",
+            "homeTeam": "Calder United",
+            "awayTeam": "Ashford Rovers",
+            "kickoff": "2026-07-11T12:00:00.000Z"
+          },
+          {
+            "id": "bexley-town-vs-dunmore-city",
+            "homeTeam": "Bexley Town",
+            "awayTeam": "Dunmore City",
+            "kickoff": "2026-07-11T13:30:00.000Z"
+          },
+          {
+            "id": "lowton-harriers-vs-eastvale-athletic",
+            "homeTeam": "Lowton Harriers",
+            "awayTeam": "Eastvale Athletic",
+            "kickoff": "2026-07-11T15:00:00.000Z"
+          },
+          {
+            "id": "kestrel-park-vs-farrow-wanderers",
+            "homeTeam": "Kestrel Park",
+            "awayTeam": "Farrow Wanderers",
+            "kickoff": "2026-07-11T16:30:00.000Z"
+          },
+          {
+            "id": "juniper-vale-vs-gillside-fc",
+            "homeTeam": "Juniper Vale",
+            "awayTeam": "Gillside FC",
+            "kickoff": "2026-07-11T18:00:00.000Z"
+          },
+          {
+            "id": "ironbridge-fc-vs-harwick-albion",
+            "homeTeam": "Ironbridge FC",
+            "awayTeam": "Harwick Albion",
+            "kickoff": "2026-07-11T19:30:00.000Z"
+          }
+        ],
+        "markets": [
+          {
+            "fixtureId": "calder-united-vs-ashford-rovers",
+            "homeTeam": "Calder United",
+            "awayTeam": "Ashford Rovers",
+            "kickoff": "2026-07-11T12:00:00.000Z",
+            "oneXTwo": {
+              "home": 1.51,
+              "draw": 4.96,
+              "away": 5.4
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.47,
+              "under": 2.74
+            }
+          },
+          {
+            "fixtureId": "bexley-town-vs-dunmore-city",
+            "homeTeam": "Bexley Town",
+            "awayTeam": "Dunmore City",
+            "kickoff": "2026-07-11T13:30:00.000Z",
+            "oneXTwo": {
+              "home": 2.14,
+              "draw": 3.88,
+              "away": 3.07
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.88,
+              "under": 1.95
+            }
+          },
+          {
+            "fixtureId": "lowton-harriers-vs-eastvale-athletic",
+            "homeTeam": "Lowton Harriers",
+            "awayTeam": "Eastvale Athletic",
+            "kickoff": "2026-07-11T15:00:00.000Z",
+            "oneXTwo": {
+              "home": 2.3,
+              "draw": 3.29,
+              "away": 3.21
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 2.47,
+              "under": 1.56
+            }
+          },
+          {
+            "fixtureId": "kestrel-park-vs-farrow-wanderers",
+            "homeTeam": "Kestrel Park",
+            "awayTeam": "Farrow Wanderers",
+            "kickoff": "2026-07-11T16:30:00.000Z",
+            "oneXTwo": {
+              "home": 2.13,
+              "draw": 3.34,
+              "away": 3.56
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 2.35,
+              "under": 1.61
+            }
+          },
+          {
+            "fixtureId": "juniper-vale-vs-gillside-fc",
+            "homeTeam": "Juniper Vale",
+            "awayTeam": "Gillside FC",
+            "kickoff": "2026-07-11T18:00:00.000Z",
+            "oneXTwo": {
+              "home": 2.01,
+              "draw": 4.84,
+              "away": 2.9
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.21,
+              "under": 4.51
+            }
+          },
+          {
+            "fixtureId": "ironbridge-fc-vs-harwick-albion",
+            "homeTeam": "Ironbridge FC",
+            "awayTeam": "Harwick Albion",
+            "kickoff": "2026-07-11T19:30:00.000Z",
+            "oneXTwo": {
+              "home": 1.47,
+              "draw": 5.27,
+              "away": 5.53
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.33,
+              "under": 3.44
+            }
+          }
+        ],
+        "trueProbabilities": [
+          {
+            "fixtureId": "calder-united-vs-ashford-rovers",
+            "home": 0.6361837094594535,
+            "draw": 0.19234714570227843,
+            "away": 0.17146914483826806,
+            "over25": 0.6485680846280226
+          },
+          {
+            "fixtureId": "bexley-town-vs-dunmore-city",
+            "home": 0.44970047375744066,
+            "draw": 0.25180832682109755,
+            "away": 0.2984911994214619,
+            "over25": 0.5167949277601399
+          },
+          {
+            "fixtureId": "lowton-harriers-vs-eastvale-athletic",
+            "home": 0.4134975837991913,
+            "draw": 0.2809050283160562,
+            "away": 0.3055973878847525,
+            "over25": 0.4061549780388296
+          },
+          {
+            "fixtureId": "kestrel-park-vs-farrow-wanderers",
+            "home": 0.4550148301139337,
+            "draw": 0.2778902804145335,
+            "away": 0.2670948894715327,
+            "over25": 0.4008532960383179
+          },
+          {
+            "fixtureId": "juniper-vale-vs-gillside-fc",
+            "home": 0.46636269498161287,
+            "draw": 0.2013837682063076,
+            "away": 0.33225353681207953,
+            "over25": 0.7770987239671849
+          },
+          {
+            "fixtureId": "ironbridge-fc-vs-harwick-albion",
+            "home": 0.6386413975112878,
+            "draw": 0.17903190583648212,
+            "away": 0.1823266966522301,
+            "over25": 0.7357065541479066
+          }
+        ]
+      },
+      "overrides": []
+    },
+    "f3-page-size-2-b": {
+      "truth": {
+        "seed": 2232,
+        "league": {
+          "name": "Northern Premier Division",
+          "season": "2025/26",
+          "avgGoalsPerTeamPerGame": 1.32,
+          "trueHomeAdvantage": 1.14
+        },
+        "teams": [
+          {
+            "id": "dunmore-city",
+            "name": "Dunmore City",
+            "played": 22,
+            "wins": 14,
+            "draws": 2,
+            "losses": 6,
+            "goalsFor": 41,
+            "goalsAgainst": 24,
+            "points": 44,
+            "form": "WDWWW"
+          },
+          {
+            "id": "bexley-town",
+            "name": "Bexley Town",
+            "played": 22,
+            "wins": 11,
+            "draws": 4,
+            "losses": 7,
+            "goalsFor": 37,
+            "goalsAgainst": 28,
+            "points": 37,
+            "form": "DWWLL"
+          },
+          {
+            "id": "calder-united",
+            "name": "Calder United",
+            "played": 22,
+            "wins": 10,
+            "draws": 5,
+            "losses": 7,
+            "goalsFor": 46,
+            "goalsAgainst": 29,
+            "points": 35,
+            "form": "WWLWW"
+          },
+          {
+            "id": "eastvale-athletic",
+            "name": "Eastvale Athletic",
+            "played": 22,
+            "wins": 10,
+            "draws": 4,
+            "losses": 8,
+            "goalsFor": 25,
+            "goalsAgainst": 30,
+            "points": 34,
+            "form": "WWWDL"
+          },
+          {
+            "id": "juniper-vale",
+            "name": "Juniper Vale",
+            "played": 22,
+            "wins": 9,
+            "draws": 6,
+            "losses": 7,
+            "goalsFor": 42,
+            "goalsAgainst": 41,
+            "points": 33,
+            "form": "DWLWW"
+          },
+          {
+            "id": "farrow-wanderers",
+            "name": "Farrow Wanderers",
+            "played": 22,
+            "wins": 8,
+            "draws": 7,
+            "losses": 7,
+            "goalsFor": 34,
+            "goalsAgainst": 30,
+            "points": 31,
+            "form": "WDLDW"
+          },
+          {
+            "id": "ironbridge-fc",
+            "name": "Ironbridge FC",
+            "played": 22,
+            "wins": 8,
+            "draws": 7,
+            "losses": 7,
+            "goalsFor": 33,
+            "goalsAgainst": 33,
+            "points": 31,
+            "form": "LDWLL"
+          },
+          {
+            "id": "ashford-rovers",
+            "name": "Ashford Rovers",
+            "played": 22,
+            "wins": 8,
+            "draws": 4,
+            "losses": 10,
+            "goalsFor": 37,
+            "goalsAgainst": 44,
+            "points": 28,
+            "form": "LLLLW"
+          },
+          {
+            "id": "gillside-fc",
+            "name": "Gillside FC",
+            "played": 22,
+            "wins": 8,
+            "draws": 4,
+            "losses": 10,
+            "goalsFor": 33,
+            "goalsAgainst": 43,
+            "points": 28,
+            "form": "LLDLL"
+          },
+          {
+            "id": "harwick-albion",
+            "name": "Harwick Albion",
+            "played": 22,
+            "wins": 6,
+            "draws": 5,
+            "losses": 11,
+            "goalsFor": 32,
+            "goalsAgainst": 33,
+            "points": 23,
+            "form": "LLDWW"
+          },
+          {
+            "id": "lowton-harriers",
+            "name": "Lowton Harriers",
+            "played": 22,
+            "wins": 3,
+            "draws": 12,
+            "losses": 7,
+            "goalsFor": 26,
+            "goalsAgainst": 34,
+            "points": 21,
+            "form": "WDDDL"
+          },
+          {
+            "id": "kestrel-park",
+            "name": "Kestrel Park",
+            "played": 22,
+            "wins": 4,
+            "draws": 6,
+            "losses": 12,
+            "goalsFor": 18,
+            "goalsAgainst": 35,
+            "points": 18,
+            "form": "LLDDL"
+          }
+        ],
+        "fixtures": [
+          {
+            "id": "ashford-rovers-vs-bexley-town",
+            "homeTeam": "Ashford Rovers",
+            "awayTeam": "Bexley Town",
+            "kickoff": "2026-07-11T12:00:00.000Z"
+          },
+          {
+            "id": "calder-united-vs-lowton-harriers",
+            "homeTeam": "Calder United",
+            "awayTeam": "Lowton Harriers",
+            "kickoff": "2026-07-11T13:30:00.000Z"
+          },
+          {
+            "id": "dunmore-city-vs-kestrel-park",
+            "homeTeam": "Dunmore City",
+            "awayTeam": "Kestrel Park",
+            "kickoff": "2026-07-11T15:00:00.000Z"
+          },
+          {
+            "id": "eastvale-athletic-vs-juniper-vale",
+            "homeTeam": "Eastvale Athletic",
+            "awayTeam": "Juniper Vale",
+            "kickoff": "2026-07-11T16:30:00.000Z"
+          },
+          {
+            "id": "farrow-wanderers-vs-ironbridge-fc",
+            "homeTeam": "Farrow Wanderers",
+            "awayTeam": "Ironbridge FC",
+            "kickoff": "2026-07-11T18:00:00.000Z"
+          },
+          {
+            "id": "gillside-fc-vs-harwick-albion",
+            "homeTeam": "Gillside FC",
+            "awayTeam": "Harwick Albion",
+            "kickoff": "2026-07-11T19:30:00.000Z"
+          }
+        ],
+        "markets": [
+          {
+            "fixtureId": "ashford-rovers-vs-bexley-town",
+            "homeTeam": "Ashford Rovers",
+            "awayTeam": "Bexley Town",
+            "kickoff": "2026-07-11T12:00:00.000Z",
+            "oneXTwo": {
+              "home": 2.33,
+              "draw": 3.99,
+              "away": 2.69
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.53,
+              "under": 2.57
+            }
+          },
+          {
+            "fixtureId": "calder-united-vs-lowton-harriers",
+            "homeTeam": "Calder United",
+            "awayTeam": "Lowton Harriers",
+            "kickoff": "2026-07-11T13:30:00.000Z",
+            "oneXTwo": {
+              "home": 1.54,
+              "draw": 4.62,
+              "away": 5.44
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.65,
+              "under": 2.29
+            }
+          },
+          {
+            "fixtureId": "dunmore-city-vs-kestrel-park",
+            "homeTeam": "Dunmore City",
+            "awayTeam": "Kestrel Park",
+            "kickoff": "2026-07-11T15:00:00.000Z",
+            "oneXTwo": {
+              "home": 2,
+              "draw": 3.51,
+              "away": 3.77
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 2.08,
+              "under": 1.77
+            }
+          },
+          {
+            "fixtureId": "eastvale-athletic-vs-juniper-vale",
+            "homeTeam": "Eastvale Athletic",
+            "awayTeam": "Juniper Vale",
+            "kickoff": "2026-07-11T16:30:00.000Z",
+            "oneXTwo": {
+              "home": 2.02,
+              "draw": 4.53,
+              "away": 2.99
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.39,
+              "under": 3.1
+            }
+          },
+          {
+            "fixtureId": "farrow-wanderers-vs-ironbridge-fc",
+            "homeTeam": "Farrow Wanderers",
+            "awayTeam": "Ironbridge FC",
+            "kickoff": "2026-07-11T18:00:00.000Z",
+            "oneXTwo": {
+              "home": 2,
+              "draw": 4.19,
+              "away": 3.22
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.56,
+              "under": 2.47
+            }
+          },
+          {
+            "fixtureId": "gillside-fc-vs-harwick-albion",
+            "homeTeam": "Gillside FC",
+            "awayTeam": "Harwick Albion",
+            "kickoff": "2026-07-11T19:30:00.000Z",
+            "oneXTwo": {
+              "home": 2.19,
+              "draw": 3.72,
+              "away": 3.08
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.76,
+              "under": 2.09
+            }
+          }
+        ],
+        "trueProbabilities": [
+          {
+            "fixtureId": "ashford-rovers-vs-bexley-town",
+            "home": 0.4195470021190195,
+            "draw": 0.23089307654667543,
+            "away": 0.3495599213343051,
+            "over25": 0.633165757866205
+          },
+          {
+            "fixtureId": "calder-united-vs-lowton-harriers",
+            "home": 0.624039648825549,
+            "draw": 0.2041764660311575,
+            "away": 0.17178388514329357,
+            "over25": 0.5927484888460912
+          },
+          {
+            "fixtureId": "dunmore-city-vs-kestrel-park",
+            "home": 0.49053718468396995,
+            "draw": 0.26027897148752627,
+            "away": 0.2491838438285038,
+            "over25": 0.45235601538981063
+          },
+          {
+            "fixtureId": "eastvale-athletic-vs-juniper-vale",
+            "home": 0.4687076582556471,
+            "draw": 0.21572493755702662,
+            "away": 0.31556740418732626,
+            "over25": 0.69683968802312
+          },
+          {
+            "fixtureId": "farrow-wanderers-vs-ironbridge-fc",
+            "home": 0.4787909221859403,
+            "draw": 0.229807257835573,
+            "away": 0.2914018199784867,
+            "over25": 0.6130584587035698
+          },
+          {
+            "fixtureId": "gillside-fc-vs-harwick-albion",
+            "home": 0.4303126776714092,
+            "draw": 0.24620398701991217,
+            "away": 0.3234833353086787,
+            "over25": 0.5520760510501703
+          }
+        ]
+      },
+      "overrides": []
+    },
+    "x-class-l3-page-size-2": {
+      "truth": {
+        "seed": 2263,
+        "league": {
+          "name": "Northern Premier Division",
+          "season": "2025/26",
+          "avgGoalsPerTeamPerGame": 1.32,
+          "trueHomeAdvantage": 1.14
+        },
+        "teams": [
+          {
+            "id": "gillside-fc",
+            "name": "Gillside FC",
+            "played": 22,
+            "wins": 14,
+            "draws": 5,
+            "losses": 3,
+            "goalsFor": 50,
+            "goalsAgainst": 19,
+            "points": 47,
+            "form": "WWWWW"
+          },
+          {
+            "id": "farrow-wanderers",
+            "name": "Farrow Wanderers",
+            "played": 22,
+            "wins": 14,
+            "draws": 4,
+            "losses": 4,
+            "goalsFor": 50,
+            "goalsAgainst": 32,
+            "points": 46,
+            "form": "WWWWL"
+          },
+          {
+            "id": "kestrel-park",
+            "name": "Kestrel Park",
+            "played": 22,
+            "wins": 10,
+            "draws": 6,
+            "losses": 6,
+            "goalsFor": 45,
+            "goalsAgainst": 38,
+            "points": 36,
+            "form": "WWDLL"
+          },
+          {
+            "id": "eastvale-athletic",
+            "name": "Eastvale Athletic",
+            "played": 22,
+            "wins": 10,
+            "draws": 4,
+            "losses": 8,
+            "goalsFor": 35,
+            "goalsAgainst": 32,
+            "points": 34,
+            "form": "LWLWD"
+          },
+          {
+            "id": "dunmore-city",
+            "name": "Dunmore City",
+            "played": 22,
+            "wins": 10,
+            "draws": 3,
+            "losses": 9,
+            "goalsFor": 42,
+            "goalsAgainst": 47,
+            "points": 33,
+            "form": "LLLWW"
+          },
+          {
+            "id": "juniper-vale",
+            "name": "Juniper Vale",
+            "played": 22,
+            "wins": 7,
+            "draws": 7,
+            "losses": 8,
+            "goalsFor": 34,
+            "goalsAgainst": 34,
+            "points": 28,
+            "form": "WLDLD"
+          },
+          {
+            "id": "lowton-harriers",
+            "name": "Lowton Harriers",
+            "played": 22,
+            "wins": 7,
+            "draws": 6,
+            "losses": 9,
+            "goalsFor": 41,
+            "goalsAgainst": 41,
+            "points": 27,
+            "form": "LWLLD"
+          },
+          {
+            "id": "harwick-albion",
+            "name": "Harwick Albion",
+            "played": 22,
+            "wins": 7,
+            "draws": 6,
+            "losses": 9,
+            "goalsFor": 31,
+            "goalsAgainst": 35,
+            "points": 27,
+            "form": "WWDDL"
+          },
+          {
+            "id": "ironbridge-fc",
+            "name": "Ironbridge FC",
+            "played": 22,
+            "wins": 7,
+            "draws": 6,
+            "losses": 9,
+            "goalsFor": 29,
+            "goalsAgainst": 35,
+            "points": 27,
+            "form": "LLDDW"
+          },
+          {
+            "id": "calder-united",
+            "name": "Calder United",
+            "played": 22,
+            "wins": 6,
+            "draws": 4,
+            "losses": 12,
+            "goalsFor": 25,
+            "goalsAgainst": 44,
+            "points": 22,
+            "form": "WLWLD"
+          },
+          {
+            "id": "ashford-rovers",
+            "name": "Ashford Rovers",
+            "played": 22,
+            "wins": 6,
+            "draws": 3,
+            "losses": 13,
+            "goalsFor": 30,
+            "goalsAgainst": 45,
+            "points": 21,
+            "form": "LLWWD"
+          },
+          {
+            "id": "bexley-town",
+            "name": "Bexley Town",
+            "played": 22,
+            "wins": 6,
+            "draws": 2,
+            "losses": 14,
+            "goalsFor": 38,
+            "goalsAgainst": 48,
+            "points": 20,
+            "form": "LLLLD"
+          }
+        ],
+        "fixtures": [
+          {
+            "id": "ashford-rovers-vs-dunmore-city",
+            "homeTeam": "Ashford Rovers",
+            "awayTeam": "Dunmore City",
+            "kickoff": "2026-07-11T12:00:00.000Z"
+          },
+          {
+            "id": "eastvale-athletic-vs-calder-united",
+            "homeTeam": "Eastvale Athletic",
+            "awayTeam": "Calder United",
+            "kickoff": "2026-07-11T13:30:00.000Z"
+          },
+          {
+            "id": "farrow-wanderers-vs-bexley-town",
+            "homeTeam": "Farrow Wanderers",
+            "awayTeam": "Bexley Town",
+            "kickoff": "2026-07-11T15:00:00.000Z"
+          },
+          {
+            "id": "gillside-fc-vs-lowton-harriers",
+            "homeTeam": "Gillside FC",
+            "awayTeam": "Lowton Harriers",
+            "kickoff": "2026-07-11T16:30:00.000Z"
+          },
+          {
+            "id": "harwick-albion-vs-kestrel-park",
+            "homeTeam": "Harwick Albion",
+            "awayTeam": "Kestrel Park",
+            "kickoff": "2026-07-11T18:00:00.000Z"
+          },
+          {
+            "id": "ironbridge-fc-vs-juniper-vale",
+            "homeTeam": "Ironbridge FC",
+            "awayTeam": "Juniper Vale",
+            "kickoff": "2026-07-11T19:30:00.000Z"
+          }
+        ],
+        "markets": [
+          {
+            "fixtureId": "ashford-rovers-vs-dunmore-city",
+            "homeTeam": "Ashford Rovers",
+            "awayTeam": "Dunmore City",
+            "kickoff": "2026-07-11T12:00:00.000Z",
+            "oneXTwo": {
+              "home": 1.97,
+              "draw": 4.89,
+              "away": 2.95
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.28,
+              "under": 3.79
+            }
+          },
+          {
+            "fixtureId": "eastvale-athletic-vs-calder-united",
+            "homeTeam": "Eastvale Athletic",
+            "awayTeam": "Calder United",
+            "kickoff": "2026-07-11T13:30:00.000Z",
+            "oneXTwo": {
+              "home": 1.82,
+              "draw": 4.19,
+              "away": 3.82
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.67,
+              "under": 2.24
+            }
+          },
+          {
+            "fixtureId": "farrow-wanderers-vs-bexley-town",
+            "homeTeam": "Farrow Wanderers",
+            "awayTeam": "Bexley Town",
+            "kickoff": "2026-07-11T15:00:00.000Z",
+            "oneXTwo": {
+              "home": 1.5,
+              "draw": 5.12,
+              "away": 5.26
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.37,
+              "under": 3.18
+            }
+          },
+          {
+            "fixtureId": "gillside-fc-vs-lowton-harriers",
+            "homeTeam": "Gillside FC",
+            "awayTeam": "Lowton Harriers",
+            "kickoff": "2026-07-11T16:30:00.000Z",
+            "oneXTwo": {
+              "home": 1.54,
+              "draw": 4.64,
+              "away": 5.39
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.49,
+              "under": 2.67
+            }
+          },
+          {
+            "fixtureId": "harwick-albion-vs-kestrel-park",
+            "homeTeam": "Harwick Albion",
+            "awayTeam": "Kestrel Park",
+            "kickoff": "2026-07-11T18:00:00.000Z",
+            "oneXTwo": {
+              "home": 2.69,
+              "draw": 3.97,
+              "away": 2.34
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.51,
+              "under": 2.6
+            }
+          },
+          {
+            "fixtureId": "ironbridge-fc-vs-juniper-vale",
+            "homeTeam": "Ironbridge FC",
+            "awayTeam": "Juniper Vale",
+            "kickoff": "2026-07-11T19:30:00.000Z",
+            "oneXTwo": {
+              "home": 2.4,
+              "draw": 4.16,
+              "away": 2.54
+            },
+            "totals": {
+              "line": 2.5,
+              "over": 1.64,
+              "under": 2.29
+            }
+          }
+        ],
+        "trueProbabilities": [
+          {
+            "fixtureId": "ashford-rovers-vs-dunmore-city",
+            "home": 0.4697369919443283,
+            "draw": 0.2057153677256609,
+            "away": 0.32454764033001077,
+            "over25": 0.7519645691002539
+          },
+          {
+            "fixtureId": "eastvale-athletic-vs-calder-united",
+            "home": 0.5404896937680322,
+            "draw": 0.22648622718925457,
+            "away": 0.2330240790427132,
+            "over25": 0.5780016712037752
+          },
+          {
+            "fixtureId": "farrow-wanderers-vs-bexley-town",
+            "home": 0.6240959132076394,
+            "draw": 0.18908524338737673,
+            "away": 0.18681884340498386,
+            "over25": 0.6927376932291057
+          },
+          {
+            "fixtureId": "gillside-fc-vs-lowton-harriers",
+            "home": 0.6331407896487761,
+            "draw": 0.1933064988104109,
+            "away": 0.17355271154081303,
+            "over25": 0.6478028388420988
+          },
+          {
+            "fixtureId": "harwick-albion-vs-kestrel-park",
+            "home": 0.3650190880597549,
+            "draw": 0.23344342145533037,
+            "away": 0.40153749048491466,
+            "over25": 0.6231621395449187
+          },
+          {
+            "fixtureId": "ironbridge-fc-vs-juniper-vale",
+            "home": 0.3896382557467308,
+            "draw": 0.23843706768472298,
+            "away": 0.3719246765685462,
+            "over25": 0.5989523997233164
+          }
+        ]
+      },
+      "overrides": []
+    }
+  },
+  "environment": {
+    "node": "v20.14.0",
+    "stagehandVersion": "3.6.0",
+    "stagehandModel": "anthropic/claude-haiku-4-5",
+    "modelProvider": "anthropic",
+    "browserbase": false,
+    "gitCommit": "22e0e49b37763ce6298c7cd9a9c1ca75ac65a79d",
+    "gitDirty": false,
+    "disableRepair": false,
+    "repairMode": "llm",
+    "seedCacheMode": "none",
+    "seedCacheHash": null,
+    "runPurpose": "cold",
+    "promptsHash": "5c07ce1fbc35431dce46022d8e4e23a52d5b649b7edd756abe19f1bf16345d99",
+    "lockfileHash": "b6f0dd3ad6190377983d2983cfae91216e98463d02b7b5a3948766263a2f0349",
+    "protocolId": "phase2a-v1",
+    "suiteHash": "a3e77433869ff77f513a0cdb435c5c46fd6627e6b0905be50fc20e1c129ab722",
+    "modelConfig": {
+      "temperature": null,
+      "temperatureSource": "provider-default"
+    },
+    "chromeVersion": "Chrome/150.0.7871.184",
+    "pricesPinnedAt": "2026-07-14",
+    "readinessMode": "any-row",
+    "campaignProtocolId": "phase2b-ablation-v1"
+  }
+}

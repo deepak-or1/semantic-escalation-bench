@@ -1,0 +1,7 @@
+{
+  "runId": "bench-2026-07-26T23-03-49-722Z",
+  "kind": "bench",
+  "createdAt": "2026-07-26T23:03:49.722Z",
+  "labUrl": "http://127.0.0.1:51147",
+  "description": "phase2b keyed C sweep-1 any-row"
+}

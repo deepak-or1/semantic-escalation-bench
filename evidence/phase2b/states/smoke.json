@@ -1,0 +1,36 @@
+{
+  "at": "2026-07-26T23:03:49.465Z",
+  "arm": "frozen",
+  "protocolId": "phase2a-v1",
+  "suiteHash": "a3e77433869ff77f513a0cdb435c5c46fd6627e6b0905be50fc20e1c129ab722",
+  "campaignProtocolId": "phase2b-ablation-v1",
+  "gitCommit": "22e0e49b37763ce6298c7cd9a9c1ca75ac65a79d",
+  "trials": [
+    {
+      "scenarioId": "x-class-l3-page-size-2",
+      "policy": "C",
+      "benchId": "bench-2026-07-26T23-02-46-689Z",
+      "dir": "/Users/deepakdalai/Documents/GitHub/semantic-escalation-bench/runs/bench-2026-07-26T23-02-46-689Z",
+      "outcome": "fail",
+      "healedSteps": [
+        "login",
+        "reveal-table"
+      ],
+      "chromeVersion": "Chrome/150.0.7871.184",
+      "passedCriteria": true,
+      "criterion": "must heal the login step via its repair path"
+    },
+    {
+      "scenarioId": "f1-class-l3-a",
+      "policy": "D",
+      "benchId": "bench-2026-07-26T23-03-30-319Z",
+      "dir": "/Users/deepakdalai/Documents/GitHub/semantic-escalation-bench/runs/bench-2026-07-26T23-03-30-319Z",
+      "outcome": "pass",
+      "healedSteps": [],
+      "chromeVersion": "Chrome/150.0.7871.184",
+      "passedCriteria": true,
+      "criterion": "must complete the full flow (outcome pass)"
+    }
+  ],
+  "ok": true
+}

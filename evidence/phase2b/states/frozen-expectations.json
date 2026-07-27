@@ -1,0 +1,18 @@
+{
+  "suiteHash": "a3e77433869ff77f513a0cdb435c5c46fd6627e6b0905be50fc20e1c129ab722",
+  "protocolId": "phase2a-v1",
+  "campaignProtocolId": "phase2b-ablation-v1",
+  "gitCommit": "22e0e49b37763ce6298c7cd9a9c1ca75ac65a79d",
+  "recordVersion": 2,
+  "arms": [
+    "frozen",
+    "any-row"
+  ],
+  "scheduleLength": 20,
+  "smoke": {
+    "cId": "x-class-l3-page-size-2",
+    "cMustHealLogin": true,
+    "dId": "f1-class-l3-a",
+    "dMustPass": true
+  }
+}
